@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="../BillWatch.Core/BillWatch.Core.csproj" />
+  <Project Path="../BillWatch.Tests/BillWatch.Tests.csproj" />
+  <Project Path="BillWatch.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
+</Solution>

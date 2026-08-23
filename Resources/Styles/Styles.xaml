@@ -1,0 +1,313 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- =====================================================
+         BILLWATCH DESIGN SYSTEM
+         ===================================================== -->
+
+    <!-- Brand -->
+    <Color x:Key="BrandPrimary">#7357E8</Color>
+    <Color x:Key="IncreaseColor">#E76B52</Color>
+    <Color x:Key="SuccessColor">#27834E</Color>
+
+    <!-- Light -->
+    <Color x:Key="LightPageBackground">#F7F8FA</Color>
+    <Color x:Key="LightCardBackground">#FFFFFF</Color>
+    <Color x:Key="LightPrimaryText">#17181C</Color>
+    <Color x:Key="LightSecondaryText">#70747D</Color>
+    <Color x:Key="LightMutedText">#858993</Color>
+    <Color x:Key="LightBorder">#E1E3E8</Color>
+    <Color x:Key="LightDivider">#ECEEF1</Color>
+
+    <!-- Dark -->
+    <Color x:Key="DarkPageBackground">#101114</Color>
+    <Color x:Key="DarkCardBackground">#1A1B1F</Color>
+    <Color x:Key="DarkPrimaryText">#FFFFFF</Color>
+    <Color x:Key="DarkSecondaryText">#A7AAB2</Color>
+    <Color x:Key="DarkMutedText">#8E9199</Color>
+    <Color x:Key="DarkBorder">#303238</Color>
+    <Color x:Key="DarkDivider">#2B2D32</Color>
+
+    <!-- =====================================================
+         PAGE
+         ===================================================== -->
+
+    <Style
+        x:Key="BillWatchPageStyle"
+        TargetType="ContentPage">
+
+        <Setter
+            Property="BackgroundColor"
+            Value="{AppThemeBinding Light={StaticResource LightPageBackground},
+                                    Dark={StaticResource DarkPageBackground}}" />
+
+        <Setter
+            Property="Shell.NavBarIsVisible"
+            Value="False" />
+
+    </Style>
+
+    <!-- =====================================================
+         TYPOGRAPHY
+         ===================================================== -->
+
+    <Style
+        x:Key="PrimaryTextStyle"
+        TargetType="Label">
+
+        <Setter
+            Property="TextColor"
+            Value="{AppThemeBinding Light={StaticResource LightPrimaryText},
+                                    Dark={StaticResource DarkPrimaryText}}" />
+
+    </Style>
+
+    <Style
+        x:Key="SecondaryTextStyle"
+        TargetType="Label">
+
+        <Setter
+            Property="TextColor"
+            Value="{AppThemeBinding Light={StaticResource LightSecondaryText},
+                                    Dark={StaticResource DarkSecondaryText}}" />
+
+    </Style>
+
+    <Style
+        x:Key="MutedTextStyle"
+        TargetType="Label">
+
+        <Setter
+            Property="TextColor"
+            Value="{AppThemeBinding Light={StaticResource LightMutedText},
+                                    Dark={StaticResource DarkMutedText}}" />
+
+    </Style>
+
+    <Style
+        x:Key="PageTitleStyle"
+        TargetType="Label"
+        BasedOn="{StaticResource PrimaryTextStyle}">
+
+        <Setter
+            Property="FontSize"
+            Value="36" />
+
+        <Setter
+            Property="FontAttributes"
+            Value="Bold" />
+
+        <Setter
+            Property="HorizontalTextAlignment"
+            Value="Center" />
+
+    </Style>
+
+    <Style
+        x:Key="SectionTitleStyle"
+        TargetType="Label"
+        BasedOn="{StaticResource PrimaryTextStyle}">
+
+        <Setter
+            Property="FontSize"
+            Value="20" />
+
+        <Setter
+            Property="FontAttributes"
+            Value="Bold" />
+
+    </Style>
+
+    <Style
+        x:Key="ItemTitleStyle"
+        TargetType="Label"
+        BasedOn="{StaticResource PrimaryTextStyle}">
+
+        <Setter
+            Property="FontSize"
+            Value="16" />
+
+        <Setter
+            Property="FontAttributes"
+            Value="Bold" />
+
+    </Style>
+
+    <Style
+        x:Key="BodyTextStyle"
+        TargetType="Label"
+        BasedOn="{StaticResource SecondaryTextStyle}">
+
+        <Setter
+            Property="FontSize"
+            Value="13" />
+
+    </Style>
+
+    <Style
+        x:Key="SmallTextStyle"
+        TargetType="Label"
+        BasedOn="{StaticResource SecondaryTextStyle}">
+
+        <Setter
+            Property="FontSize"
+            Value="12" />
+
+    </Style>
+
+    <Style
+        x:Key="BrandTextStyle"
+        TargetType="Label">
+
+        <Setter
+            Property="TextColor"
+            Value="{StaticResource BrandPrimary}" />
+
+        <Setter
+            Property="FontAttributes"
+            Value="Bold" />
+
+    </Style>
+
+    <Style
+        x:Key="IncreaseTextStyle"
+        TargetType="Label">
+
+        <Setter
+            Property="TextColor"
+            Value="{StaticResource IncreaseColor}" />
+
+        <Setter
+            Property="FontAttributes"
+            Value="Bold" />
+
+    </Style>
+
+    <!-- =====================================================
+         CARDS
+         ===================================================== -->
+
+    <Style
+        x:Key="CardStyle"
+        TargetType="Border">
+
+        <Setter
+            Property="Padding"
+            Value="24" />
+
+        <Setter
+            Property="StrokeThickness"
+            Value="1" />
+
+        <Setter
+            Property="Stroke"
+            Value="{AppThemeBinding Light={StaticResource LightBorder},
+                                    Dark={StaticResource DarkBorder}}" />
+
+        <Setter
+            Property="BackgroundColor"
+            Value="{AppThemeBinding Light={StaticResource LightCardBackground},
+                                    Dark={StaticResource DarkCardBackground}}" />
+
+    </Style>
+
+    <Style
+        x:Key="FlatCardStyle"
+        TargetType="Border">
+
+        <Setter
+            Property="Padding"
+            Value="20" />
+
+        <Setter
+            Property="StrokeThickness"
+            Value="0" />
+
+        <Setter
+            Property="BackgroundColor"
+            Value="{AppThemeBinding Light={StaticResource LightCardBackground},
+                                    Dark={StaticResource DarkCardBackground}}" />
+
+    </Style>
+
+    <!-- =====================================================
+         BADGES
+         ===================================================== -->
+
+    <Style
+        x:Key="BrandBadgeStyle"
+        TargetType="Border">
+
+        <Setter
+            Property="Padding"
+            Value="12,5" />
+
+        <Setter
+            Property="StrokeThickness"
+            Value="0" />
+
+        <Setter
+            Property="BackgroundColor"
+            Value="#EDE9FF" />
+
+    </Style>
+
+    <Style
+        x:Key="SuccessBadgeStyle"
+        TargetType="Border">
+
+        <Setter
+            Property="Padding"
+            Value="12,5" />
+
+        <Setter
+            Property="StrokeThickness"
+            Value="0" />
+
+        <Setter
+            Property="BackgroundColor"
+            Value="#E8F7EE" />
+
+    </Style>
+
+    <Style
+        x:Key="AlertBadgeStyle"
+        TargetType="Border">
+
+        <Setter
+            Property="Padding"
+            Value="8,3" />
+
+        <Setter
+            Property="StrokeThickness"
+            Value="0" />
+
+        <Setter
+            Property="BackgroundColor"
+            Value="#FFF0EC" />
+
+    </Style>
+
+    <!-- =====================================================
+         DIVIDERS
+         ===================================================== -->
+
+    <Style
+        x:Key="DividerStyle"
+        TargetType="BoxView">
+
+        <Setter
+            Property="HeightRequest"
+            Value="1" />
+
+        <Setter
+            Property="Color"
+            Value="{AppThemeBinding Light={StaticResource LightDivider},
+                                    Dark={StaticResource DarkDivider}}" />
+
+    </Style>
+
+</ResourceDictionary>
