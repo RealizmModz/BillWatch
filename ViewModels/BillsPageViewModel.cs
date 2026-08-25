@@ -1,137 +1,188 @@
-﻿using BillWatch.Core.Models;
-using BillWatch.Core.Services;
-using BillWatch.Services;
+﻿using BillWatch.Services;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace BillWatch.ViewModels;
 
-public sealed class BillsPageViewModel
+public sealed class BillsPageViewModel : INotifyPropertyChanged
 {
-    public int BillsMonitored { get; }
+    private readonly BillStreamService? _billStreamService;
 
-    public decimal MonthlyTotal { get; }
+    private int _billsMonitored;
+    private decimal _monthlyTotal;
+    private IReadOnlyList<BillListItem> _bills = [];
+    private bool _isLoading;
+    private string _errorMessage = string.Empty;
 
-    public IReadOnlyList<BillListItem> Bills { get; }
-
+    // Temporary constructor so the existing BillsPage still builds.
+    // We will remove this when we inject the ViewModel into the page.
     public BillsPageViewModel()
     {
-        var developmentDataService =
-            new DevelopmentDataService();
+    }
 
-        var transactions =
-            developmentDataService.GetTransactions();
+    public BillsPageViewModel(
+        BillStreamService billStreamService)
+    {
+        _billStreamService = billStreamService;
+    }
 
-        var statements =
-            developmentDataService.GetStatements();
+    public int BillsMonitored
+    {
+        get => _billsMonitored;
+        private set
+        {
+            if (_billsMonitored == value)
+            {
+                return;
+            }
 
-        var detectionService =
-            new RecurringBillDetectionService();
+            _billsMonitored = value;
+            OnPropertyChanged();
+        }
+    }
 
-        var detectedBills =
-            detectionService.Detect(transactions);
+    public decimal MonthlyTotal
+    {
+        get => _monthlyTotal;
+        private set
+        {
+            if (_monthlyTotal == value)
+            {
+                return;
+            }
 
-        var discoveryService =
-            new BillStreamDiscoveryService();
+            _monthlyTotal = value;
+            OnPropertyChanged();
+        }
+    }
 
-        var billStreams =
-            discoveryService.Discover(
-                transactions,
-                statements);
+    public IReadOnlyList<BillListItem> Bills
+    {
+        get => _bills;
+        private set
+        {
+            if (ReferenceEquals(_bills, value))
+            {
+                return;
+            }
 
-        var detectionsByProvider =
-            detectedBills.ToDictionary(
-                bill => bill.MerchantName,
-                StringComparer.OrdinalIgnoreCase);
+            _bills = value;
+            OnPropertyChanged();
+        }
+    }
 
-        Bills = billStreams
-            .Select(stream =>
-                CreateBillListItem(
-                    stream,
-                    detectionsByProvider))
-            .OrderByDescending(bill =>
-                bill.HasMeaningfulChange)
-            .ThenBy(bill =>
-                bill.ProviderName,
-                StringComparer.OrdinalIgnoreCase)
-            .ToList()
-            .AsReadOnly();
+    public bool IsLoading
+    {
+        get => _isLoading;
+        private set
+        {
+            if (_isLoading == value)
+            {
+                return;
+            }
 
-        BillsMonitored =
-            Bills.Count;
+            _isLoading = value;
+            OnPropertyChanged();
+        }
+    }
 
-        MonthlyTotal =
-            decimal.Round(
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set
+        {
+            if (_errorMessage == value)
+            {
+                return;
+            }
+
+            _errorMessage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasError));
+        }
+    }
+
+    public bool HasError =>
+        !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public async Task LoadAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (_billStreamService is null || IsLoading)
+        {
+            return;
+        }
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = string.Empty;
+
+            var billStreams =
+                await _billStreamService.GetBillStreamsAsync(
+                    cancellationToken);
+
+            Bills = billStreams
+                .Select(stream =>
+                    new BillListItem(
+                        ProviderName: stream.ProviderName,
+                        Category: FormatCategory(stream.Category),
+                        CurrentAmount: 0m,
+                        PreviousAverage: 0m,
+                        MonthlyChange: 0m,
+                        AnnualImpact: 0m,
+                        HasMeaningfulChange: false,
+                        Status: stream.IsActive
+                            ? "Watching"
+                            : "Inactive"))
+                .OrderBy(bill =>
+                    bill.ProviderName,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList()
+                .AsReadOnly();
+
+            BillsMonitored = Bills.Count;
+
+            MonthlyTotal = decimal.Round(
                 Bills.Sum(bill => bill.CurrentAmount),
                 2,
                 MidpointRounding.AwayFromZero);
-    }
-
-    private static BillListItem CreateBillListItem(
-        BillStream stream,
-        IReadOnlyDictionary<
-            string,
-            RecurringBillDetectionResult> detections)
-    {
-        detections.TryGetValue(
-            stream.ProviderName,
-            out var detection);
-
-        decimal currentAmount =
-            stream.LatestAmount ?? 0m;
-
-        decimal previousAverage =
-            detection?.AverageAmount ?? currentAmount;
-
-        decimal monthlyChange =
-            detection?.LatestDifference ?? 0m;
-
-        decimal annualImpact =
-            decimal.Round(
-                monthlyChange * 12m,
-                2,
-                MidpointRounding.AwayFromZero);
-
-        bool hasMeaningfulChange =
-            detection?.HasMeaningfulChange ?? false;
-
-        return new BillListItem(
-            ProviderName: stream.ProviderName,
-            Category: FormatCategory(stream.Category),
-            CurrentAmount: currentAmount,
-            PreviousAverage: previousAverage,
-            MonthlyChange: monthlyChange,
-            AnnualImpact: annualImpact,
-            HasMeaningfulChange: hasMeaningfulChange,
-            Status: hasMeaningfulChange
-                ? "Needs attention"
-                : "Watching");
+        }
+        catch (HttpRequestException)
+        {
+            ErrorMessage =
+                "Unable to load your bills from BillWatch.";
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Something went wrong while loading your bills.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     private static string FormatCategory(
-        BillCategory category)
+        string category)
     {
         return category switch
         {
-            BillCategory.Internet =>
-                "Internet",
-
-            BillCategory.MobilePhone =>
-                "Mobile phone",
-
-            BillCategory.Electricity =>
-                "Electricity",
-
-            BillCategory.NaturalGas =>
-                "Natural gas",
-
-            BillCategory.Utility =>
-                "Utility",
-
-            BillCategory.Other =>
-                "Other",
-
-            _ =>
-                "Unknown"
+            "MobilePhone" => "Mobile phone",
+            "NaturalGas" => "Natural gas",
+            _ => category
         };
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged(
+        [CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(propertyName));
     }
 }
 

@@ -33,9 +33,13 @@ public static class MauiProgram
         builder.Services.AddSingleton<BillWatchApiClient>();
         builder.Services.AddSingleton<AuthSession>();
         builder.Services.AddSingleton<AuthenticationService>();
+        builder.Services.AddSingleton<BillStreamService>();
 
         builder.Services.AddTransient<LoginPageViewModel>();
         builder.Services.AddTransient<LoginPage>();
+
+        builder.Services.AddTransient<BillsPageViewModel>();
+        builder.Services.AddTransient<BillsPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
