@@ -5,11 +5,27 @@ POST {{BillWatch_API_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "seconduser@billwatch.local",
-  "password": "BillWatch!Dev456"
+  "email": "devtest@billwatch.local",
+  "password": "BillWatch!Dev123"
 }
 
 ###
 
-GET {{BillWatch_API_HostAddress}}/api/bill-streams
+POST {{BillWatch_API_HostAddress}}/api/plaid/accounts/sync
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Content-Type: application/json
+
+{}
+
+###
+
+POST {{BillWatch_API_HostAddress}}/api/plaid/transactions/sync
+Authorization: Bearer {{login.response.body.$.accessToken}}
+Content-Type: application/json
+
+{}
+
+###
+
+GET {{BillWatch_API_HostAddress}}/api/bank-transactions?take=20
 Authorization: Bearer {{login.response.body.$.accessToken}}

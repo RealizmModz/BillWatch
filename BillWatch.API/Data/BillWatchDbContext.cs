@@ -41,6 +41,9 @@ public sealed class BillWatchDbContext
     public DbSet<BillAlertEntity> BillAlerts =>
         Set<BillAlertEntity>();
 
+    public DbSet<PlaidLinkSessionEntity> PlaidLinkSessions =>
+        Set<PlaidLinkSessionEntity>();
+
     protected override void OnModelCreating(
         ModelBuilder builder)
     {
@@ -55,6 +58,7 @@ public sealed class BillWatchDbContext
         ConfigureBillLineItem(builder);
         ConfigureBillChange(builder);
         ConfigureBillAlert(builder);
+        ConfigurePlaidLinkSession(builder);
     }
 
     private static void ConfigureApplicationUser(
@@ -695,6 +699,50 @@ public sealed class BillWatchDbContext
                         change.UserId
                     })
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+    }
+
+    private static void ConfigurePlaidLinkSession(
+        ModelBuilder builder)
+    {
+        builder.Entity<PlaidLinkSessionEntity>(
+            entity =>
+            {
+                entity.ToTable("PlaidLinkSessions");
+
+                entity.HasKey(session => session.Id);
+
+                entity.Property(session => session.ProtectedLinkToken)
+                    .HasMaxLength(4000)
+                    .IsRequired();
+
+                entity.Property(session => session.Status)
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(session => session.ExpiresAtUtc)
+                    .IsRequired();
+
+                entity.Property(session => session.CreatedAtUtc)
+                    .IsRequired();
+
+                entity.Property(session => session.UpdatedAtUtc)
+                    .IsRequired();
+
+                entity.HasIndex(session => session.UserId);
+
+                entity.HasIndex(session => new
+                {
+                    session.UserId,
+                    session.Status,
+                    session.ExpiresAtUtc
+                });
+
+                entity.HasOne(session => session.User)
+                    .WithMany()
+                    .HasForeignKey(session => session.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
     }
 }

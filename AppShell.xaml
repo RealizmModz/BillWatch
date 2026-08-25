@@ -14,6 +14,7 @@
         Shell.TabBarIsVisible="False" />
 
     <TabBar>
+
         <ShellContent
             Title="Home"
             Route="Home"
@@ -23,6 +24,17 @@
             Title="Bills"
             Route="Bills"
             ContentTemplate="{DataTemplate local:BillsPage}" />
+
+        <ShellContent
+            Title="Transactions"
+            Route="Transactions"
+            ContentTemplate="{DataTemplate local:TransactionsPage}" />
+
+        <ShellContent
+            Title="Connect"
+            Route="Connect"
+            ContentTemplate="{DataTemplate local:ConnectBankPage}" />
+
     </TabBar>
 
 </Shell>

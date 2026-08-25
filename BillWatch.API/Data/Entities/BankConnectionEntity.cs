@@ -19,6 +19,10 @@ public sealed class BankConnectionEntity
 
     public string? PlaidItemId { get; set; }
 
+    public string? ProtectedPlaidAccessToken { get; set; }
+
+    public string? TransactionsCursor { get; set; }
+
     public BankConnectionStatus Status { get; set; } =
         BankConnectionStatus.Active;
 

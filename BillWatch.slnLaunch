@@ -3,11 +3,6 @@
     "Name": "New Profile",
     "Projects": [
       {
-        "Path": "..\\BillWatch.API\\BillWatch.API.csproj",
-        "Action": "Start",
-        "DebugTarget": "http"
-      },
-      {
         "Path": "BillWatch.csproj",
         "Action": "Start",
         "DebugTarget": "Windows Machine"

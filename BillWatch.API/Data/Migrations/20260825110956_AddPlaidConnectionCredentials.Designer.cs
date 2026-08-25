@@ -3,6 +3,7 @@ using System;
 using BillWatch.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BillWatch.API.Data.Migrations
 {
     [DbContext(typeof(BillWatchDbContext))]
-    partial class BillWatchDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825110956_AddPlaidConnectionCredentials")]
+    partial class AddPlaidConnectionCredentials
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -582,46 +585,6 @@ namespace BillWatch.API.Data.Migrations
                     b.ToTable("BillStreams", (string)null);
                 });
 
-            modelBuilder.Entity("BillWatch.API.Data.Entities.PlaidLinkSessionEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("CompletedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("ExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ProtectedLinkToken")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTimeOffset>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "Status", "ExpiresAtUtc");
-
-                    b.ToTable("PlaidLinkSessions", (string)null);
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
                 {
                     b.Property<Guid>("Id")
@@ -916,17 +879,6 @@ namespace BillWatch.API.Data.Migrations
                 });
 
             modelBuilder.Entity("BillWatch.API.Data.Entities.BillStreamEntity", b =>
-                {
-                    b.HasOne("BillWatch.API.Data.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("BillWatch.API.Data.Entities.PlaidLinkSessionEntity", b =>
                 {
                     b.HasOne("BillWatch.API.Data.Entities.ApplicationUser", "User")
                         .WithMany()

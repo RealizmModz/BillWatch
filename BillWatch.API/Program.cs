@@ -1,5 +1,6 @@
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
+using BillWatch.API.Services.Plaid;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,19 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDataProtection();
 builder.Services.AddAuthorization();
+
+builder.Services.Configure<PlaidOptions>(
+    builder.Configuration.GetSection(
+        PlaidOptions.SectionName));
+
+builder.Services.AddHttpClient<PlaidApiClient>();
+
+builder.Services.AddScoped<PlaidLinkService>();
+builder.Services.AddScoped<PlaidTokenProtector>();
+builder.Services.AddScoped<PlaidConnectionExchangeService>();
+builder.Services.AddScoped<PlaidHostedLinkCompletionService>();
+builder.Services.AddScoped<PlaidAccountSyncService>();
+builder.Services.AddScoped<PlaidTransactionSyncService>();
 
 var connectionString =
     builder.Configuration.GetConnectionString("BillWatchDatabase")

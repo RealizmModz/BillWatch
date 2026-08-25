@@ -8,32 +8,37 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
-        var builder = MauiApp.CreateBuilder();
+        var builder =
+            MauiApp.CreateBuilder();
 
         builder
             .UseMauiApp<App>()
-            .ConfigureFonts(fonts =>
-            {
-                fonts.AddFont(
-                    "OpenSans-Regular.ttf",
-                    "OpenSansRegular");
+            .ConfigureFonts(
+                fonts =>
+                {
+                    fonts.AddFont(
+                        "OpenSans-Regular.ttf",
+                        "OpenSansRegular");
 
-                fonts.AddFont(
-                    "OpenSans-Semibold.ttf",
-                    "OpenSansSemibold");
-            });
+                    fonts.AddFont(
+                        "OpenSans-Semibold.ttf",
+                        "OpenSansSemibold");
+                });
 
         builder.Services.AddSingleton(
             new HttpClient
             {
-                BaseAddress = new Uri(
-                    "https://localhost:7243")
+                BaseAddress =
+                    new Uri(
+                        "https://localhost:7243")
             });
 
         builder.Services.AddSingleton<BillWatchApiClient>();
         builder.Services.AddSingleton<AuthSession>();
         builder.Services.AddSingleton<AuthenticationService>();
         builder.Services.AddSingleton<BillStreamService>();
+        builder.Services.AddSingleton<PlaidConnectionService>();
+        builder.Services.AddSingleton<BankDataService>();
 
         builder.Services.AddTransient<LoginPageViewModel>();
         builder.Services.AddTransient<LoginPage>();
@@ -43,6 +48,12 @@ public static class MauiProgram
 
         builder.Services.AddTransient<BillsPageViewModel>();
         builder.Services.AddTransient<BillsPage>();
+
+        builder.Services.AddTransient<ConnectBankPageViewModel>();
+        builder.Services.AddTransient<ConnectBankPage>();
+
+        builder.Services.AddTransient<TransactionsPageViewModel>();
+        builder.Services.AddTransient<TransactionsPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();
