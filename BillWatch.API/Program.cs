@@ -1,5 +1,6 @@
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
+using BillWatch.API.Services.Bills;
 using BillWatch.API.Services.Plaid;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -25,6 +26,8 @@ builder.Services.AddScoped<PlaidConnectionExchangeService>();
 builder.Services.AddScoped<PlaidHostedLinkCompletionService>();
 builder.Services.AddScoped<PlaidAccountSyncService>();
 builder.Services.AddScoped<PlaidTransactionSyncService>();
+
+builder.Services.AddScoped<RecurringBillDiscoveryPersistenceService>();
 
 var connectionString =
     builder.Configuration.GetConnectionString("BillWatchDatabase")

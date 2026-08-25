@@ -11,21 +11,10 @@ Content-Type: application/json
 
 ###
 
-POST {{BillWatch_API_HostAddress}}/api/plaid/accounts/sync
+GET {{BillWatch_API_HostAddress}}/api/bill-streams
 Authorization: Bearer {{login.response.body.$.accessToken}}
-Content-Type: application/json
-
-{}
 
 ###
 
-POST {{BillWatch_API_HostAddress}}/api/plaid/transactions/sync
-Authorization: Bearer {{login.response.body.$.accessToken}}
-Content-Type: application/json
-
-{}
-
-###
-
-GET {{BillWatch_API_HostAddress}}/api/bank-transactions?take=20
+GET {{BillWatch_API_HostAddress}}/api/bill-streams?includeInactive=true
 Authorization: Bearer {{login.response.body.$.accessToken}}
