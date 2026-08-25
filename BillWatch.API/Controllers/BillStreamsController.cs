@@ -39,16 +39,63 @@ public sealed class BillStreamsController : ControllerBase
             .AsNoTracking()
             .Where(stream => stream.UserId == userId)
             .OrderBy(stream => stream.ProviderName)
-            .Select(stream => new
-            {
-                stream.Id,
-                stream.ProviderName,
-                Category = stream.Category.ToString(),
-                stream.IsActive
-            })
             .ToListAsync(cancellationToken);
 
-        return Ok(billStreams);
+        var transactions = await _dbContext.BankTransactions
+            .AsNoTracking()
+            .Where(transaction =>
+                transaction.UserId == userId &&
+                transaction.BillStreamId != null &&
+                !transaction.IsPending &&
+                !transaction.IsRemoved)
+            .OrderByDescending(transaction => transaction.PostedDate)
+            .ThenByDescending(transaction => transaction.UpdatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+        var results = billStreams
+            .Select(stream =>
+            {
+                var streamTransactions = transactions
+                    .Where(transaction =>
+                        transaction.BillStreamId == stream.Id)
+                    .ToList();
+
+                var latestTransaction =
+                    streamTransactions.FirstOrDefault();
+
+                var previousTransactions =
+                    streamTransactions.Skip(1).ToList();
+
+                var currentAmount =
+                    latestTransaction?.Amount ?? 0m;
+
+                var previousAverage =
+                    previousTransactions.Count == 0
+                        ? 0m
+                        : previousTransactions.Average(
+                            transaction => transaction.Amount);
+
+                return new
+                {
+                    stream.Id,
+                    stream.ProviderName,
+                    Category = stream.Category.ToString(),
+                    stream.IsActive,
+
+                    CurrentAmount = decimal.Round(
+                        currentAmount,
+                        2,
+                        MidpointRounding.AwayFromZero),
+
+                    PreviousAverage = decimal.Round(
+                        previousAverage,
+                        2,
+                        MidpointRounding.AwayFromZero)
+                };
+            })
+            .ToList();
+
+        return Ok(results);
     }
 
     [HttpPost]

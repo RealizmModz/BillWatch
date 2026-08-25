@@ -6,19 +6,13 @@ namespace BillWatch.ViewModels;
 
 public sealed class BillsPageViewModel : INotifyPropertyChanged
 {
-    private readonly BillStreamService? _billStreamService;
+    private readonly BillStreamService _billStreamService;
 
     private int _billsMonitored;
     private decimal _monthlyTotal;
     private IReadOnlyList<BillListItem> _bills = [];
     private bool _isLoading;
     private string _errorMessage = string.Empty;
-
-    // Temporary constructor so the existing BillsPage still builds.
-    // We will remove this when we inject the ViewModel into the page.
-    public BillsPageViewModel()
-    {
-    }
 
     public BillsPageViewModel(
         BillStreamService billStreamService)
@@ -108,7 +102,7 @@ public sealed class BillsPageViewModel : INotifyPropertyChanged
     public async Task LoadAsync(
         CancellationToken cancellationToken = default)
     {
-        if (_billStreamService is null || IsLoading)
+        if (IsLoading)
         {
             return;
         }
@@ -124,19 +118,43 @@ public sealed class BillsPageViewModel : INotifyPropertyChanged
 
             Bills = billStreams
                 .Select(stream =>
-                    new BillListItem(
+                {
+                    var monthlyChange =
+                        decimal.Round(
+                            stream.CurrentAmount -
+                            stream.PreviousAverage,
+                            2,
+                            MidpointRounding.AwayFromZero);
+
+                    var annualImpact =
+                        decimal.Round(
+                            monthlyChange * 12m,
+                            2,
+                            MidpointRounding.AwayFromZero);
+
+                    var hasMeaningfulChange =
+                        stream.PreviousAverage > 0m &&
+                        Math.Abs(monthlyChange) >= 5m &&
+                        Math.Abs(
+                            monthlyChange /
+                            stream.PreviousAverage) >= 0.10m;
+
+                    return new BillListItem(
                         ProviderName: stream.ProviderName,
                         Category: FormatCategory(stream.Category),
-                        CurrentAmount: 0m,
-                        PreviousAverage: 0m,
-                        MonthlyChange: 0m,
-                        AnnualImpact: 0m,
-                        HasMeaningfulChange: false,
-                        Status: stream.IsActive
-                            ? "Watching"
-                            : "Inactive"))
-                .OrderBy(bill =>
-                    bill.ProviderName,
+                        CurrentAmount: stream.CurrentAmount,
+                        PreviousAverage: stream.PreviousAverage,
+                        MonthlyChange: monthlyChange,
+                        AnnualImpact: annualImpact,
+                        HasMeaningfulChange: hasMeaningfulChange,
+                        Status: hasMeaningfulChange
+                            ? "Changed"
+                            : stream.IsActive
+                                ? "Watching"
+                                : "Inactive");
+                })
+                .OrderBy(
+                    bill => bill.ProviderName,
                     StringComparer.OrdinalIgnoreCase)
                 .ToList()
                 .AsReadOnly();

@@ -52,7 +52,7 @@
 
             </Grid>
 
-            <!-- Main Content -->
+            <!-- Main content -->
             <VerticalStackLayout
                 Grid.Row="1"
                 Margin="0,42,0,40"
@@ -60,7 +60,7 @@
                 HorizontalOptions="Center"
                 Spacing="20">
 
-                <!-- Dashboard -->
+                <!-- Overview -->
                 <VerticalStackLayout Spacing="6">
 
                     <Label
@@ -75,7 +75,7 @@
 
                 </VerticalStackLayout>
 
-                <!-- Main dashboard total -->
+                <!-- Main total -->
                 <Border
                     Style="{StaticResource CardStyle}"
                     StrokeShape="RoundRectangle 22">
@@ -128,7 +128,7 @@
 
                 </Border>
 
-                <!-- Dashboard stats -->
+                <!-- Stats -->
                 <Grid
                     ColumnDefinitions="*,*"
                     ColumnSpacing="14">
@@ -179,140 +179,13 @@
 
                 </Grid>
 
-                <!-- Needs Attention -->
-                <Border
-                    Style="{StaticResource CardStyle}"
-                    StrokeShape="RoundRectangle 22">
-
-                    <VerticalStackLayout Spacing="18">
-
-                        <Grid ColumnDefinitions="*,Auto">
-
-                            <VerticalStackLayout Spacing="4">
-
-                                <Label
-                                    Text="Needs attention"
-                                    Style="{StaticResource SectionTitleStyle}" />
-
-                                <Label
-                                    Text="Meaningful bill changes detected"
-                                    Style="{StaticResource BodyTextStyle}" />
-
-                            </VerticalStackLayout>
-
-                            <Border
-                                Grid.Column="1"
-                                Style="{StaticResource AlertBadgeStyle}"
-                                StrokeShape="RoundRectangle 20"
-                                VerticalOptions="Center">
-
-                                <Label
-                                    Text="{Binding AlertsFound}"
-                                    FontSize="15"
-                                    FontAttributes="Bold"
-                                    TextColor="#D9573F" />
-
-                            </Border>
-
-                        </Grid>
-
-                        <BoxView Style="{StaticResource DividerStyle}" />
-
-                        <VerticalStackLayout
-                            BindableLayout.ItemsSource="{Binding Alerts}"
-                            Spacing="0">
-
-                            <BindableLayout.ItemTemplate>
-
-                                <DataTemplate>
-
-                                    <Grid
-                                        Padding="0,14"
-                                        ColumnDefinitions="*,Auto">
-
-                                        <VerticalStackLayout Spacing="5">
-
-                                            <HorizontalStackLayout Spacing="8">
-
-                                                <Label
-                                                    Text="{Binding MerchantName}"
-                                                    Style="{StaticResource ItemTitleStyle}" />
-
-                                                <Border
-                                                    Style="{StaticResource AlertBadgeStyle}"
-                                                    StrokeShape="RoundRectangle 12">
-
-                                                    <Label
-                                                        Text="{Binding AlertType}"
-                                                        FontSize="10"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#D9573F" />
-
-                                                </Border>
-
-                                            </HorizontalStackLayout>
-
-                                            <Label
-                                                Text="{Binding PreviousAverage, StringFormat='Previous average ${0:F2}'}"
-                                                Style="{StaticResource SmallTextStyle}" />
-
-                                            <HorizontalStackLayout Spacing="12">
-
-                                                <Label
-                                                    Text="{Binding MonthlyImpact, StringFormat='+${0:F2}/mo'}"
-                                                    FontSize="13"
-                                                    Style="{StaticResource IncreaseTextStyle}" />
-
-                                                <Label
-                                                    Text="{Binding AnnualImpact, StringFormat='+${0:F2}/yr'}"
-                                                    FontSize="13"
-                                                    Style="{StaticResource IncreaseTextStyle}" />
-
-                                            </HorizontalStackLayout>
-
-                                        </VerticalStackLayout>
-
-                                        <VerticalStackLayout
-                                            Grid.Column="1"
-                                            Margin="20,0,0,0"
-                                            HorizontalOptions="End"
-                                            VerticalOptions="Center"
-                                            Spacing="2">
-
-                                            <Label
-                                                Text="{Binding CurrentAmount, StringFormat='${0:F2}'}"
-                                                FontSize="18"
-                                                FontAttributes="Bold"
-                                                HorizontalTextAlignment="End"
-                                                Style="{StaticResource PrimaryTextStyle}" />
-
-                                            <Label
-                                                Text="{Binding PercentageChange, StringFormat='{0:F1}% change'}"
-                                                FontSize="11"
-                                                HorizontalTextAlignment="End"
-                                                TextColor="{StaticResource IncreaseColor}" />
-
-                                        </VerticalStackLayout>
-
-                                    </Grid>
-
-                                </DataTemplate>
-
-                            </BindableLayout.ItemTemplate>
-
-                        </VerticalStackLayout>
-
-                    </VerticalStackLayout>
-
-                </Border>
-
-                <!-- Featured Change -->
+                <!-- Current bill -->
                 <BoxView
-                    Margin="0,14"
+                    Margin="0,12"
                     Style="{StaticResource DividerStyle}" />
 
                 <Label
-                    Text="Latest detailed change"
+                    Text="Current bill"
                     Style="{StaticResource SectionTitleStyle}" />
 
                 <Label
@@ -322,84 +195,96 @@
                     Style="{StaticResource BrandTextStyle}" />
 
                 <Label
-                    Text="Bill change detected"
+                    Text="{Binding DetailedChangeTitle}"
                     Style="{StaticResource PageTitleStyle}" />
 
-                <HorizontalStackLayout
-                    HorizontalOptions="Center"
-                    Spacing="14">
+                <Label
+                    Text="{Binding Summary}"
+                    HorizontalTextAlignment="Center"
+                    Style="{StaticResource BodyTextStyle}" />
 
-                    <Label
-                        Text="{Binding PreviousAmount, StringFormat='${0:F2}'}"
-                        FontSize="24"
-                        TextDecorations="Strikethrough"
-                        Style="{StaticResource MutedTextStyle}" />
+                <!-- Only show comparison when a real change exists -->
+                <VerticalStackLayout
+                    IsVisible="{Binding HasDetailedChange}"
+                    Spacing="20">
 
-                    <Label
-                        Text="→"
-                        FontSize="24"
-                        Style="{StaticResource MutedTextStyle}" />
+                    <HorizontalStackLayout
+                        HorizontalOptions="Center"
+                        Spacing="14">
 
-                    <Label
-                        Text="{Binding CurrentAmount, StringFormat='${0:F2}'}"
-                        FontSize="30"
-                        FontAttributes="Bold"
-                        Style="{StaticResource PrimaryTextStyle}" />
+                        <Label
+                            Text="{Binding PreviousAmount, StringFormat='${0:F2}'}"
+                            FontSize="24"
+                            TextDecorations="Strikethrough"
+                            Style="{StaticResource MutedTextStyle}" />
 
-                </HorizontalStackLayout>
+                        <Label
+                            Text="→"
+                            FontSize="24"
+                            Style="{StaticResource MutedTextStyle}" />
 
-                <!-- Impact -->
-                <Grid
-                    ColumnDefinitions="*,*"
-                    ColumnSpacing="14">
+                        <Label
+                            Text="{Binding CurrentAmount, StringFormat='${0:F2}'}"
+                            FontSize="30"
+                            FontAttributes="Bold"
+                            Style="{StaticResource PrimaryTextStyle}" />
 
-                    <Border
-                        Style="{StaticResource FlatCardStyle}"
-                        StrokeShape="RoundRectangle 20">
+                    </HorizontalStackLayout>
 
-                        <VerticalStackLayout Spacing="6">
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="14">
 
-                            <Label
-                                Text="MONTHLY IMPACT"
-                                FontSize="11"
-                                FontAttributes="Bold"
-                                Style="{StaticResource SecondaryTextStyle}" />
+                        <Border
+                            Style="{StaticResource FlatCardStyle}"
+                            StrokeShape="RoundRectangle 20">
 
-                            <Label
-                                Text="{Binding MonthlyChange, StringFormat='+${0:F2}'}"
-                                FontSize="28"
-                                Style="{StaticResource IncreaseTextStyle}" />
+                            <VerticalStackLayout Spacing="6">
 
-                        </VerticalStackLayout>
+                                <Label
+                                    Text="MONTHLY IMPACT"
+                                    FontSize="11"
+                                    FontAttributes="Bold"
+                                    Style="{StaticResource SecondaryTextStyle}" />
 
-                    </Border>
+                                <Label
+                                    Text="{Binding MonthlyChange, StringFormat='+${0:F2}'}"
+                                    FontSize="28"
+                                    Style="{StaticResource IncreaseTextStyle}" />
 
-                    <Border
-                        Grid.Column="1"
-                        Style="{StaticResource FlatCardStyle}"
-                        StrokeShape="RoundRectangle 20">
+                            </VerticalStackLayout>
 
-                        <VerticalStackLayout Spacing="6">
+                        </Border>
 
-                            <Label
-                                Text="ANNUAL IMPACT"
-                                FontSize="11"
-                                FontAttributes="Bold"
-                                Style="{StaticResource SecondaryTextStyle}" />
+                        <Border
+                            Grid.Column="1"
+                            Style="{StaticResource FlatCardStyle}"
+                            StrokeShape="RoundRectangle 20">
 
-                            <Label
-                                Text="{Binding AnnualChange, StringFormat='+${0:F2}'}"
-                                FontSize="28"
-                                Style="{StaticResource IncreaseTextStyle}" />
+                            <VerticalStackLayout Spacing="6">
 
-                        </VerticalStackLayout>
+                                <Label
+                                    Text="ANNUAL IMPACT"
+                                    FontSize="11"
+                                    FontAttributes="Bold"
+                                    Style="{StaticResource SecondaryTextStyle}" />
 
-                    </Border>
+                                <Label
+                                    Text="{Binding AnnualChange, StringFormat='+${0:F2}'}"
+                                    FontSize="28"
+                                    Style="{StaticResource IncreaseTextStyle}" />
 
-                </Grid>
+                            </VerticalStackLayout>
 
-                <!-- Why It Changed -->
+                        </Border>
+
+                    </Grid>
+
+                </VerticalStackLayout>
+
+                <!-- Explanation -->
                 <Border
+                    IsVisible="{Binding HasDetailedChange}"
                     Style="{StaticResource CardStyle}"
                     StrokeShape="RoundRectangle 22">
 
@@ -481,99 +366,23 @@
                     Style="{StaticResource CardStyle}"
                     StrokeShape="RoundRectangle 22">
 
-                    <VerticalStackLayout Spacing="16">
+                    <VerticalStackLayout Spacing="18">
 
                         <Label
                             Text="Sources"
                             Style="{StaticResource SectionTitleStyle}" />
 
-                        <Grid ColumnDefinitions="*,Auto">
-
-                            <VerticalStackLayout Spacing="3">
-
-                                <Label
-                                    Text="Bank transaction"
-                                    FontSize="15"
-                                    FontAttributes="Bold"
-                                    Style="{StaticResource PrimaryTextStyle}" />
-
-                                <Label
-                                    Text="{Binding BankTransactionAmount, StringFormat='Midco charged ${0:F2}'}"
-                                    Style="{StaticResource BodyTextStyle}" />
-
-                            </VerticalStackLayout>
-
-                            <Border
-                                Grid.Column="1"
-                                Style="{StaticResource SuccessBadgeStyle}"
-                                StrokeShape="RoundRectangle 20"
-                                VerticalOptions="Center">
-
-                                <Label
-                                    Text="{Binding BankTransactionStatus}"
-                                    FontSize="12"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource SuccessColor}" />
-
-                            </Border>
-
-                        </Grid>
-
-                        <BoxView Style="{StaticResource DividerStyle}" />
-
-                        <Grid ColumnDefinitions="*,Auto">
-
-                            <VerticalStackLayout Spacing="3">
-
-                                <Label
-                                    Text="Current statement"
-                                    FontSize="15"
-                                    FontAttributes="Bold"
-                                    Style="{StaticResource PrimaryTextStyle}" />
-
-                                <Label
-                                    Text="{Binding CurrentAmount, StringFormat='Statement total ${0:F2}'}"
-                                    Style="{StaticResource BodyTextStyle}" />
-
-                            </VerticalStackLayout>
-
-                            <Border
-                                Grid.Column="1"
-                                Style="{StaticResource SuccessBadgeStyle}"
-                                StrokeShape="RoundRectangle 20"
-                                VerticalOptions="Center">
-
-                                <Label
-                                    Text="Matched"
-                                    FontSize="12"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource SuccessColor}" />
-
-                            </Border>
-
-                        </Grid>
-
-                    </VerticalStackLayout>
-
-                </Border>
-
-                <!-- Recurring Bills -->
-                <Border
-                    Style="{StaticResource CardStyle}"
-                    StrokeShape="RoundRectangle 22">
-
-                    <VerticalStackLayout Spacing="18">
-
+                        <!-- Bank transaction -->
                         <Grid ColumnDefinitions="*,Auto">
 
                             <VerticalStackLayout Spacing="4">
 
                                 <Label
-                                    Text="Recurring bills"
-                                    Style="{StaticResource SectionTitleStyle}" />
+                                    Text="Bank transaction"
+                                    Style="{StaticResource ItemTitleStyle}" />
 
                                 <Label
-                                    Text="Automatically detected from transaction history"
+                                    Text="{Binding BankTransactionDescription}"
                                     Style="{StaticResource BodyTextStyle}" />
 
                             </VerticalStackLayout>
@@ -585,8 +394,8 @@
                                 VerticalOptions="Center">
 
                                 <Label
-                                    Text="{Binding RecurringBillsFound}"
-                                    FontSize="15"
+                                    Text="{Binding BankTransactionStatus}"
+                                    FontSize="12"
                                     Style="{StaticResource BrandTextStyle}" />
 
                             </Border>
@@ -595,129 +404,54 @@
 
                         <BoxView Style="{StaticResource DividerStyle}" />
 
-                        <VerticalStackLayout
-                            BindableLayout.ItemsSource="{Binding RecurringBills}"
-                            Spacing="0">
+                        <!-- Provider statement -->
+                        <Grid ColumnDefinitions="*,Auto">
 
-                            <BindableLayout.ItemTemplate>
+                            <VerticalStackLayout Spacing="4">
 
-                                <DataTemplate>
+                                <Label
+                                    Text="Provider statement"
+                                    Style="{StaticResource ItemTitleStyle}" />
 
-                                    <Grid
-                                        Padding="0,14"
-                                        ColumnDefinitions="*,Auto">
+                                <Label
+                                    Text="{Binding StatementDescription}"
+                                    Style="{StaticResource BodyTextStyle}" />
 
-                                        <VerticalStackLayout Spacing="5">
+                            </VerticalStackLayout>
 
-                                            <HorizontalStackLayout Spacing="8">
+                            <Border
+                                Grid.Column="1"
+                                Style="{StaticResource BrandBadgeStyle}"
+                                StrokeShape="RoundRectangle 20"
+                                VerticalOptions="Center">
 
-                                                <Label
-                                                    Text="{Binding MerchantName}"
-                                                    Style="{StaticResource ItemTitleStyle}" />
+                                <Label
+                                    Text="{Binding StatementStatus}"
+                                    FontSize="12"
+                                    Style="{StaticResource BrandTextStyle}" />
 
-                                                <Border
-                                                    Style="{StaticResource AlertBadgeStyle}"
-                                                    StrokeShape="RoundRectangle 12">
+                            </Border>
 
-                                                    <Border.Triggers>
+                        </Grid>
 
-                                                        <DataTrigger
-                                                            TargetType="Border"
-                                                            Binding="{Binding HasMeaningfulChange}"
-                                                            Value="False">
+                    </VerticalStackLayout>
 
-                                                            <Setter
-                                                                Property="IsVisible"
-                                                                Value="False" />
+                </Border>
 
-                                                        </DataTrigger>
+                <!-- Current system state -->
+                <Border
+                    Style="{StaticResource FlatCardStyle}"
+                    StrokeShape="RoundRectangle 20">
 
-                                                    </Border.Triggers>
+                    <VerticalStackLayout Spacing="8">
 
-                                                    <Label
-                                                        Text="Changed"
-                                                        FontSize="10"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#D9573F" />
+                        <Label
+                            Text="BillWatch is learning"
+                            Style="{StaticResource ItemTitleStyle}" />
 
-                                                </Border>
-
-                                            </HorizontalStackLayout>
-
-                                            <HorizontalStackLayout Spacing="8">
-
-                                                <Label
-                                                    Text="{Binding Frequency}"
-                                                    FontSize="12"
-                                                    TextColor="{StaticResource BrandPrimary}" />
-
-                                                <Label
-                                                    Text="•"
-                                                    Style="{StaticResource SmallTextStyle}" />
-
-                                                <Label
-                                                    Text="{Binding TransactionCount, StringFormat='{0} charges found'}"
-                                                    Style="{StaticResource SmallTextStyle}" />
-
-                                            </HorizontalStackLayout>
-
-                                            <Label
-                                                Text="{Binding AverageAmount, StringFormat='Previous average ${0:F2}'}"
-                                                Style="{StaticResource SmallTextStyle}" />
-
-                                            <Label
-                                                Text="{Binding LatestDifference, StringFormat='Latest change: +${0:F2}'}"
-                                                FontSize="12"
-                                                Style="{StaticResource IncreaseTextStyle}">
-
-                                                <Label.Triggers>
-
-                                                    <DataTrigger
-                                                        TargetType="Label"
-                                                        Binding="{Binding HasMeaningfulChange}"
-                                                        Value="False">
-
-                                                        <Setter
-                                                            Property="IsVisible"
-                                                            Value="False" />
-
-                                                    </DataTrigger>
-
-                                                </Label.Triggers>
-
-                                            </Label>
-
-                                        </VerticalStackLayout>
-
-                                        <VerticalStackLayout
-                                            Grid.Column="1"
-                                            Margin="20,0,0,0"
-                                            HorizontalOptions="End"
-                                            VerticalOptions="Center"
-                                            Spacing="2">
-
-                                            <Label
-                                                Text="{Binding LatestAmount, StringFormat='${0:F2}'}"
-                                                FontSize="18"
-                                                FontAttributes="Bold"
-                                                HorizontalTextAlignment="End"
-                                                Style="{StaticResource PrimaryTextStyle}" />
-
-                                            <Label
-                                                Text="Latest"
-                                                FontSize="11"
-                                                HorizontalTextAlignment="End"
-                                                Style="{StaticResource SecondaryTextStyle}" />
-
-                                        </VerticalStackLayout>
-
-                                    </Grid>
-
-                                </DataTemplate>
-
-                            </BindableLayout.ItemTemplate>
-
-                        </VerticalStackLayout>
+                        <Label
+                            Text="As real transactions and provider statements arrive, BillWatch will build bill history and explain meaningful changes here."
+                            Style="{StaticResource BodyTextStyle}" />
 
                     </VerticalStackLayout>
 

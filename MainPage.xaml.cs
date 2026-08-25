@@ -4,10 +4,21 @@ namespace BillWatch;
 
 public partial class MainPage : ContentPage
 {
-    public MainPage()
+    private readonly MainPageViewModel _viewModel;
+
+    public MainPage(
+        MainPageViewModel viewModel)
     {
         InitializeComponent();
 
-        BindingContext = new MainPageViewModel();
+        _viewModel = viewModel;
+        BindingContext = _viewModel;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        await _viewModel.LoadAsync();
     }
 }

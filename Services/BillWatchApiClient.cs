@@ -74,4 +74,6 @@ public sealed record BillStreamResult(
     Guid Id,
     string ProviderName,
     string Category,
-    bool IsActive);
+    bool IsActive,
+    decimal CurrentAmount,
+    decimal PreviousAverage);

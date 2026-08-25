@@ -1,184 +1,306 @@
 ﻿using BillWatch.Core.Models;
 using BillWatch.Core.Services;
 using BillWatch.Services;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace BillWatch.ViewModels;
 
-public sealed class MainPageViewModel
+public sealed class MainPageViewModel : INotifyPropertyChanged
 {
-    public string ProviderName { get; }
+    private readonly BillStreamService _billStreamService;
 
-    public decimal PreviousAmount { get; }
-
-    public decimal CurrentAmount { get; }
-
-    public decimal MonthlyChange { get; }
-
-    public decimal AnnualChange { get; }
-
-    public string Summary { get; }
-
-    public string Confidence { get; }
-
-    public IReadOnlyList<BillExplanationItem> Changes { get; }
-
-    public decimal BankTransactionAmount { get; }
-
-    public bool BankTransactionMatches { get; }
-
-    public string BankTransactionStatus { get; }
-
-    public int RecurringBillsFound { get; }
-
-    public IReadOnlyList<RecurringBillDetectionResult> RecurringBills { get; }
-
-    public int AlertsFound { get; }
-
-    public IReadOnlyList<BillAlert> Alerts { get; }
-
-    public int BillStreamsFound { get; }
-
-    public IReadOnlyList<BillStream> BillStreams { get; }
-
-    public int BillsMonitored { get; }
-
-    public decimal TotalMonthlyBills { get; }
-
-    public decimal TotalAnnualBills { get; }
-
-    public int ChangesDetected { get; }
-
-    public decimal AddedAnnualCost { get; }
-
-    public decimal ReducedAnnualCost { get; }
-
-    public MainPageViewModel()
+    public MainPageViewModel(
+        BillStreamService billStreamService)
     {
-        var developmentDataService =
-            new DevelopmentDataService();
+        _billStreamService = billStreamService;
+    }
 
-        var transactionHistory =
-            developmentDataService.GetTransactions();
+    public string ProviderName { get; private set; } =
+        "No bill selected";
 
-        var billStatements =
-            developmentDataService.GetStatements();
+    public decimal PreviousAmount { get; private set; }
 
-        var recurringBillDetectionService =
-            new RecurringBillDetectionService();
+    public decimal CurrentAmount { get; private set; }
 
-        RecurringBills =
-            recurringBillDetectionService.Detect(
-                transactionHistory);
+    public decimal MonthlyChange { get; private set; }
 
-        RecurringBillsFound =
-            RecurringBills.Count;
+    public decimal AnnualChange { get; private set; }
 
-        var alertService =
-            new BillAlertService();
+    public string Summary { get; private set; } =
+        "Waiting for bill history.";
 
-        Alerts =
-            alertService.CreateAlerts(
-                RecurringBills);
+    public string Confidence { get; private set; } =
+        "Unknown";
 
-        AlertsFound =
-            Alerts.Count;
+    public IReadOnlyList<BillExplanationItem> Changes { get; private set; } =
+        [];
 
-        var billStreamDiscoveryService =
-            new BillStreamDiscoveryService();
+    public decimal BankTransactionAmount { get; private set; }
 
-        BillStreams =
-            billStreamDiscoveryService.Discover(
-                transactionHistory,
-                billStatements);
+    public bool BankTransactionMatches { get; private set; }
 
-        BillStreamsFound =
-            BillStreams.Count;
+    public string BankTransactionStatus { get; private set; } =
+        "Waiting for transaction";
 
-        var dashboardSummaryService =
-            new DashboardSummaryService();
+    public string BankTransactionDescription { get; private set; } =
+        "No linked bank transaction yet.";
 
-        var dashboardSummary =
-            dashboardSummaryService.CreateSummary(
-                BillStreams,
-                Alerts);
+    public bool HasBankTransaction { get; private set; }
 
-        BillsMonitored =
-            dashboardSummary.BillsMonitored;
+    public bool HasStatement { get; private set; }
 
-        TotalMonthlyBills =
-            dashboardSummary.MonthlyBills;
+    public string StatementStatus { get; private set; } =
+        "Waiting for statement";
 
-        TotalAnnualBills =
-            dashboardSummary.AnnualBills;
+    public string StatementDescription { get; private set; } =
+        "No provider statement retrieved yet.";
 
-        ChangesDetected =
-            dashboardSummary.ChangesDetected;
+    public bool HasDetailedChange { get; private set; }
 
-        AddedAnnualCost =
-            dashboardSummary.AddedAnnualCost;
+    public string DetailedChangeTitle { get; private set; } =
+        "Waiting for bill history";
 
-        ReducedAnnualCost =
-            dashboardSummary.ReducedAnnualCost;
+    public int RecurringBillsFound { get; private set; }
 
-        var midcoStream =
-            BillStreams.FirstOrDefault(stream =>
-                string.Equals(
-                    stream.ProviderName,
-                    "Midco",
-                    StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException(
-                "The development Midco Bill Stream could not be found.");
+    public IReadOnlyList<RecurringBillDetectionResult> RecurringBills { get; private set; } =
+        [];
 
-        var billStreamAnalysisService =
-            new BillStreamAnalysisService();
+    public int AlertsFound { get; private set; }
 
-        var analysisResult =
-            billStreamAnalysisService.Analyze(
-                midcoStream)
-            ?? throw new InvalidOperationException(
-                "The development Midco Bill Stream does not contain enough statement history to analyze.");
+    public IReadOnlyList<BillAlert> Alerts { get; private set; } =
+        [];
 
-        ProviderName =
-            analysisResult.Explanation.ProviderName;
+    public int BillStreamsFound { get; private set; }
 
-        PreviousAmount =
-            analysisResult.PreviousStatement
-                .TotalAmount
-                .Amount;
+    public IReadOnlyList<BillStream> BillStreams { get; private set; } =
+        [];
 
-        CurrentAmount =
-            analysisResult.CurrentStatement
-                .TotalAmount
-                .Amount;
+    public int BillsMonitored { get; private set; }
 
-        MonthlyChange =
-            analysisResult.Explanation.MonthlyChange;
+    public decimal TotalMonthlyBills { get; private set; }
 
-        AnnualChange =
-            analysisResult.Explanation.AnnualChange;
+    public decimal TotalAnnualBills { get; private set; }
 
-        Summary =
-            analysisResult.Explanation.Summary;
+    public int ChangesDetected { get; private set; }
 
-        Confidence =
-            analysisResult.Explanation
-                .Confidence
-                .ToString();
+    public decimal AddedAnnualCost { get; private set; }
 
-        Changes =
-            analysisResult.Explanation.Changes;
+    public decimal ReducedAnnualCost { get; private set; }
 
-        BankTransactionAmount =
-            analysisResult.Reconciliation?.TransactionAmount
-            ?? 0m;
+    public bool IsLoading { get; private set; }
 
-        BankTransactionMatches =
-            analysisResult.Reconciliation?.IsConfirmedMatch
-            ?? false;
+    public string ErrorMessage { get; private set; } =
+        string.Empty;
 
-        BankTransactionStatus =
-            BankTransactionMatches
-                ? "Confirmed"
-                : "Needs review";
+    public bool HasError =>
+        !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public async Task LoadAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (IsLoading)
+        {
+            return;
+        }
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = string.Empty;
+            NotifyAll();
+
+            var billStreams =
+                await _billStreamService.GetBillStreamsAsync(
+                    cancellationToken);
+
+            BillsMonitored = billStreams.Count;
+
+            TotalMonthlyBills = decimal.Round(
+                billStreams.Sum(stream => stream.CurrentAmount),
+                2,
+                MidpointRounding.AwayFromZero);
+
+            TotalAnnualBills = decimal.Round(
+                TotalMonthlyBills * 12m,
+                2,
+                MidpointRounding.AwayFromZero);
+
+            var meaningfulChanges = billStreams
+                .Select(stream => new
+                {
+                    Stream = stream,
+                    MonthlyChange =
+                        stream.CurrentAmount -
+                        stream.PreviousAverage
+                })
+                .Where(item =>
+                    item.Stream.PreviousAverage > 0m &&
+                    Math.Abs(item.MonthlyChange) >= 5m &&
+                    Math.Abs(
+                        item.MonthlyChange /
+                        item.Stream.PreviousAverage) >= 0.10m)
+                .ToList();
+
+            ChangesDetected =
+                meaningfulChanges.Count;
+
+            AddedAnnualCost = decimal.Round(
+                meaningfulChanges
+                    .Where(item => item.MonthlyChange > 0m)
+                    .Sum(item => item.MonthlyChange * 12m),
+                2,
+                MidpointRounding.AwayFromZero);
+
+            ReducedAnnualCost = decimal.Round(
+                meaningfulChanges
+                    .Where(item => item.MonthlyChange < 0m)
+                    .Sum(item => Math.Abs(item.MonthlyChange) * 12m),
+                2,
+                MidpointRounding.AwayFromZero);
+
+            var primaryBill =
+                billStreams.FirstOrDefault();
+
+            if (primaryBill is null)
+            {
+                ResetPrimaryBill();
+            }
+            else
+            {
+                ProviderName =
+                    primaryBill.ProviderName;
+
+                PreviousAmount =
+                    primaryBill.PreviousAverage;
+
+                CurrentAmount =
+                    primaryBill.CurrentAmount;
+
+                MonthlyChange = decimal.Round(
+                    CurrentAmount - PreviousAmount,
+                    2,
+                    MidpointRounding.AwayFromZero);
+
+                AnnualChange = decimal.Round(
+                    MonthlyChange * 12m,
+                    2,
+                    MidpointRounding.AwayFromZero);
+
+                HasBankTransaction =
+                    CurrentAmount > 0m;
+
+                BankTransactionAmount =
+                    CurrentAmount;
+
+                BankTransactionStatus =
+                    HasBankTransaction
+                        ? "Transaction found"
+                        : "Waiting for transaction";
+
+                BankTransactionDescription =
+                    HasBankTransaction
+                        ? $"{ProviderName} charged ${CurrentAmount:F2}"
+                        : "No linked bank transaction yet.";
+
+                HasDetailedChange =
+                    PreviousAmount > 0m &&
+                    Math.Abs(MonthlyChange) >= 5m &&
+                    Math.Abs(
+                        MonthlyChange /
+                        PreviousAmount) >= 0.10m;
+
+                DetailedChangeTitle =
+                    HasDetailedChange
+                        ? "Bill change detected"
+                        : "Waiting for bill history";
+
+                Summary =
+                    PreviousAmount > 0m
+                        ? "BillWatch has enough transaction history to compare this bill."
+                        : "BillWatch is waiting for more transaction history before comparing this bill.";
+
+                // Statements are not connected to the API yet.
+                HasStatement = false;
+                StatementStatus =
+                    "Waiting for statement";
+
+                StatementDescription =
+                    "No provider statement retrieved yet.";
+
+                BankTransactionMatches = false;
+                Confidence = "Unknown";
+                Changes = [];
+            }
+
+            RecurringBillsFound = 0;
+            RecurringBills = [];
+
+            AlertsFound = 0;
+            Alerts = [];
+
+            BillStreamsFound = 0;
+            BillStreams = [];
+        }
+        catch (HttpRequestException)
+        {
+            ErrorMessage =
+                "Unable to load your BillWatch dashboard.";
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Something went wrong while loading your dashboard.";
+        }
+        finally
+        {
+            IsLoading = false;
+            NotifyAll();
+        }
+    }
+
+    private void ResetPrimaryBill()
+    {
+        ProviderName = "No bill selected";
+
+        PreviousAmount = 0m;
+        CurrentAmount = 0m;
+        MonthlyChange = 0m;
+        AnnualChange = 0m;
+
+        HasBankTransaction = false;
+        BankTransactionAmount = 0m;
+        BankTransactionMatches = false;
+        BankTransactionStatus = "Waiting for transaction";
+        BankTransactionDescription =
+            "No linked bank transaction yet.";
+
+        HasStatement = false;
+        StatementStatus = "Waiting for statement";
+        StatementDescription =
+            "No provider statement retrieved yet.";
+
+        HasDetailedChange = false;
+        DetailedChangeTitle =
+            "Waiting for bill history";
+
+        Summary = "No monitored bills yet.";
+        Confidence = "Unknown";
+        Changes = [];
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void NotifyAll()
+    {
+        OnPropertyChanged(string.Empty);
+    }
+
+    private void OnPropertyChanged(
+        [CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(propertyName));
     }
 }
