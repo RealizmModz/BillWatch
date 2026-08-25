@@ -1,5 +1,6 @@
 ﻿using BillWatch.Core.Models;
 using BillWatch.Core.Services;
+using BillWatch.Services;
 
 namespace BillWatch.ViewModels;
 
@@ -39,52 +40,103 @@ public sealed class MainPageViewModel
 
     public IReadOnlyList<BillStream> BillStreams { get; }
 
+    public int BillsMonitored { get; }
+
+    public decimal TotalMonthlyBills { get; }
+
+    public decimal TotalAnnualBills { get; }
+
+    public int ChangesDetected { get; }
+
+    public decimal AddedAnnualCost { get; }
+
+    public decimal ReducedAnnualCost { get; }
+
     public MainPageViewModel()
     {
-        var previousStatement = new BillStatement(
-            "Midco",
-            new DateOnly(2026, 4, 1),
-            new DateOnly(2026, 4, 30),
-            new BillAmount(79.99m),
-            [
-                new BillLineItem(
-                    "Internet service",
-                    99.99m),
+        var developmentDataService =
+            new DevelopmentDataService();
 
-                new BillLineItem(
-                    "Promotional discount",
-                    -20.00m)
-            ]);
+        var transactionHistory =
+            developmentDataService.GetTransactions();
 
-        var currentStatement = new BillStatement(
-            "Midco",
-            new DateOnly(2026, 5, 1),
-            new DateOnly(2026, 5, 31),
-            new BillAmount(104.99m),
-            [
-                new BillLineItem(
-                    "Internet service",
-                    99.99m),
+        var billStatements =
+            developmentDataService.GetStatements();
 
-                new BillLineItem(
-                    "Network fee",
-                    5.00m)
-            ]);
+        var recurringBillDetectionService =
+            new RecurringBillDetectionService();
 
-        var bankTransaction = new BankTransaction(
-            merchantName: "Midco",
-            postedDate: new DateOnly(2026, 5, 18),
-            amount: 104.99m,
-            isPending: false);
+        RecurringBills =
+            recurringBillDetectionService.Detect(
+                transactionHistory);
 
-        var analysisService =
-            new BillAnalysisService();
+        RecurringBillsFound =
+            RecurringBills.Count;
+
+        var alertService =
+            new BillAlertService();
+
+        Alerts =
+            alertService.CreateAlerts(
+                RecurringBills);
+
+        AlertsFound =
+            Alerts.Count;
+
+        var billStreamDiscoveryService =
+            new BillStreamDiscoveryService();
+
+        BillStreams =
+            billStreamDiscoveryService.Discover(
+                transactionHistory,
+                billStatements);
+
+        BillStreamsFound =
+            BillStreams.Count;
+
+        var dashboardSummaryService =
+            new DashboardSummaryService();
+
+        var dashboardSummary =
+            dashboardSummaryService.CreateSummary(
+                BillStreams,
+                Alerts);
+
+        BillsMonitored =
+            dashboardSummary.BillsMonitored;
+
+        TotalMonthlyBills =
+            dashboardSummary.MonthlyBills;
+
+        TotalAnnualBills =
+            dashboardSummary.AnnualBills;
+
+        ChangesDetected =
+            dashboardSummary.ChangesDetected;
+
+        AddedAnnualCost =
+            dashboardSummary.AddedAnnualCost;
+
+        ReducedAnnualCost =
+            dashboardSummary.ReducedAnnualCost;
+
+        var midcoStream =
+            BillStreams.FirstOrDefault(stream =>
+                string.Equals(
+                    stream.ProviderName,
+                    "Midco",
+                    StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException(
+                "The development Midco Bill Stream could not be found.");
+
+        var billStreamAnalysisService =
+            new BillStreamAnalysisService();
 
         var analysisResult =
-            analysisService.Analyze(
-                bankTransaction,
-                previousStatement,
-                currentStatement);
+            billStreamAnalysisService.Analyze(
+                midcoStream)
+            ?? throw new InvalidOperationException(
+                "The development Midco Bill Stream does not contain enough statement history to analyze.");
 
         ProviderName =
             analysisResult.Explanation.ProviderName;
@@ -128,86 +180,5 @@ public sealed class MainPageViewModel
             BankTransactionMatches
                 ? "Confirmed"
                 : "Needs review";
-
-        var transactionHistory =
-            CreateDevelopmentTransactionHistory();
-
-        var recurringBillDetectionService =
-            new RecurringBillDetectionService();
-
-        RecurringBills =
-            recurringBillDetectionService.Detect(
-                transactionHistory);
-
-        RecurringBillsFound =
-            RecurringBills.Count;
-
-        var alertService =
-            new BillAlertService();
-
-        Alerts =
-            alertService.CreateAlerts(
-                RecurringBills);
-
-        AlertsFound =
-            Alerts.Count;
-
-        var billStatements =
-            new List<BillStatement>
-            {
-                previousStatement,
-                currentStatement
-            };
-
-        var billStreamDiscoveryService =
-            new BillStreamDiscoveryService();
-
-        BillStreams =
-            billStreamDiscoveryService.Discover(
-                transactionHistory,
-                billStatements);
-
-        BillStreamsFound =
-            BillStreams.Count;
-    }
-
-    private static IReadOnlyList<BankTransaction>
-        CreateDevelopmentTransactionHistory()
-    {
-        return
-        [
-            // Midco
-            new("Midco", new DateOnly(2026, 2, 18), 79.99m),
-            new("Midco", new DateOnly(2026, 3, 18), 79.99m),
-            new("Midco", new DateOnly(2026, 4, 18), 79.99m),
-            new("Midco", new DateOnly(2026, 5, 18), 104.99m),
-
-            // Black Hills Energy
-            new("Black Hills Energy", new DateOnly(2026, 2, 8), 154.22m),
-            new("Black Hills Energy", new DateOnly(2026, 3, 9), 169.41m),
-            new("Black Hills Energy", new DateOnly(2026, 4, 8), 165.31m),
-            new("Black Hills Energy", new DateOnly(2026, 5, 8), 183.42m),
-
-            // Verizon
-            new("Verizon", new DateOnly(2026, 2, 12), 148.22m),
-            new("Verizon", new DateOnly(2026, 3, 12), 148.22m),
-            new("Verizon", new DateOnly(2026, 4, 11), 148.22m),
-            new("Verizon", new DateOnly(2026, 5, 12), 148.22m),
-
-            // Non-recurring purchases
-            new("Walmart", new DateOnly(2026, 4, 3), 64.38m),
-            new("Walmart", new DateOnly(2026, 4, 17), 83.19m),
-            new("Walmart", new DateOnly(2026, 5, 2), 42.76m),
-            new("Walmart", new DateOnly(2026, 5, 14), 91.55m),
-
-            new("McDonald's", new DateOnly(2026, 4, 6), 13.42m),
-            new("McDonald's", new DateOnly(2026, 4, 20), 18.11m),
-            new("McDonald's", new DateOnly(2026, 5, 5), 11.86m),
-
-            new("Holiday Gas", new DateOnly(2026, 4, 2), 38.44m),
-            new("Holiday Gas", new DateOnly(2026, 4, 13), 42.17m),
-            new("Holiday Gas", new DateOnly(2026, 4, 27), 36.93m),
-            new("Holiday Gas", new DateOnly(2026, 5, 10), 40.22m)
-        ];
     }
 }
