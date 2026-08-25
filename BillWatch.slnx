@@ -1,8 +1,8 @@
 <Solution>
-  <Project Path="../BillWatch.API/BillWatch.API.csproj" />
-  <Project Path="../BillWatch.Core/BillWatch.Core.csproj" />
-  <Project Path="../BillWatch.Tests/BillWatch.Tests.csproj" />
+  <Project Path="BillWatch.API/BillWatch.API.csproj" />
+  <Project Path="BillWatch.Core/BillWatch.Core.csproj" />
+  <Project Path="BillWatch.Tests/BillWatch.Tests.csproj" />
   <Project Path="BillWatch.csproj">
-    <Deploy Solution="Debug|*" />
+    <Build Solution="Debug|*" />
   </Project>
 </Solution>
