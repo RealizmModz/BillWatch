@@ -1,0 +1,15 @@
+@BillWatch_API_HostAddress = https://localhost:7243
+
+# @name login
+POST {{BillWatch_API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "seconduser@billwatch.local",
+  "password": "BillWatch!Dev456"
+}
+
+###
+
+GET {{BillWatch_API_HostAddress}}/api/bill-streams
+Authorization: Bearer {{login.response.body.$.accessToken}}

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="BillWatch.LoginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:BillWatch.Converters"
+    Shell.NavBarIsVisible="False"
+    Style="{StaticResource BillWatchPageStyle}">
+
+    <ContentPage.Resources>
+        <converters:InvertedBoolConverter
+            x:Key="InvertedBoolConverter" />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <Grid
+            Padding="28"
+            RowDefinitions="*,Auto,*">
+
+            <VerticalStackLayout
+                Grid.Row="1"
+                MaximumWidthRequest="440"
+                HorizontalOptions="Center"
+                Spacing="24">
+
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="BillWatch"
+                        Style="{StaticResource PageTitleStyle}" />
+
+                    <Label
+                        Text="Know exactly where your bills are changing."
+                        Style="{StaticResource SecondaryTextStyle}" />
+                </VerticalStackLayout>
+
+                <Border
+                    Padding="24"
+                    Style="{StaticResource CardStyle}">
+
+                    <VerticalStackLayout Spacing="18">
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label
+                                Text="Welcome back"
+                                Style="{StaticResource SectionTitleStyle}" />
+
+                            <Label
+                                Text="Sign in to continue monitoring your bills."
+                                Style="{StaticResource SecondaryTextStyle}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="8">
+                            <Label
+                                Text="Email"
+                                Style="{StaticResource SmallTextStyle}" />
+
+                            <Border
+                                Padding="4,0"
+                                Stroke="{DynamicResource LightBorder}"
+                                StrokeShape="RoundRectangle 12">
+
+                                <Entry
+                                    Text="{Binding Email}"
+                                    Placeholder="you@example.com"
+                                    Keyboard="Email"
+                                    ReturnType="Next"
+                                    ClearButtonVisibility="WhileEditing" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="8">
+                            <Label
+                                Text="Password"
+                                Style="{StaticResource SmallTextStyle}" />
+
+                            <Border
+                                Padding="4,0"
+                                Stroke="{DynamicResource LightBorder}"
+                                StrokeShape="RoundRectangle 12">
+
+                                <Entry
+                                    Text="{Binding Password}"
+                                    Placeholder="Password"
+                                    IsPassword="True"
+                                    ReturnType="Done" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <Label
+                            Text="{Binding ErrorMessage}"
+                            IsVisible="{Binding HasError}"
+                            Style="{StaticResource IncreaseTextStyle}" />
+
+                        <Button
+                            Text="Sign in"
+                            HeightRequest="52"
+                            CornerRadius="12"
+                            Clicked="OnSignInClicked"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            IsVisible="{Binding IsBusy}"
+                            HorizontalOptions="Center" />
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label
+                    Text="Your financial data stays tied to your account."
+                    HorizontalTextAlignment="Center"
+                    Style="{StaticResource MutedTextStyle}" />
+
+            </VerticalStackLayout>
+        </Grid>
+    </ScrollView>
+</ContentPage>
