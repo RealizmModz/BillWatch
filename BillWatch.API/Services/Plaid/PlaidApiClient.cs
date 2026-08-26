@@ -24,13 +24,16 @@ public sealed class PlaidApiClient
     {
         EnsureConfigured();
 
-        var requestUri = new Uri(
-            new Uri(_options.BaseUrl),
-            endpoint);
+        var requestUri =
+            new Uri(
+                new Uri(
+                    _options.BaseUrl),
+                endpoint);
 
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            requestUri);
+        using var request =
+            new HttpRequestMessage(
+                HttpMethod.Post,
+                requestUri);
 
         request.Headers.Add(
             "PLAID-CLIENT-ID",
@@ -41,7 +44,8 @@ public sealed class PlaidApiClient
             _options.Secret);
 
         request.Content =
-            JsonContent.Create(payload);
+            JsonContent.Create(
+                payload);
 
         using var response =
             await _httpClient.SendAsync(
@@ -54,26 +58,104 @@ public sealed class PlaidApiClient
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new HttpRequestException(
-                $"Plaid request failed with status " +
-                $"{(int)response.StatusCode}: {responseText}");
+            var errorMetadata =
+                ReadSafeErrorMetadata(
+                    responseText);
+
+            throw new PlaidApiException(
+                response.StatusCode,
+                errorMetadata.ErrorType,
+                errorMetadata.ErrorCode,
+                errorMetadata.RequestId);
         }
 
-        return JsonDocument.Parse(responseText);
+        return JsonDocument.Parse(
+            responseText);
+    }
+
+    private static PlaidErrorMetadata
+        ReadSafeErrorMetadata(
+            string responseText)
+    {
+        if (string.IsNullOrWhiteSpace(
+                responseText))
+        {
+            return new PlaidErrorMetadata(
+                null,
+                null,
+                null);
+        }
+
+        try
+        {
+            using var document =
+                JsonDocument.Parse(
+                    responseText);
+
+            var root =
+                document.RootElement;
+
+            return new PlaidErrorMetadata(
+                GetStringProperty(
+                    root,
+                    "error_type"),
+
+                GetStringProperty(
+                    root,
+                    "error_code"),
+
+                GetStringProperty(
+                    root,
+                    "request_id"));
+        }
+        catch (JsonException)
+        {
+            return new PlaidErrorMetadata(
+                null,
+                null,
+                null);
+        }
+    }
+
+    private static string? GetStringProperty(
+        JsonElement element,
+        string propertyName)
+    {
+        if (!element.TryGetProperty(
+                propertyName,
+                out var property))
+        {
+            return null;
+        }
+
+        if (property.ValueKind !=
+            JsonValueKind.String)
+        {
+            return null;
+        }
+
+        return property.GetString();
     }
 
     private void EnsureConfigured()
     {
-        if (string.IsNullOrWhiteSpace(_options.ClientId))
+        if (string.IsNullOrWhiteSpace(
+                _options.ClientId))
         {
             throw new InvalidOperationException(
                 "Plaid ClientId is not configured.");
         }
 
-        if (string.IsNullOrWhiteSpace(_options.Secret))
+        if (string.IsNullOrWhiteSpace(
+                _options.Secret))
         {
             throw new InvalidOperationException(
                 "Plaid Secret is not configured.");
         }
     }
+
+    private sealed record PlaidErrorMetadata(
+        string? ErrorType,
+        string? ErrorCode,
+        string? RequestId);
 }
