@@ -215,6 +215,15 @@ public sealed class BillStreamsController : ControllerBase
                 changed = true;
             }
 
+            if (existingStream.Source ==
+                BillStreamSource.Unknown)
+            {
+                existingStream.Source =
+                    BillStreamSource.Manual;
+
+                changed = true;
+            }
+
             if (changed)
             {
                 existingStream.UpdatedAtUtc =
@@ -258,6 +267,9 @@ public sealed class BillStreamsController : ControllerBase
 
                 Category =
                     category,
+
+                Source =
+                    BillStreamSource.Manual,
 
                 IsActive = true,
 

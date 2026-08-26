@@ -2,6 +2,13 @@
 
 namespace BillWatch.API.Data.Entities;
 
+public enum BillStreamSource
+{
+    Unknown,
+    Manual,
+    AutomaticDiscovery
+}
+
 public sealed class BillStreamEntity
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -11,6 +18,9 @@ public sealed class BillStreamEntity
     public string ProviderName { get; set; } = string.Empty;
 
     public BillCategory Category { get; set; } = BillCategory.Unknown;
+
+    public BillStreamSource Source { get; set; } =
+        BillStreamSource.Unknown;
 
     public bool IsActive { get; set; } = true;
 

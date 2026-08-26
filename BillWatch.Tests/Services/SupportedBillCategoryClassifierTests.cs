@@ -6,7 +6,8 @@ namespace BillWatch.Tests.Services;
 
 public sealed class SupportedBillCategoryClassifierTests
 {
-    private readonly SupportedBillCategoryClassifier _classifier = new();
+    private readonly SupportedBillCategoryClassifier
+        _classifier = new();
 
     [Fact]
     public void TryClassify_InternetAndCable_ReturnsInternet()
@@ -18,7 +19,24 @@ public sealed class SupportedBillCategoryClassifierTests
                 out var category);
 
         Assert.True(result);
-        Assert.Equal(BillCategory.Internet, category);
+        Assert.Equal(
+            BillCategory.Internet,
+            category);
+    }
+
+    [Fact]
+    public void TryClassify_Telephone_ReturnsMobilePhone()
+    {
+        var result =
+            _classifier.TryClassify(
+                "RENT_AND_UTILITIES",
+                "RENT_AND_UTILITIES_TELEPHONE",
+                out var category);
+
+        Assert.True(result);
+        Assert.Equal(
+            BillCategory.MobilePhone,
+            category);
     }
 
     [Fact]
@@ -31,7 +49,9 @@ public sealed class SupportedBillCategoryClassifierTests
                 out var category);
 
         Assert.True(result);
-        Assert.Equal(BillCategory.Internet, category);
+        Assert.Equal(
+            BillCategory.Internet,
+            category);
     }
 
     [Fact]
@@ -44,19 +64,23 @@ public sealed class SupportedBillCategoryClassifierTests
                 out var category);
 
         Assert.False(result);
-        Assert.Equal(BillCategory.Unknown, category);
+        Assert.Equal(
+            BillCategory.Unknown,
+            category);
     }
 
     [Fact]
-    public void TryClassify_UnsupportedUtility_IsRejected()
+    public void TryClassify_Rent_IsRejected()
     {
         var result =
             _classifier.TryClassify(
                 "RENT_AND_UTILITIES",
-                "RENT_AND_UTILITIES_TELEPHONE",
+                "RENT_AND_UTILITIES_RENT",
                 out var category);
 
         Assert.False(result);
-        Assert.Equal(BillCategory.Unknown, category);
+        Assert.Equal(
+            BillCategory.Unknown,
+            category);
     }
 }

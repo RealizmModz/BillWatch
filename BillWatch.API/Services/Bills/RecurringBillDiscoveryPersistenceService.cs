@@ -84,8 +84,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
         foreach (var existingStream in existingStreams)
         {
-            if (existingStream.Category !=
-                BillCategory.Unknown)
+            if (existingStream.Source !=
+                BillStreamSource.AutomaticDiscovery)
             {
                 continue;
             }
@@ -173,6 +173,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
                         Category =
                             resolvedCategory,
 
+                        Source =
+                            BillStreamSource.AutomaticDiscovery,
+
                         IsActive = true,
 
                         CreatedAtUtc = now,
@@ -190,6 +193,22 @@ public sealed class RecurringBillDiscoveryPersistenceService
             else
             {
                 var changed = false;
+
+                var wasAlreadyLinked =
+                    matchingTransactions.Any(
+                        transaction =>
+                            transaction.BillStreamId ==
+                            persistedStream.Id);
+
+                if (persistedStream.Source ==
+                        BillStreamSource.Unknown &&
+                    wasAlreadyLinked)
+                {
+                    persistedStream.Source =
+                        BillStreamSource.AutomaticDiscovery;
+
+                    changed = true;
+                }
 
                 if (persistedStream.Category ==
                         BillCategory.Unknown &&

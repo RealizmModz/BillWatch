@@ -29,6 +29,16 @@ public sealed class SupportedBillCategoryClassifier
             return true;
         }
 
+        if (ContainsCategory(
+                categoryDetailed,
+                "TELEPHONE"))
+        {
+            category =
+                BillCategory.MobilePhone;
+
+            return true;
+        }
+
         return false;
     }
 
