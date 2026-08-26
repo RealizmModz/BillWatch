@@ -39,6 +39,16 @@ public sealed class SupportedBillCategoryClassifier
             return true;
         }
 
+        if (ContainsCategory(
+                categoryDetailed,
+                "GAS_AND_ELECTRICITY"))
+        {
+            category =
+                BillCategory.Utility;
+
+            return true;
+        }
+
         return false;
     }
 

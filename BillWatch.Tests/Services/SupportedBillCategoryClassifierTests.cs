@@ -40,6 +40,21 @@ public sealed class SupportedBillCategoryClassifierTests
     }
 
     [Fact]
+    public void TryClassify_GasAndElectricity_ReturnsUtility()
+    {
+        var result =
+            _classifier.TryClassify(
+                "RENT_AND_UTILITIES",
+                "RENT_AND_UTILITIES_GAS_AND_ELECTRICITY",
+                out var category);
+
+        Assert.True(result);
+        Assert.Equal(
+            BillCategory.Utility,
+            category);
+    }
+
+    [Fact]
     public void TryClassify_IsCaseInsensitive()
     {
         var result =
