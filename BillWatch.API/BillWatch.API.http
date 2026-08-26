@@ -11,10 +11,13 @@ Content-Type: application/json
 
 ###
 
-GET {{BillWatch_API_HostAddress}}/api/bill-streams
+POST {{BillWatch_API_HostAddress}}/api/bill-monitoring/refresh
 Authorization: Bearer {{login.response.body.$.accessToken}}
+Content-Type: application/json
+
+{}
 
 ###
 
-GET {{BillWatch_API_HostAddress}}/api/bill-streams?includeInactive=true
+GET {{BillWatch_API_HostAddress}}/api/bill-streams
 Authorization: Bearer {{login.response.body.$.accessToken}}

@@ -11,7 +11,12 @@ namespace BillWatch.API.Services.Bills;
 public sealed class RecurringBillDiscoveryPersistenceService
 {
     private readonly BillWatchDbContext _dbContext;
-    private readonly BillStreamDiscoveryService _discoveryService;
+
+    private readonly BillStreamDiscoveryService
+        _discoveryService;
+
+    private readonly SupportedBillCategoryClassifier
+        _categoryClassifier;
 
     public RecurringBillDiscoveryPersistenceService(
         BillWatchDbContext dbContext)
@@ -20,6 +25,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
         _discoveryService =
             new BillStreamDiscoveryService();
+
+        _categoryClassifier =
+            new SupportedBillCategoryClassifier();
     }
 
     public async Task<RecurringBillDiscoveryPersistenceResult>
@@ -138,6 +146,12 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 ResolveBillCategory(
                     matchingTransactions);
 
+            if (resolvedCategory ==
+                BillCategory.Unknown)
+            {
+                continue;
+            }
+
             var persistedStream =
                 existingStreams.FirstOrDefault(
                     existing =>
@@ -249,7 +263,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 unlinkedTransactionCount);
     }
 
-    private static bool IsEligibleBillTransaction(
+    private bool IsEligibleBillTransaction(
         BankTransactionEntity transaction)
     {
         if (transaction.IsPending)
@@ -269,71 +283,27 @@ public sealed class RecurringBillDiscoveryPersistenceService
             return false;
         }
 
-        return IsSupportedBillCategory(
+        return _categoryClassifier.TryClassify(
             transaction.CategoryPrimary,
-            transaction.CategoryDetailed);
+            transaction.CategoryDetailed,
+            out _);
     }
 
-    private static bool IsSupportedBillCategory(
-        string? categoryPrimary,
-        string? categoryDetailed)
-    {
-        if (!EqualsCategory(
-                categoryPrimary,
-                "RENT_AND_UTILITIES"))
-        {
-            return false;
-        }
-
-        /*
-         * Start V1 discovery with the category we can currently
-         * classify with high confidence from Plaid:
-         *
-         * Internet / cable.
-         *
-         * Other recurring expenses such as restaurants, travel,
-         * gyms, credit-card payments and generic subscriptions
-         * must not become Bill Streams just because their timing
-         * happens to look monthly.
-         */
-        return ContainsCategory(
-            categoryDetailed,
-            "INTERNET_AND_CABLE");
-    }
-
-    private static BillCategory ResolveBillCategory(
+    private BillCategory ResolveBillCategory(
         IReadOnlyCollection<BankTransactionEntity> transactions)
     {
-        if (transactions.Any(
-                transaction =>
-                    ContainsCategory(
-                        transaction.CategoryDetailed,
-                        "INTERNET_AND_CABLE")))
+        foreach (var transaction in transactions)
         {
-            return BillCategory.Internet;
+            if (_categoryClassifier.TryClassify(
+                    transaction.CategoryPrimary,
+                    transaction.CategoryDetailed,
+                    out var category))
+            {
+                return category;
+            }
         }
 
         return BillCategory.Unknown;
-    }
-
-    private static bool EqualsCategory(
-        string? value,
-        string expected)
-    {
-        return string.Equals(
-            value,
-            expected,
-            StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool ContainsCategory(
-        string? value,
-        string expected)
-    {
-        return !string.IsNullOrWhiteSpace(value) &&
-               value.Contains(
-                   expected,
-                   StringComparison.OrdinalIgnoreCase);
     }
 
     private static CoreBankTransaction ToCoreTransaction(

@@ -2,7 +2,6 @@ using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Bills;
 using BillWatch.API.Services.Plaid;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,51 +10,53 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-builder.Services.AddDataProtection();
+var connectionString =
+    builder.Configuration.GetConnectionString(
+        "BillWatchDatabase")
+    ?? throw new InvalidOperationException(
+        "Connection string 'BillWatchDatabase' was not found.");
+
+builder.Services.AddDbContext<BillWatchDbContext>(
+    options =>
+        options.UseNpgsql(
+            connectionString));
+
+builder.Services
+    .AddIdentityApiEndpoints<ApplicationUser>()
+    .AddEntityFrameworkStores<BillWatchDbContext>();
+
 builder.Services.AddAuthorization();
 
 builder.Services.Configure<PlaidOptions>(
     builder.Configuration.GetSection(
-        PlaidOptions.SectionName));
+        "Plaid"));
+
+builder.Services.AddDataProtection();
 
 builder.Services.AddHttpClient<PlaidApiClient>();
 
-builder.Services.AddScoped<PlaidLinkService>();
 builder.Services.AddScoped<PlaidTokenProtector>();
-builder.Services.AddScoped<PlaidConnectionExchangeService>();
-builder.Services.AddScoped<PlaidHostedLinkCompletionService>();
-builder.Services.AddScoped<PlaidAccountSyncService>();
-builder.Services.AddScoped<PlaidTransactionSyncService>();
 
-builder.Services.AddScoped<RecurringBillDiscoveryPersistenceService>();
+builder.Services.AddScoped<
+    PlaidConnectionExchangeService>();
 
-var connectionString =
-    builder.Configuration.GetConnectionString("BillWatchDatabase")
-    ?? throw new InvalidOperationException(
-        "The BillWatchDatabase connection string is not configured.");
+builder.Services.AddScoped<
+    PlaidLinkService>();
 
-builder.Services.AddDbContext<BillWatchDbContext>(
-    options =>
-        options.UseNpgsql(connectionString));
+builder.Services.AddScoped<
+    PlaidHostedLinkCompletionService>();
 
-builder.Services
-    .AddIdentityApiEndpoints<ApplicationUser>(
-        options =>
-        {
-            options.User.RequireUniqueEmail = true;
+builder.Services.AddScoped<
+    PlaidAccountSyncService>();
 
-            options.Password.RequiredLength = 10;
-            options.Password.RequireDigit = true;
-            options.Password.RequireLowercase = true;
-            options.Password.RequireUppercase = true;
-            options.Password.RequireNonAlphanumeric = true;
+builder.Services.AddScoped<
+    PlaidTransactionSyncService>();
 
-            options.Lockout.MaxFailedAccessAttempts = 5;
-            options.Lockout.DefaultLockoutTimeSpan =
-                TimeSpan.FromMinutes(15);
-        })
-    .AddRoles<IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<BillWatchDbContext>();
+builder.Services.AddScoped<
+    RecurringBillDiscoveryPersistenceService>();
+
+builder.Services.AddScoped<
+    BillMonitoringRefreshService>();
 
 var app = builder.Build();
 
@@ -66,7 +67,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
