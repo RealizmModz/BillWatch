@@ -3,6 +3,7 @@ using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Bills;
 using BillWatch.API.Services.Plaid;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -118,11 +119,39 @@ builder.Services.AddRateLimiter(
                             }));
     });
 
+var dataProtectionBuilder =
+    builder.Services.AddDataProtection();
+
+var configuredDataProtectionPath =
+    builder.Configuration[
+        "DataProtection:KeysPath"];
+
+if (!string.IsNullOrWhiteSpace(
+        configuredDataProtectionPath))
+{
+    var dataProtectionKeysPath =
+        Path.GetFullPath(
+            configuredDataProtectionPath);
+
+    Directory.CreateDirectory(
+        dataProtectionKeysPath);
+
+    dataProtectionBuilder
+        .SetApplicationName(
+            "BillWatch")
+        .PersistKeysToFileSystem(
+            new DirectoryInfo(
+                dataProtectionKeysPath));
+}
+else if (!builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException(
+        "DataProtection:KeysPath must be configured outside development.");
+}
+
 builder.Services.Configure<PlaidOptions>(
     builder.Configuration.GetSection(
         "Plaid"));
-
-builder.Services.AddDataProtection();
 
 builder.Services.AddHttpClient<PlaidApiClient>();
 
