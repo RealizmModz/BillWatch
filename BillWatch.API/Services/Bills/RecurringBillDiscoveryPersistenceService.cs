@@ -18,6 +18,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
     private readonly SupportedBillCategoryClassifier
         _categoryClassifier;
 
+    private readonly BillMerchantNormalizer
+        _merchantNormalizer;
+
     public RecurringBillDiscoveryPersistenceService(
         BillWatchDbContext dbContext)
     {
@@ -28,6 +31,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
         _categoryClassifier =
             new SupportedBillCategoryClassifier();
+
+        _merchantNormalizer =
+            new BillMerchantNormalizer();
     }
 
     public async Task<RecurringBillDiscoveryPersistenceResult>
@@ -90,8 +96,12 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 continue;
             }
 
+            var normalizedExistingProvider =
+                _merchantNormalizer.Normalize(
+                    existingStream.ProviderName);
+
             if (discoveredProviderNames.Contains(
-                    existingStream.ProviderName))
+                    normalizedExistingProvider))
             {
                 continue;
             }
@@ -131,7 +141,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 eligibleTransactions
                     .Where(transaction =>
                         string.Equals(
-                            GetMerchantName(
+                            GetNormalizedMerchantName(
                                 transaction),
                             discoveredStream.ProviderName,
                             StringComparison.OrdinalIgnoreCase))
@@ -156,7 +166,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 existingStreams.FirstOrDefault(
                     existing =>
                         string.Equals(
-                            existing.ProviderName,
+                            _merchantNormalizer.Normalize(
+                                existing.ProviderName),
                             discoveredStream.ProviderName,
                             StringComparison.OrdinalIgnoreCase));
 
@@ -168,7 +179,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
                         UserId = userId,
 
                         ProviderName =
-                            discoveredStream.ProviderName,
+                            GetMerchantName(
+                                matchingTransactions[0]),
 
                         Category =
                             resolvedCategory,
@@ -296,7 +308,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
         }
 
         if (string.IsNullOrWhiteSpace(
-                GetMerchantName(
+                GetNormalizedMerchantName(
                     transaction)))
         {
             return false;
@@ -325,12 +337,12 @@ public sealed class RecurringBillDiscoveryPersistenceService
         return BillCategory.Unknown;
     }
 
-    private static CoreBankTransaction ToCoreTransaction(
+    private CoreBankTransaction ToCoreTransaction(
         BankTransactionEntity transaction)
     {
         return new CoreBankTransaction(
             merchantName:
-                GetMerchantName(
+                GetNormalizedMerchantName(
                     transaction),
 
             postedDate:
@@ -341,6 +353,14 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
             isPending:
                 transaction.IsPending);
+    }
+
+    private string GetNormalizedMerchantName(
+        BankTransactionEntity transaction)
+    {
+        return _merchantNormalizer.Normalize(
+            GetMerchantName(
+                transaction));
     }
 
     private static string GetMerchantName(
