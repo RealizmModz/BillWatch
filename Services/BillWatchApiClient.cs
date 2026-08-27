@@ -31,17 +31,20 @@ public sealed class BillWatchApiClient
         response.EnsureSuccessStatusCode();
 
         var result =
-            await response.Content.ReadFromJsonAsync<LoginResult>(
-                cancellationToken: cancellationToken);
+            await response.Content
+                .ReadFromJsonAsync<LoginResult>(
+                    cancellationToken:
+                        cancellationToken);
 
         return result
             ?? throw new InvalidOperationException(
                 "The login response was empty.");
     }
 
-    public async Task<IReadOnlyList<BillStreamResult>> GetBillStreamsAsync(
-        string accessToken,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BillStreamResult>>
+        GetBillStreamsAsync(
+            string accessToken,
+            CancellationToken cancellationToken = default)
     {
         using var request =
             CreateAuthorizedRequest(
@@ -57,15 +60,18 @@ public sealed class BillWatchApiClient
         response.EnsureSuccessStatusCode();
 
         var billStreams =
-            await response.Content.ReadFromJsonAsync<List<BillStreamResult>>(
-                cancellationToken: cancellationToken);
+            await response.Content
+                .ReadFromJsonAsync<List<BillStreamResult>>(
+                    cancellationToken:
+                        cancellationToken);
 
         return billStreams ?? [];
     }
 
-    public async Task<IReadOnlyList<BankAccountResult>> GetBankAccountsAsync(
-        string accessToken,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BankAccountResult>>
+        GetBankAccountsAsync(
+            string accessToken,
+            CancellationToken cancellationToken = default)
     {
         using var request =
             CreateAuthorizedRequest(
@@ -81,10 +87,65 @@ public sealed class BillWatchApiClient
         response.EnsureSuccessStatusCode();
 
         var accounts =
-            await response.Content.ReadFromJsonAsync<List<BankAccountResult>>(
-                cancellationToken: cancellationToken);
+            await response.Content
+                .ReadFromJsonAsync<List<BankAccountResult>>(
+                    cancellationToken:
+                        cancellationToken);
 
         return accounts ?? [];
+    }
+
+    public async Task<IReadOnlyList<BankConnectionResult>>
+        GetBankConnectionsAsync(
+            string accessToken,
+            CancellationToken cancellationToken = default)
+    {
+        using var request =
+            CreateAuthorizedRequest(
+                HttpMethod.Get,
+                "/api/bank-connections",
+                accessToken);
+
+        using var response =
+            await _httpClient.SendAsync(
+                request,
+                cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        var connections =
+            await response.Content
+                .ReadFromJsonAsync<List<BankConnectionResult>>(
+                    cancellationToken:
+                        cancellationToken);
+
+        return connections ?? [];
+    }
+
+    public async Task DisconnectBankConnectionAsync(
+        string accessToken,
+        Guid connectionId,
+        CancellationToken cancellationToken = default)
+    {
+        if (connectionId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Bank connection ID is required.",
+                nameof(connectionId));
+        }
+
+        using var request =
+            CreateAuthorizedRequest(
+                HttpMethod.Delete,
+                $"/api/bank-connections/{connectionId}",
+                accessToken);
+
+        using var response =
+            await _httpClient.SendAsync(
+                request,
+                cancellationToken);
+
+        response.EnsureSuccessStatusCode();
     }
 
     public async Task<IReadOnlyList<BankTransactionResult>>
@@ -115,14 +176,16 @@ public sealed class BillWatchApiClient
         var transactions =
             await response.Content
                 .ReadFromJsonAsync<List<BankTransactionResult>>(
-                    cancellationToken: cancellationToken);
+                    cancellationToken:
+                        cancellationToken);
 
         return transactions ?? [];
     }
 
-    public async Task<PlaidHostedLinkResult> CreatePlaidLinkSessionAsync(
-        string accessToken,
-        CancellationToken cancellationToken = default)
+    public async Task<PlaidHostedLinkResult>
+        CreatePlaidLinkSessionAsync(
+            string accessToken,
+            CancellationToken cancellationToken = default)
     {
         using var request =
             CreateAuthorizedRequest(
@@ -131,7 +194,8 @@ public sealed class BillWatchApiClient
                 accessToken);
 
         request.Content =
-            JsonContent.Create(new { });
+            JsonContent.Create(
+                new { });
 
         using var response =
             await _httpClient.SendAsync(
@@ -141,12 +205,15 @@ public sealed class BillWatchApiClient
         response.EnsureSuccessStatusCode();
 
         var result =
-            await response.Content.ReadFromJsonAsync<PlaidHostedLinkResult>(
-                cancellationToken: cancellationToken);
+            await response.Content
+                .ReadFromJsonAsync<PlaidHostedLinkResult>(
+                    cancellationToken:
+                        cancellationToken);
 
         if (result is null ||
             result.SessionId == Guid.Empty ||
-            string.IsNullOrWhiteSpace(result.HostedLinkUrl))
+            string.IsNullOrWhiteSpace(
+                result.HostedLinkUrl))
         {
             throw new InvalidOperationException(
                 "BillWatch did not receive a valid Plaid Link session.");
@@ -177,17 +244,19 @@ public sealed class BillWatchApiClient
         var result =
             await response.Content
                 .ReadFromJsonAsync<PlaidHostedLinkCompletionResult>(
-                    cancellationToken: cancellationToken);
+                    cancellationToken:
+                        cancellationToken);
 
         return result
             ?? throw new InvalidOperationException(
                 "BillWatch did not receive the Plaid Link session status.");
     }
 
-    public async Task<PlaidConnectionResult> ExchangePlaidPublicTokenAsync(
-        string accessToken,
-        string publicToken,
-        CancellationToken cancellationToken = default)
+    public async Task<PlaidConnectionResult>
+        ExchangePlaidPublicTokenAsync(
+            string accessToken,
+            string publicToken,
+            CancellationToken cancellationToken = default)
     {
         using var request =
             CreateAuthorizedRequest(
@@ -210,18 +279,21 @@ public sealed class BillWatchApiClient
         response.EnsureSuccessStatusCode();
 
         var result =
-            await response.Content.ReadFromJsonAsync<PlaidConnectionResult>(
-                cancellationToken: cancellationToken);
+            await response.Content
+                .ReadFromJsonAsync<PlaidConnectionResult>(
+                    cancellationToken:
+                        cancellationToken);
 
         return result
             ?? throw new InvalidOperationException(
                 "BillWatch did not receive the saved bank connection.");
     }
 
-    private static HttpRequestMessage CreateAuthorizedRequest(
-        HttpMethod method,
-        string requestUri,
-        string accessToken)
+    private static HttpRequestMessage
+        CreateAuthorizedRequest(
+            HttpMethod method,
+            string requestUri,
+            string accessToken)
     {
         var request =
             new HttpRequestMessage(
@@ -261,6 +333,20 @@ public sealed record BankAccountResult(
     string AccountType,
     string? AccountSubtype,
     bool IsActive);
+
+public enum BankConnectionStatus
+{
+    Active = 0,
+    RequiresAttention = 1,
+    Disconnected = 2
+}
+
+public sealed record BankConnectionResult(
+    Guid Id,
+    string InstitutionName,
+    BankConnectionStatus Status,
+    DateTimeOffset? LastSuccessfulSyncAtUtc,
+    DateTimeOffset CreatedAtUtc);
 
 public sealed record BankTransactionResult(
     Guid Id,

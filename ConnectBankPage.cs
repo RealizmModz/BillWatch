@@ -4,12 +4,20 @@ namespace BillWatch;
 
 public sealed class ConnectBankPage : ContentPage
 {
+    private readonly ConnectBankPageViewModel
+        _viewModel;
+
     public ConnectBankPage(
         ConnectBankPageViewModel viewModel)
     {
-        BindingContext = viewModel;
+        _viewModel =
+            viewModel;
 
-        Title = "Connect Bank";
+        BindingContext =
+            viewModel;
+
+        Title =
+            "Connect Bank";
 
         SetDynamicResource(
             StyleProperty,
@@ -23,20 +31,24 @@ public sealed class ConnectBankPage : ContentPage
                 WidthRequest = 48,
                 HeightRequest = 48,
                 Padding = 0,
-                BackgroundColor = Colors.Transparent,
-                HorizontalOptions = LayoutOptions.Start
+                BackgroundColor =
+                    Colors.Transparent,
+                HorizontalOptions =
+                    LayoutOptions.Start
             };
 
         backButton.Clicked +=
             async (_, _) =>
             {
-                await Shell.Current.GoToAsync("..");
+                await Shell.Current
+                    .GoToAsync("..");
             };
 
         var title =
             new Label
             {
-                Text = "Connect your bank"
+                Text =
+                    "Bank connections"
             };
 
         title.SetDynamicResource(
@@ -47,7 +59,7 @@ public sealed class ConnectBankPage : ContentPage
             new Label
             {
                 Text =
-                    "BillWatch securely connects through Plaid to monitor transactions and identify recurring bills."
+                    "Securely connect and manage the accounts BillWatch uses to monitor recurring bills."
             };
 
         subtitle.SetDynamicResource(
@@ -94,6 +106,7 @@ public sealed class ConnectBankPage : ContentPage
             {
                 Text = "🏦",
                 FontSize = 44,
+
                 HorizontalOptions =
                     LayoutOptions.Center
             };
@@ -102,7 +115,7 @@ public sealed class ConnectBankPage : ContentPage
             new Label
             {
                 Text =
-                    "See your bills automatically",
+                    "Connect another bank",
 
                 HorizontalTextAlignment =
                     TextAlignment.Center
@@ -116,7 +129,7 @@ public sealed class ConnectBankPage : ContentPage
             new Label
             {
                 Text =
-                    "BillWatch will use your transaction history to detect recurring bills, track changes, and help explain where your money is going.",
+                    "BillWatch uses transaction history to detect recurring bills and monitor changes. Your bank credentials are handled by Plaid.",
 
                 HorizontalTextAlignment =
                     TextAlignment.Center
@@ -129,9 +142,12 @@ public sealed class ConnectBankPage : ContentPage
         var connectButton =
             new Button
             {
-                Text = "Connect bank",
+                Text =
+                    "Connect bank",
+
                 HeightRequest = 54,
                 CornerRadius = 16,
+
                 FontAttributes =
                     FontAttributes.Bold
             };
@@ -190,13 +206,14 @@ public sealed class ConnectBankPage : ContentPage
             {
                 HorizontalTextAlignment =
                     TextAlignment.Center,
+
                 FontAttributes =
                     FontAttributes.Bold
             };
 
         connectedInstitution.SetDynamicResource(
             StyleProperty,
-            "SuccessTextStyle");
+            "PrimaryTextStyle");
 
         connectedInstitution.SetBinding(
             Label.TextProperty,
@@ -237,6 +254,242 @@ public sealed class ConnectBankPage : ContentPage
             StyleProperty,
             "CardStyle");
 
+        var connectionsTitle =
+            new Label
+            {
+                Text =
+                    "Your connections"
+            };
+
+        connectionsTitle.SetDynamicResource(
+            StyleProperty,
+            "SectionTitleStyle");
+
+        var refreshButton =
+            new Button
+            {
+                Text =
+                    "Refresh",
+
+                HorizontalOptions =
+                    LayoutOptions.End,
+
+                HeightRequest = 42,
+                CornerRadius = 14
+            };
+
+        refreshButton.SetBinding(
+            Button.CommandProperty,
+            nameof(
+                ConnectBankPageViewModel
+                    .RefreshConnectionsCommand));
+
+        var connectionsHeader =
+            new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(
+                        GridLength.Star),
+
+                    new ColumnDefinition(
+                        GridLength.Auto)
+                }
+            };
+
+        connectionsHeader.Add(
+            connectionsTitle,
+            0,
+            0);
+
+        connectionsHeader.Add(
+            refreshButton,
+            1,
+            0);
+
+        var noConnectionsLabel =
+            new Label
+            {
+                Text =
+                    "No bank connections yet.",
+
+                HorizontalTextAlignment =
+                    TextAlignment.Center,
+
+                Margin =
+                    new Thickness(
+                        0,
+                        8)
+            };
+
+        noConnectionsLabel.SetDynamicResource(
+            StyleProperty,
+            "MutedTextStyle");
+
+        noConnectionsLabel.SetBinding(
+            IsVisibleProperty,
+            nameof(
+                ConnectBankPageViewModel
+                    .HasNoConnections));
+
+        var connectionsList =
+            new VerticalStackLayout
+            {
+                Spacing = 12
+            };
+
+        BindableLayout.SetItemsSource(
+            connectionsList,
+            viewModel.Connections);
+
+        BindableLayout.SetItemTemplate(
+            connectionsList,
+            new DataTemplate(
+                () =>
+                {
+                    var institutionName =
+                        new Label
+                        {
+                            FontAttributes =
+                                FontAttributes.Bold,
+
+                            FontSize = 17
+                        };
+
+                    institutionName.SetDynamicResource(
+                        StyleProperty,
+                        "ItemTitleStyle");
+
+                    institutionName.SetBinding(
+                        Label.TextProperty,
+                        nameof(
+                            BankConnectionItemViewModel
+                                .InstitutionName));
+
+                    var status =
+                        new Label();
+
+                    status.SetDynamicResource(
+                        StyleProperty,
+                        "SecondaryTextStyle");
+
+                    status.SetBinding(
+                        Label.TextProperty,
+                        nameof(
+                            BankConnectionItemViewModel
+                                .StatusText));
+
+                    var lastSync =
+                        new Label();
+
+                    lastSync.SetDynamicResource(
+                        StyleProperty,
+                        "SmallTextStyle");
+
+                    lastSync.SetBinding(
+                        Label.TextProperty,
+                        nameof(
+                            BankConnectionItemViewModel
+                                .LastSyncText));
+
+                    var disconnectButton =
+                        new Button
+                        {
+                            Text =
+                                "Disconnect",
+
+                            HeightRequest = 42,
+                            CornerRadius = 14
+                        };
+
+                    disconnectButton.SetBinding(
+                        IsVisibleProperty,
+                        nameof(
+                            BankConnectionItemViewModel
+                                .CanDisconnect));
+
+                    disconnectButton.Clicked +=
+                        DisconnectButtonClicked;
+
+                    var reconnectButton =
+                        new Button
+                        {
+                            Text =
+                                "Reconnect",
+
+                            HeightRequest = 42,
+                            CornerRadius = 14
+                        };
+
+                    reconnectButton.SetDynamicResource(
+                        BackgroundColorProperty,
+                        "BrandPrimary");
+
+                    reconnectButton.TextColor =
+                        Colors.White;
+
+                    reconnectButton.SetBinding(
+                        IsVisibleProperty,
+                        nameof(
+                            BankConnectionItemViewModel
+                                .CanReconnect));
+
+                    reconnectButton.Clicked +=
+                        ReconnectButtonClicked;
+
+                    var actions =
+                        new HorizontalStackLayout
+                        {
+                            Spacing = 10,
+
+                            Children =
+                            {
+                                reconnectButton,
+                                disconnectButton
+                            }
+                        };
+
+                    var content =
+                        new VerticalStackLayout
+                        {
+                            Spacing = 7,
+
+                            Children =
+                            {
+                                institutionName,
+                                status,
+                                lastSync,
+                                actions
+                            }
+                        };
+
+                    var card =
+                        new Border
+                        {
+                            Padding = 18,
+                            Content = content
+                        };
+
+                    card.SetDynamicResource(
+                        StyleProperty,
+                        "FlatCardStyle");
+
+                    return card;
+                }));
+
+        var connectionsSection =
+            new VerticalStackLayout
+            {
+                Spacing = 12,
+
+                Children =
+                {
+                    connectionsHeader,
+                    noConnectionsLabel,
+                    connectionsList
+                }
+            };
+
         var privacyTitle =
             new Label
             {
@@ -252,7 +505,7 @@ public sealed class ConnectBankPage : ContentPage
             new Label
             {
                 Text =
-                    "BillWatch never receives or stores your bank username or password. Authentication happens through Plaid's secure connection."
+                    "BillWatch never receives or stores your bank username or password. Authentication happens through Plaid. Disconnecting removes BillWatch's ability to continue syncing that bank connection."
             };
 
         privacyDescription.SetDynamicResource(
@@ -302,9 +555,62 @@ public sealed class ConnectBankPage : ContentPage
                             header,
                             securityBadge,
                             connectionCard,
+                            connectionsSection,
                             privacyCard
                         }
                     }
             };
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        await _viewModel
+            .LoadConnectionsAsync();
+    }
+
+    private async void DisconnectButtonClicked(
+        object? sender,
+        EventArgs e)
+    {
+        if (sender is not Button button ||
+            button.BindingContext
+                is not BankConnectionItemViewModel
+                    connection)
+        {
+            return;
+        }
+
+        var confirmed =
+            await DisplayAlertAsync(
+                "Disconnect bank",
+                $"Disconnect {connection.InstitutionName}? BillWatch will stop syncing this connection.",
+                "Disconnect",
+                "Cancel");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await _viewModel
+            .DisconnectAsync(
+                connection);
+    }
+
+    private async void ReconnectButtonClicked(
+        object? sender,
+        EventArgs e)
+    {
+        if (sender is not Button button ||
+            button.BindingContext
+                is not BankConnectionItemViewModel)
+        {
+            return;
+        }
+
+        await _viewModel
+            .ConnectBankAsync();
     }
 }

@@ -1,19 +1,24 @@
 ﻿using BillWatch.Services;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
 namespace BillWatch.ViewModels;
 
-public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
+public sealed class ConnectBankPageViewModel :
+    INotifyPropertyChanged
 {
-    private readonly PlaidConnectionService _plaidConnectionService;
+    private readonly PlaidConnectionService
+        _plaidConnectionService;
 
     private bool _isBusy;
+
     private string _statusMessage =
         "Securely connect your bank to start monitoring bills.";
 
-    private string _connectedInstitution = string.Empty;
+    private string _connectedInstitution =
+        string.Empty;
 
     public ConnectBankPageViewModel(
         PlaidConnectionService plaidConnectionService)
@@ -23,13 +28,27 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
 
         ConnectBankCommand =
             new Command(
-                async () => await ConnectBankAsync(),
+                async () =>
+                    await ConnectBankAsync(),
+                () => !IsBusy);
+
+        RefreshConnectionsCommand =
+            new Command(
+                async () =>
+                    await LoadConnectionsAsync(),
                 () => !IsBusy);
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
+    public event PropertyChangedEventHandler?
+        PropertyChanged;
+
+    public ObservableCollection<BankConnectionItemViewModel>
+        Connections
+    { get; } = [];
 
     public ICommand ConnectBankCommand { get; }
+
+    public ICommand RefreshConnectionsCommand { get; }
 
     public bool IsBusy
     {
@@ -42,13 +61,25 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
                 return;
             }
 
-            _isBusy = value;
+            _isBusy =
+                value;
 
             OnPropertyChanged();
+            OnPropertyChanged(
+                nameof(HasNoConnections));
 
-            if (ConnectBankCommand is Command command)
+            if (ConnectBankCommand
+                is Command connectCommand)
             {
-                command.ChangeCanExecute();
+                connectCommand
+                    .ChangeCanExecute();
+            }
+
+            if (RefreshConnectionsCommand
+                is Command refreshCommand)
+            {
+                refreshCommand
+                    .ChangeCanExecute();
             }
         }
     }
@@ -64,7 +95,9 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
                 return;
             }
 
-            _statusMessage = value;
+            _statusMessage =
+                value;
+
             OnPropertyChanged();
         }
     }
@@ -80,10 +113,14 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
                 return;
             }
 
-            _connectedInstitution = value;
+            _connectedInstitution =
+                value;
 
             OnPropertyChanged();
-            OnPropertyChanged(nameof(HasConnectedInstitution));
+
+            OnPropertyChanged(
+                nameof(
+                    HasConnectedInstitution));
         }
     }
 
@@ -91,7 +128,14 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
         !string.IsNullOrWhiteSpace(
             ConnectedInstitution);
 
-    private async Task ConnectBankAsync()
+    public bool HasConnections =>
+        Connections.Count > 0;
+
+    public bool HasNoConnections =>
+        Connections.Count == 0 &&
+        !IsBusy;
+
+    public async Task LoadConnectionsAsync()
     {
         if (IsBusy)
         {
@@ -100,7 +144,35 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
 
         try
         {
-            IsBusy = true;
+            IsBusy =
+                true;
+
+            await RefreshConnectionsCoreAsync(
+                updateStatusMessage: true);
+        }
+        catch
+        {
+            StatusMessage =
+                "BillWatch could not load your bank connections.";
+        }
+        finally
+        {
+            IsBusy =
+                false;
+        }
+    }
+
+    public async Task ConnectBankAsync()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy =
+                true;
 
             ConnectedInstitution =
                 string.Empty;
@@ -131,9 +203,11 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
                 "Complete the connection in your browser. BillWatch is waiting securely...";
 
             var deadline =
-                DateTimeOffset.UtcNow.AddMinutes(10);
+                DateTimeOffset.UtcNow
+                    .AddMinutes(10);
 
-            while (DateTimeOffset.UtcNow < deadline)
+            while (DateTimeOffset.UtcNow <
+                   deadline)
             {
                 await Task.Delay(
                     TimeSpan.FromSeconds(2));
@@ -157,11 +231,16 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
                         StringComparison.OrdinalIgnoreCase))
                 {
                     ConnectedInstitution =
-                        result.Connection?.InstitutionName
+                        result.Connection?
+                            .InstitutionName
                         ?? "Connected bank";
 
                     StatusMessage =
                         $"{ConnectedInstitution} is now securely connected to BillWatch.";
+
+                    await RefreshConnectionsCoreAsync(
+                        updateStatusMessage:
+                            false);
 
                     return;
                 }
@@ -204,16 +283,204 @@ public sealed class ConnectBankPageViewModel : INotifyPropertyChanged
         }
         finally
         {
-            IsBusy = false;
+            IsBusy =
+                false;
         }
     }
 
+    public async Task DisconnectAsync(
+        BankConnectionItemViewModel connection)
+    {
+        ArgumentNullException.ThrowIfNull(
+            connection);
+
+        if (IsBusy ||
+            !connection.CanDisconnect)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy =
+                true;
+
+            StatusMessage =
+                $"Disconnecting {connection.InstitutionName}...";
+
+            await _plaidConnectionService
+                .DisconnectAsync(
+                    connection.Id);
+
+            await RefreshConnectionsCoreAsync(
+                updateStatusMessage:
+                    false);
+
+            StatusMessage =
+                $"{connection.InstitutionName} was disconnected.";
+        }
+        catch
+        {
+            StatusMessage =
+                $"BillWatch could not disconnect {connection.InstitutionName}.";
+        }
+        finally
+        {
+            IsBusy =
+                false;
+        }
+    }
+
+    private async Task RefreshConnectionsCoreAsync(
+        bool updateStatusMessage)
+    {
+        var connections =
+            await _plaidConnectionService
+                .GetConnectionsAsync();
+
+        Connections.Clear();
+
+        foreach (var connection in connections)
+        {
+            Connections.Add(
+                new BankConnectionItemViewModel(
+                    connection));
+        }
+
+        OnPropertyChanged(
+            nameof(HasConnections));
+
+        OnPropertyChanged(
+            nameof(HasNoConnections));
+
+        if (!updateStatusMessage)
+        {
+            return;
+        }
+
+        var activeCount =
+            Connections.Count(
+                connection =>
+                    connection.Status ==
+                    BankConnectionStatus.Active);
+
+        var attentionCount =
+            Connections.Count(
+                connection =>
+                    connection.Status ==
+                    BankConnectionStatus
+                        .RequiresAttention);
+
+        if (activeCount > 0)
+        {
+            StatusMessage =
+                activeCount == 1
+                    ? "BillWatch is monitoring 1 bank connection."
+                    : $"BillWatch is monitoring {activeCount} bank connections.";
+
+            return;
+        }
+
+        if (attentionCount > 0)
+        {
+            StatusMessage =
+                "A bank connection needs your attention.";
+
+            return;
+        }
+
+        if (Connections.Count > 0)
+        {
+            StatusMessage =
+                "Your saved bank connections are currently disconnected.";
+
+            return;
+        }
+
+        StatusMessage =
+            "Securely connect your bank to start monitoring bills.";
+    }
+
     private void OnPropertyChanged(
-        [CallerMemberName] string? propertyName = null)
+        [CallerMemberName]
+        string? propertyName = null)
     {
         PropertyChanged?.Invoke(
             this,
             new PropertyChangedEventArgs(
                 propertyName));
+    }
+}
+
+public sealed class BankConnectionItemViewModel
+{
+    public BankConnectionItemViewModel(
+        BankConnectionResult connection)
+    {
+        Id =
+            connection.Id;
+
+        InstitutionName =
+            connection.InstitutionName;
+
+        Status =
+            connection.Status;
+
+        LastSuccessfulSyncAtUtc =
+            connection.LastSuccessfulSyncAtUtc;
+
+        CreatedAtUtc =
+            connection.CreatedAtUtc;
+    }
+
+    public Guid Id { get; }
+
+    public string InstitutionName { get; }
+
+    public BankConnectionStatus Status { get; }
+
+    public DateTimeOffset?
+        LastSuccessfulSyncAtUtc
+    { get; }
+
+    public DateTimeOffset CreatedAtUtc { get; }
+
+    public bool CanDisconnect =>
+        Status !=
+        BankConnectionStatus.Disconnected;
+
+    public bool CanReconnect =>
+        Status ==
+        BankConnectionStatus.Disconnected;
+
+    public string StatusText =>
+        Status switch
+        {
+            BankConnectionStatus.Active =>
+                "Connected",
+
+            BankConnectionStatus.RequiresAttention =>
+                "Needs attention",
+
+            BankConnectionStatus.Disconnected =>
+                "Disconnected",
+
+            _ =>
+                "Unknown"
+        };
+
+    public string LastSyncText
+    {
+        get
+        {
+            if (LastSuccessfulSyncAtUtc
+                is not DateTimeOffset value)
+            {
+                return "Not synced yet";
+            }
+
+            return
+                $"Last synced {value.ToLocalTime():MMM d, yyyy 'at' h:mm tt}";
+        }
     }
 }

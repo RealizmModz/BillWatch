@@ -11,6 +11,11 @@ Content-Type: application/json
 
 ###
 
+GET {{BillWatch_API_HostAddress}}/api/bank-connections
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+###
+
 POST {{BillWatch_API_HostAddress}}/api/bill-monitoring/refresh
 Authorization: Bearer {{login.response.body.$.accessToken}}
 Content-Type: application/json
@@ -20,4 +25,9 @@ Content-Type: application/json
 ###
 
 GET {{BillWatch_API_HostAddress}}/api/bill-streams
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+###
+
+DELETE {{BillWatch_API_HostAddress}}/api/bank-connections/270054d8-3ac9-463e-912f-fa9a24d38ecd
 Authorization: Bearer {{login.response.body.$.accessToken}}

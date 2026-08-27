@@ -85,12 +85,9 @@ builder.Services.AddRateLimiter(
                                 new FixedWindowRateLimiterOptions
                                 {
                                     PermitLimit = 300,
-
                                     Window =
                                         TimeSpan.FromMinutes(1),
-
                                     QueueLimit = 0,
-
                                     AutoReplenishment = true
                                 }));
 
@@ -109,12 +106,9 @@ builder.Services.AddRateLimiter(
                             new FixedWindowRateLimiterOptions
                             {
                                 PermitLimit = 20,
-
                                 Window =
                                     TimeSpan.FromMinutes(1),
-
                                 QueueLimit = 0,
-
                                 AutoReplenishment = true
                             }));
     });
@@ -161,6 +155,8 @@ builder.Services.AddScoped<PlaidLinkService>();
 builder.Services.AddScoped<PlaidHostedLinkCompletionService>();
 builder.Services.AddScoped<PlaidAccountSyncService>();
 builder.Services.AddScoped<PlaidTransactionSyncService>();
+builder.Services.AddScoped<PlaidConnectionDisconnectService>();
+
 builder.Services.AddScoped<RecurringBillDiscoveryPersistenceService>();
 builder.Services.AddScoped<BillMonitoringRefreshService>();
 
