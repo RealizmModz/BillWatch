@@ -175,6 +175,73 @@
 
                 </Border>
 
+                <!-- Statement upload -->
+                <Border
+                    Style="{StaticResource CardStyle}"
+                    StrokeShape="RoundRectangle 22">
+
+                    <VerticalStackLayout Spacing="12">
+
+                        <VerticalStackLayout Spacing="4">
+
+                            <Label
+                                Text="Help BillWatch explain this bill"
+                                Style="{StaticResource SectionTitleStyle}" />
+
+                            <Label
+                                Text="Upload a provider statement so BillWatch can use the actual bill as evidence. PDF, JPG and PNG are supported."
+                                Style="{StaticResource BodyTextStyle}" />
+
+                        </VerticalStackLayout>
+
+                        <Button
+                            Text="Upload statement"
+                            HeightRequest="50"
+                            CornerRadius="14"
+                            FontAttributes="Bold"
+                            BackgroundColor="{StaticResource BrandPrimary}"
+                            TextColor="White"
+                            IsEnabled="{Binding CanUpload}"
+                            Clicked="OnUploadStatementClicked" />
+
+                        <Grid
+                            IsVisible="{Binding IsUploading}"
+                            ColumnDefinitions="Auto,*"
+                            ColumnSpacing="10">
+
+                            <ActivityIndicator
+                                Grid.Column="0"
+                                IsRunning="{Binding IsUploading}"
+                                WidthRequest="20"
+                                HeightRequest="20"
+                                VerticalOptions="Center" />
+
+                            <Label
+                                Grid.Column="1"
+                                Text="Uploading statement securely..."
+                                VerticalOptions="Center"
+                                Style="{StaticResource MutedTextStyle}" />
+
+                        </Grid>
+
+                        <Label
+                            IsVisible="{Binding HasUploadSuccess}"
+                            Text="{Binding UploadMessage}"
+                            Style="{StaticResource BrandTextStyle}" />
+
+                        <Label
+                            IsVisible="{Binding HasUploadError}"
+                            Text="{Binding UploadMessage}"
+                            Style="{StaticResource BodyTextStyle}" />
+
+                        <Label
+                            Text="The uploaded document is stored separately from your normal bill data. BillWatch does not expose its internal storage location."
+                            Style="{StaticResource SmallTextStyle}" />
+
+                    </VerticalStackLayout>
+
+                </Border>
+
                 <!-- Statement history -->
                 <VerticalStackLayout Spacing="10">
 
@@ -232,7 +299,7 @@
 
                     <Label
                         IsVisible="{Binding HasNoStatements}"
-                        Text="No detailed statements have been collected for this bill yet."
+                        Text="No detailed statements have been processed for this bill yet."
                         Style="{StaticResource MutedTextStyle}" />
 
                 </VerticalStackLayout>

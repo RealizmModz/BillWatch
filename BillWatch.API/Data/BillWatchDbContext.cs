@@ -41,6 +41,9 @@ public sealed class BillWatchDbContext
     public DbSet<BillAlertEntity> BillAlerts =>
         Set<BillAlertEntity>();
 
+    public DbSet<BillStatementUploadEntity> BillStatementUploads =>
+        Set<BillStatementUploadEntity>();
+
     public DbSet<PlaidLinkSessionEntity> PlaidLinkSessions =>
         Set<PlaidLinkSessionEntity>();
 
@@ -58,6 +61,7 @@ public sealed class BillWatchDbContext
         ConfigureBillLineItem(builder);
         ConfigureBillChange(builder);
         ConfigureBillAlert(builder);
+        ConfigureBillStatementUpload(builder);
         ConfigurePlaidLinkSession(builder);
     }
 
@@ -699,6 +703,121 @@ public sealed class BillWatchDbContext
                         change.UserId
                     })
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+    }
+
+    private static void ConfigureBillStatementUpload(
+        ModelBuilder builder)
+    {
+        builder.Entity<BillStatementUploadEntity>(
+            entity =>
+            {
+                entity.ToTable(
+                    "BillStatementUploads");
+
+                entity.HasKey(
+                    upload => upload.Id);
+
+                entity.HasAlternateKey(
+                    upload => new
+                    {
+                        upload.Id,
+                        upload.UserId
+                    });
+
+                entity.Property(
+                        upload => upload.StorageKey)
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(
+                        upload => upload.MediaType)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(
+                        upload => upload.FileExtension)
+                    .HasMaxLength(10)
+                    .IsRequired();
+
+                entity.Property(
+                        upload => upload.SizeBytes)
+                    .IsRequired();
+
+                entity.Property(
+                        upload => upload.Status)
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(
+                        upload => upload.CreatedAtUtc)
+                    .IsRequired();
+
+                entity.Property(
+                        upload => upload.UpdatedAtUtc)
+                    .IsRequired();
+
+                entity.HasIndex(
+                    upload => upload.UserId);
+
+                entity.HasIndex(
+                    upload => upload.BillStreamId);
+
+                entity.HasIndex(
+                    upload => upload.BillStatementId);
+
+                entity.HasIndex(
+                    upload => new
+                    {
+                        upload.UserId,
+                        upload.Status,
+                        upload.CreatedAtUtc
+                    });
+
+                entity.HasOne(
+                        upload => upload.User)
+                    .WithMany()
+                    .HasForeignKey(
+                        upload => upload.UserId)
+                    .OnDelete(
+                        DeleteBehavior.Cascade);
+
+                entity.HasOne(
+                        upload => upload.BillStream)
+                    .WithMany()
+                    .HasForeignKey(
+                        upload => new
+                        {
+                            upload.BillStreamId,
+                            upload.UserId
+                        })
+                    .HasPrincipalKey(
+                        stream => new
+                        {
+                            stream.Id,
+                            stream.UserId
+                        })
+                    .OnDelete(
+                        DeleteBehavior.Restrict);
+
+                entity.HasOne(
+                        upload => upload.BillStatement)
+                    .WithMany()
+                    .HasForeignKey(
+                        upload => new
+                        {
+                            upload.BillStatementId,
+                            upload.UserId
+                        })
+                    .HasPrincipalKey(
+                        statement => new
+                        {
+                            statement.Id,
+                            statement.UserId
+                        })
+                    .OnDelete(
+                        DeleteBehavior.Restrict);
             });
     }
 

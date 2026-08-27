@@ -4,6 +4,9 @@ namespace BillWatch;
 
 public partial class BillDetailPage : ContentPage
 {
+    private const long MaxUploadSizeBytes =
+        15L * 1024 * 1024;
+
     private readonly BillStreamService
         _billStreamService;
 
@@ -16,8 +19,18 @@ public partial class BillDetailPage : ContentPage
     private bool
         _isLoading;
 
+    private bool
+        _isUploading;
+
+    private bool
+        _uploadSucceeded;
+
     private string
         _errorMessage =
+            string.Empty;
+
+    private string
+        _uploadMessage =
             string.Empty;
 
     private BillStreamDetailResult?
@@ -89,6 +102,70 @@ public partial class BillDetailPage : ContentPage
                 nameof(HasContent));
         }
     }
+
+    public bool IsUploading
+    {
+        get =>
+            _isUploading;
+
+        private set
+        {
+            if (_isUploading ==
+                value)
+            {
+                return;
+            }
+
+            _isUploading =
+                value;
+
+            OnPropertyChanged();
+
+            OnPropertyChanged(
+                nameof(CanUpload));
+        }
+    }
+
+    public bool CanUpload =>
+        !IsUploading &&
+        !IsLoading &&
+        _billStreamId != Guid.Empty;
+
+    public string UploadMessage
+    {
+        get =>
+            _uploadMessage;
+
+        private set
+        {
+            if (_uploadMessage ==
+                value)
+            {
+                return;
+            }
+
+            _uploadMessage =
+                value;
+
+            OnPropertyChanged();
+
+            OnPropertyChanged(
+                nameof(HasUploadSuccess));
+
+            OnPropertyChanged(
+                nameof(HasUploadError));
+        }
+    }
+
+    public bool HasUploadSuccess =>
+        _uploadSucceeded &&
+        !string.IsNullOrWhiteSpace(
+            UploadMessage);
+
+    public bool HasUploadError =>
+        !_uploadSucceeded &&
+        !string.IsNullOrWhiteSpace(
+            UploadMessage);
 
     public string ErrorMessage
     {
@@ -361,6 +438,149 @@ public partial class BillDetailPage : ContentPage
         }
     }
 
+    private async void OnUploadStatementClicked(
+        object? sender,
+        EventArgs e)
+    {
+        if (IsUploading ||
+            _billStreamId ==
+                Guid.Empty)
+        {
+            return;
+        }
+
+        try
+        {
+            ClearUploadMessage();
+
+            var selectedFile =
+                await FilePicker.Default.PickAsync(
+                    new PickOptions
+                    {
+                        PickerTitle =
+                            "Choose bill statement"
+                    });
+
+            if (selectedFile is null)
+            {
+                return;
+            }
+
+            var extension =
+                Path.GetExtension(
+                        selectedFile.FileName)
+                    .ToLowerInvariant();
+
+            if (extension is not
+                ".pdf" and not
+                ".jpg" and not
+                ".jpeg" and not
+                ".png")
+            {
+                SetUploadError(
+                    "Choose a PDF, JPG, JPEG, or PNG bill statement.");
+
+                return;
+            }
+
+            await using var fileStream =
+                await selectedFile
+                    .OpenReadAsync();
+
+            if (fileStream.CanSeek &&
+                fileStream.Length >
+                    MaxUploadSizeBytes)
+            {
+                SetUploadError(
+                    "This statement is larger than the 15 MB upload limit.");
+
+                return;
+            }
+
+            IsUploading =
+                true;
+
+            var mediaType =
+                GetMediaType(
+                    extension);
+
+            var result =
+                await _billStreamService
+                    .UploadStatementAsync(
+                        _billStreamId,
+                        fileStream,
+                        selectedFile.FileName,
+                        mediaType);
+
+            _uploadSucceeded =
+                true;
+
+            UploadMessage =
+                result.Status == "Uploaded"
+                    ? "Statement uploaded securely. It is ready for BillWatch's document-processing pipeline."
+                    : $"Statement received. Current status: {result.Status}.";
+        }
+        catch (SessionExpiredException)
+        {
+            SetUploadError(
+                "Your BillWatch session expired. Please sign in again.");
+        }
+        catch (HttpRequestException ex)
+        {
+            SetUploadError(
+                string.IsNullOrWhiteSpace(
+                    ex.Message)
+                    ? "BillWatch could not upload this statement."
+                    : ex.Message);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            SetUploadError(
+                "BillWatch could not access the selected file.");
+        }
+        catch (Exception)
+        {
+            SetUploadError(
+                "Something went wrong while uploading this statement.");
+        }
+        finally
+        {
+            IsUploading =
+                false;
+        }
+    }
+
+    private void ClearUploadMessage()
+    {
+        _uploadSucceeded =
+            false;
+
+        UploadMessage =
+            string.Empty;
+
+        OnPropertyChanged(
+            nameof(HasUploadSuccess));
+
+        OnPropertyChanged(
+            nameof(HasUploadError));
+    }
+
+    private void SetUploadError(
+        string message)
+    {
+        _uploadSucceeded =
+            false;
+
+        UploadMessage =
+            message;
+
+        OnPropertyChanged(
+            nameof(HasUploadSuccess));
+
+        OnPropertyChanged(
+            nameof(HasUploadError));
+    }
+
     private void NotifyDetailChanged()
     {
         OnPropertyChanged(
@@ -404,13 +624,35 @@ public partial class BillDetailPage : ContentPage
 
         OnPropertyChanged(
             nameof(HasContent));
+
+        OnPropertyChanged(
+            nameof(CanUpload));
     }
 
     private async void OnBackClicked(
-    object? sender,
-    EventArgs e)
+        object? sender,
+        EventArgs e)
     {
         await Navigation.PopModalAsync();
+    }
+
+    private static string GetMediaType(
+        string extension)
+    {
+        return extension switch
+        {
+            ".pdf" =>
+                "application/pdf",
+
+            ".png" =>
+                "image/png",
+
+            ".jpg" or ".jpeg" =>
+                "image/jpeg",
+
+            _ =>
+                "application/octet-stream"
+        };
     }
 
     private static string FormatMoney(

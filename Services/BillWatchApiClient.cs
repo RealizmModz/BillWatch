@@ -141,6 +141,101 @@ public sealed class BillWatchApiClient
                 "The bill detail response was empty.");
     }
 
+    public async Task<BillStatementUploadResult>
+        UploadBillStatementAsync(
+            string accessToken,
+            Guid billStreamId,
+            Stream fileStream,
+            string fileName,
+            string? mediaType = null,
+            CancellationToken cancellationToken = default)
+    {
+        if (billStreamId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Bill stream ID is required.",
+                nameof(billStreamId));
+        }
+
+        ArgumentNullException.ThrowIfNull(
+            fileStream);
+
+        if (!fileStream.CanRead)
+        {
+            throw new ArgumentException(
+                "The selected file cannot be read.",
+                nameof(fileStream));
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                fileName))
+        {
+            throw new ArgumentException(
+                "File name is required.",
+                nameof(fileName));
+        }
+
+        using var request =
+            CreateAuthorizedRequest(
+                HttpMethod.Post,
+                $"/api/bill-streams/{billStreamId}/statement-uploads",
+                accessToken);
+
+        using var multipart =
+            new MultipartFormDataContent();
+
+        using var fileContent =
+            new StreamContent(
+                fileStream);
+
+        if (!string.IsNullOrWhiteSpace(
+                mediaType))
+        {
+            fileContent.Headers.ContentType =
+                new MediaTypeHeaderValue(
+                    mediaType);
+        }
+
+        multipart.Add(
+            fileContent,
+            "file",
+            fileName);
+
+        request.Content =
+            multipart;
+
+        using var response =
+            await _httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error =
+                await response.Content
+                    .ReadFromJsonAsync<ApiErrorResult>(
+                        cancellationToken:
+                            cancellationToken);
+
+            throw new HttpRequestException(
+                error?.Message
+                ?? "BillWatch could not upload this statement.",
+                null,
+                response.StatusCode);
+        }
+
+        var result =
+            await response.Content
+                .ReadFromJsonAsync<BillStatementUploadResult>(
+                    cancellationToken:
+                        cancellationToken);
+
+        return result
+            ?? throw new InvalidOperationException(
+                "The statement upload response was empty.");
+    }
+
     public async Task<IReadOnlyList<BankAccountResult>>
         GetBankAccountsAsync(
             string accessToken,
@@ -380,6 +475,9 @@ public sealed class BillWatchApiClient
 
         return request;
     }
+
+    private sealed record ApiErrorResult(
+        string Message);
 }
 
 public sealed record LoginResult(
@@ -428,6 +526,15 @@ public sealed record BillChangeResult(
     decimal AnnualizedImpact,
     bool IsAcknowledged,
     DateTimeOffset DetectedAtUtc);
+
+public sealed record BillStatementUploadResult(
+    Guid Id,
+    Guid BillStreamId,
+    string MediaType,
+    string FileExtension,
+    long SizeBytes,
+    string Status,
+    DateTimeOffset CreatedAtUtc);
 
 public sealed record BankAccountResult(
     Guid Id,

@@ -16,6 +16,12 @@ public sealed class BillWatchApiFactory
     private readonly string _databaseName =
         $"BillWatchSecurityTests-{Guid.NewGuid():N}";
 
+    private readonly string _statementStorageRoot =
+        Path.Combine(
+            Path.GetTempPath(),
+            "BillWatch.Tests",
+            Guid.NewGuid().ToString("N"));
+
     public HttpClient CreateHttpsClient()
     {
         return CreateClient(
@@ -42,7 +48,7 @@ public sealed class BillWatchApiFactory
                 var testSettings =
                     new Dictionary<string, string?>
                     {
-                        ["ConnectionStrings:BillWatch"] =
+                        ["ConnectionStrings:BillWatchDatabase"] =
                             "Host=localhost;Database=billwatch_tests;Username=test;Password=test",
 
                         ["Plaid:ClientId"] =
@@ -52,7 +58,14 @@ public sealed class BillWatchApiFactory
                             "test-secret",
 
                         ["Plaid:Environment"] =
-                            "sandbox"
+                            "sandbox",
+
+                        ["BillStatementStorage:RootPath"] =
+                            _statementStorageRoot,
+
+                        ["BillStatementStorage:MaxFileSizeBytes"] =
+                            (15L * 1024 * 1024)
+                                .ToString()
                     };
 
                 configuration.AddInMemoryCollection(
@@ -79,5 +92,32 @@ public sealed class BillWatchApiFactory
                         options.UseInMemoryDatabase(
                             _databaseName));
             });
+    }
+
+    protected override void Dispose(
+        bool disposing)
+    {
+        base.Dispose(
+            disposing);
+
+        if (!disposing)
+        {
+            return;
+        }
+
+        try
+        {
+            if (Directory.Exists(
+                    _statementStorageRoot))
+            {
+                Directory.Delete(
+                    _statementStorageRoot,
+                    recursive: true);
+            }
+        }
+        catch
+        {
+            // Test cleanup must not hide the actual test result.
+        }
     }
 }

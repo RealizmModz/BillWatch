@@ -33,6 +33,7 @@ public sealed class BillStreamService
                 accessToken,
                 cancellationToken);
     }
+
     public async Task<BillStreamDetailResult>
         GetBillStreamDetailAsync(
             Guid billStreamId,
@@ -57,5 +58,33 @@ public sealed class BillStreamService
                 cancellationToken);
     }
 
+    public async Task<BillStatementUploadResult>
+        UploadStatementAsync(
+            Guid billStreamId,
+            Stream fileStream,
+            string fileName,
+            string? mediaType = null,
+            CancellationToken cancellationToken = default)
+    {
+        if (billStreamId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Bill stream ID is required.",
+                nameof(billStreamId));
+        }
 
+        var accessToken =
+            await _authenticationService
+                .GetValidAccessTokenAsync(
+                    cancellationToken);
+
+        return await _apiClient
+            .UploadBillStatementAsync(
+                accessToken,
+                billStreamId,
+                fileStream,
+                fileName,
+                mediaType,
+                cancellationToken);
+    }
 }

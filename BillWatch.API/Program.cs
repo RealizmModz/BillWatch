@@ -3,6 +3,7 @@ using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Bills;
 using BillWatch.API.Services.Plaid;
+using BillWatch.API.Services.Statements;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -159,6 +160,25 @@ builder.Services.AddScoped<PlaidConnectionDisconnectService>();
 
 builder.Services.AddScoped<RecurringBillDiscoveryPersistenceService>();
 builder.Services.AddScoped<BillMonitoringRefreshService>();
+
+var configuredStatementStoragePath =
+    builder.Configuration[
+        $"{BillStatementStorageOptions.SectionName}:RootPath"];
+
+if (!builder.Environment.IsDevelopment() &&
+    string.IsNullOrWhiteSpace(
+        configuredStatementStoragePath))
+{
+    throw new InvalidOperationException(
+        "BillStatementStorage:RootPath must be configured outside development.");
+}
+
+builder.Services.Configure<BillStatementStorageOptions>(
+    builder.Configuration.GetSection(
+        BillStatementStorageOptions.SectionName));
+
+builder.Services.AddScoped<
+    SecureBillStatementStorageService>();
 
 var app = builder.Build();
 
