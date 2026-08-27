@@ -2,52 +2,59 @@
 
 public sealed class BankDataService
 {
-    private readonly BillWatchApiClient _apiClient;
-    private readonly AuthSession _authSession;
+    private readonly BillWatchApiClient
+        _apiClient;
+
+    private readonly AuthenticationService
+        _authenticationService;
 
     public BankDataService(
         BillWatchApiClient apiClient,
-        AuthSession authSession)
+        AuthenticationService authenticationService)
     {
-        _apiClient = apiClient;
-        _authSession = authSession;
+        _apiClient =
+            apiClient;
+
+        _authenticationService =
+            authenticationService;
     }
 
-    public async Task<IReadOnlyList<BankAccountResult>> GetAccountsAsync(
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BankAccountResult>>
+        GetAccountsAsync(
+            CancellationToken cancellationToken = default)
     {
         var accessToken =
-            await GetRequiredAccessTokenAsync();
+            await GetRequiredAccessTokenAsync(
+                cancellationToken);
 
-        return await _apiClient.GetBankAccountsAsync(
-            accessToken,
-            cancellationToken);
+        return await _apiClient
+            .GetBankAccountsAsync(
+                accessToken,
+                cancellationToken);
     }
 
-    public async Task<IReadOnlyList<BankTransactionResult>> GetTransactionsAsync(
-        int take = 100,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BankTransactionResult>>
+        GetTransactionsAsync(
+            int take = 100,
+            CancellationToken cancellationToken = default)
     {
         var accessToken =
-            await GetRequiredAccessTokenAsync();
+            await GetRequiredAccessTokenAsync(
+                cancellationToken);
 
-        return await _apiClient.GetBankTransactionsAsync(
-            accessToken,
-            take,
-            cancellationToken);
+        return await _apiClient
+            .GetBankTransactionsAsync(
+                accessToken,
+                take,
+                cancellationToken);
     }
 
-    private async Task<string> GetRequiredAccessTokenAsync()
+    private async Task<string>
+        GetRequiredAccessTokenAsync(
+            CancellationToken cancellationToken)
     {
-        var accessToken =
-            await _authSession.GetAccessTokenAsync();
-
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            throw new InvalidOperationException(
-                "You must be signed in to view connected bank data.");
-        }
-
-        return accessToken;
+        return await _authenticationService
+            .GetValidAccessTokenAsync(
+                cancellationToken);
     }
 }

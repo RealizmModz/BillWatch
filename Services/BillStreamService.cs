@@ -2,30 +2,35 @@
 
 public sealed class BillStreamService
 {
-    private readonly BillWatchApiClient _apiClient;
-    private readonly AuthSession _authSession;
+    private readonly BillWatchApiClient
+        _apiClient;
+
+    private readonly AuthenticationService
+        _authenticationService;
 
     public BillStreamService(
         BillWatchApiClient apiClient,
-        AuthSession authSession)
+        AuthenticationService authenticationService)
     {
-        _apiClient = apiClient;
-        _authSession = authSession;
+        _apiClient =
+            apiClient;
+
+        _authenticationService =
+            authenticationService;
     }
 
-    public async Task<IReadOnlyList<BillStreamResult>> GetBillStreamsAsync(
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BillStreamResult>>
+        GetBillStreamsAsync(
+            CancellationToken cancellationToken = default)
     {
         var accessToken =
-            await _authSession.GetAccessTokenAsync();
+            await _authenticationService
+                .GetValidAccessTokenAsync(
+                    cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(accessToken))
-        {
-            return [];
-        }
-
-        return await _apiClient.GetBillStreamsAsync(
-            accessToken,
-            cancellationToken);
+        return await _apiClient
+            .GetBillStreamsAsync(
+                accessToken,
+                cancellationToken);
     }
 }

@@ -14,6 +14,9 @@ public sealed class ConnectBankPageViewModel :
 
     private bool _isBusy;
 
+    private CancellationTokenSource?
+        _connectionWaitCancellation;
+
     private string _statusMessage =
         "Securely connect your bank to start monitoring bills.";
 
@@ -169,6 +172,10 @@ public sealed class ConnectBankPageViewModel :
             return;
         }
 
+        CancellationTokenSource?
+            connectionWaitCancellation =
+                null;
+
         try
         {
             IsBusy =
@@ -199,8 +206,14 @@ public sealed class ConnectBankPageViewModel :
                 return;
             }
 
+            connectionWaitCancellation =
+                new CancellationTokenSource();
+
+            _connectionWaitCancellation =
+                connectionWaitCancellation;
+
             StatusMessage =
-                "Complete the connection in your browser. BillWatch is waiting securely...";
+                "Complete the connection in your browser. When you are done — or if you close the Plaid tab — return to BillWatch and click anywhere in this window. BillWatch will refresh or stop waiting.";
 
             var deadline =
                 DateTimeOffset.UtcNow
@@ -210,12 +223,15 @@ public sealed class ConnectBankPageViewModel :
                    deadline)
             {
                 await Task.Delay(
-                    TimeSpan.FromSeconds(2));
+                    TimeSpan.FromSeconds(2),
+                    connectionWaitCancellation.Token);
 
                 var result =
                     await _plaidConnectionService
                         .CompleteLinkSessionAsync(
-                            session.SessionId);
+                            session.SessionId,
+                            connectionWaitCancellation
+                                .Token);
 
                 if (string.Equals(
                         result.Status,
@@ -276,6 +292,13 @@ public sealed class ConnectBankPageViewModel :
             StatusMessage =
                 "BillWatch stopped waiting for the bank connection. You can try again.";
         }
+        catch (OperationCanceledException)
+            when (connectionWaitCancellation?
+                .IsCancellationRequested == true)
+        {
+            StatusMessage =
+                "Bank connection was canceled.";
+        }
         catch
         {
             StatusMessage =
@@ -283,9 +306,35 @@ public sealed class ConnectBankPageViewModel :
         }
         finally
         {
+            if (ReferenceEquals(
+                    _connectionWaitCancellation,
+                    connectionWaitCancellation))
+            {
+                _connectionWaitCancellation =
+                    null;
+            }
+
+            connectionWaitCancellation?
+                .Dispose();
+
             IsBusy =
                 false;
         }
+    }
+
+    public void CancelPendingConnection()
+    {
+        if (_connectionWaitCancellation
+            is not
+            {
+                IsCancellationRequested:
+                    false
+            } cancellation)
+        {
+            return;
+        }
+
+        cancellation.Cancel();
     }
 
     public async Task DisconnectAsync(

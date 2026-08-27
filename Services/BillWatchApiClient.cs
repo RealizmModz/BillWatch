@@ -10,7 +10,8 @@ public sealed class BillWatchApiClient
     public BillWatchApiClient(
         HttpClient httpClient)
     {
-        _httpClient = httpClient;
+        _httpClient =
+            httpClient;
     }
 
     public async Task<LoginResult> LoginAsync(
@@ -39,6 +40,41 @@ public sealed class BillWatchApiClient
         return result
             ?? throw new InvalidOperationException(
                 "The login response was empty.");
+    }
+
+    public async Task<LoginResult>
+        RefreshAccessTokenAsync(
+            string refreshToken,
+            CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(
+                refreshToken))
+        {
+            throw new ArgumentException(
+                "Refresh token is required.",
+                nameof(refreshToken));
+        }
+
+        using var response =
+            await _httpClient.PostAsJsonAsync(
+                "/api/auth/refresh",
+                new
+                {
+                    refreshToken
+                },
+                cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        var result =
+            await response.Content
+                .ReadFromJsonAsync<LoginResult>(
+                    cancellationToken:
+                        cancellationToken);
+
+        return result
+            ?? throw new InvalidOperationException(
+                "The token refresh response was empty.");
     }
 
     public async Task<IReadOnlyList<BillStreamResult>>

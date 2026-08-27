@@ -5,18 +5,18 @@ public sealed class PlaidConnectionService
     private readonly BillWatchApiClient
         _apiClient;
 
-    private readonly AuthSession
-        _authSession;
+    private readonly AuthenticationService
+        _authenticationService;
 
     public PlaidConnectionService(
         BillWatchApiClient apiClient,
-        AuthSession authSession)
+        AuthenticationService authenticationService)
     {
         _apiClient =
             apiClient;
 
-        _authSession =
-            authSession;
+        _authenticationService =
+            authenticationService;
     }
 
     public async Task<IReadOnlyList<BankConnectionResult>>
@@ -24,7 +24,8 @@ public sealed class PlaidConnectionService
             CancellationToken cancellationToken = default)
     {
         var accessToken =
-            await GetRequiredAccessTokenAsync();
+            await GetRequiredAccessTokenAsync(
+                cancellationToken);
 
         return await _apiClient
             .GetBankConnectionsAsync(
@@ -44,7 +45,8 @@ public sealed class PlaidConnectionService
         }
 
         var accessToken =
-            await GetRequiredAccessTokenAsync();
+            await GetRequiredAccessTokenAsync(
+                cancellationToken);
 
         await _apiClient
             .DisconnectBankConnectionAsync(
@@ -58,7 +60,8 @@ public sealed class PlaidConnectionService
             CancellationToken cancellationToken = default)
     {
         var accessToken =
-            await GetRequiredAccessTokenAsync();
+            await GetRequiredAccessTokenAsync(
+                cancellationToken);
 
         return await _apiClient
             .CreatePlaidLinkSessionAsync(
@@ -79,7 +82,8 @@ public sealed class PlaidConnectionService
         }
 
         var accessToken =
-            await GetRequiredAccessTokenAsync();
+            await GetRequiredAccessTokenAsync(
+                cancellationToken);
 
         return await _apiClient
             .CompletePlaidLinkSessionAsync(
@@ -102,7 +106,8 @@ public sealed class PlaidConnectionService
         }
 
         var accessToken =
-            await GetRequiredAccessTokenAsync();
+            await GetRequiredAccessTokenAsync(
+                cancellationToken);
 
         return await _apiClient
             .ExchangePlaidPublicTokenAsync(
@@ -112,19 +117,11 @@ public sealed class PlaidConnectionService
     }
 
     private async Task<string>
-        GetRequiredAccessTokenAsync()
+        GetRequiredAccessTokenAsync(
+            CancellationToken cancellationToken)
     {
-        var accessToken =
-            await _authSession
-                .GetAccessTokenAsync();
-
-        if (string.IsNullOrWhiteSpace(
-                accessToken))
-        {
-            throw new InvalidOperationException(
-                "You must be signed in before managing bank connections.");
-        }
-
-        return accessToken;
+        return await _authenticationService
+            .GetValidAccessTokenAsync(
+                cancellationToken);
     }
 }

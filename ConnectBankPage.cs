@@ -41,7 +41,7 @@ public sealed class ConnectBankPage : ContentPage
             async (_, _) =>
             {
                 await Shell.Current
-                    .GoToAsync("..");
+                    .GoToAsync("//Home");
             };
 
         var title =
@@ -93,7 +93,10 @@ public sealed class ConnectBankPage : ContentPage
                         Text =
                             "🔒 Secure connection powered by Plaid",
 
-                        FontSize = 13
+                        FontSize = 13,
+
+                        TextColor =
+                            Color.FromArgb("#2A1F4F")
                     }
             };
 
@@ -566,8 +569,36 @@ public sealed class ConnectBankPage : ContentPage
     {
         base.OnAppearing();
 
+        if (Window is not null)
+        {
+            Window.Activated -=
+                OnWindowActivated;
+
+            Window.Activated +=
+                OnWindowActivated;
+        }
+
         await _viewModel
             .LoadConnectionsAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        if (Window is not null)
+        {
+            Window.Activated -=
+                OnWindowActivated;
+        }
+
+        base.OnDisappearing();
+    }
+
+    private void OnWindowActivated(
+        object? sender,
+        EventArgs e)
+    {
+        _viewModel
+            .CancelPendingConnection();
     }
 
     private async void DisconnectButtonClicked(
