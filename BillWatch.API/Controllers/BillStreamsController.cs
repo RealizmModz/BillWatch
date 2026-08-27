@@ -136,6 +136,141 @@ public sealed class BillStreamsController : ControllerBase
         return Ok(results);
     }
 
+    [HttpGet("{billStreamId:guid}")]
+    public async Task<ActionResult<BillStreamDetailResult>>
+        GetBillStreamDetail(
+            Guid billStreamId,
+            CancellationToken cancellationToken = default)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        if (billStreamId == Guid.Empty)
+        {
+            return NotFound();
+        }
+
+        var stream =
+            await _dbContext.BillStreams
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    candidate =>
+                        candidate.Id == billStreamId &&
+                        candidate.UserId == userId,
+                    cancellationToken);
+
+        if (stream is null)
+        {
+            return NotFound();
+        }
+
+        var transactions =
+            await _dbContext.BankTransactions
+                .AsNoTracking()
+                .Where(transaction =>
+                    transaction.UserId == userId &&
+                    transaction.BillStreamId ==
+                        billStreamId &&
+                    !transaction.IsRemoved &&
+                    !transaction.IsPending)
+                .OrderByDescending(transaction =>
+                    transaction.PostedDate)
+                .ThenByDescending(transaction =>
+                    transaction.CreatedAtUtc)
+                .ToListAsync(
+                    cancellationToken);
+
+        var currentAmount =
+            transactions.Count == 0
+                ? 0m
+                : transactions[0].Amount;
+
+        var previousAverage =
+            transactions.Count <= 1
+                ? 0m
+                : transactions
+                    .Skip(1)
+                    .Average(transaction =>
+                        transaction.Amount);
+
+        var statements =
+            await _dbContext.BillStatements
+                .AsNoTracking()
+                .Where(statement =>
+                    statement.UserId == userId &&
+                    statement.BillStreamId ==
+                        billStreamId)
+                .OrderByDescending(statement =>
+                    statement.PeriodEnd)
+                .ThenByDescending(statement =>
+                    statement.StatementDate)
+                .Select(statement =>
+                    new BillStatementHistoryResult(
+                        statement.Id,
+                        statement.PeriodStart,
+                        statement.PeriodEnd,
+                        statement.StatementDate,
+                        statement.DueDate,
+                        statement.TotalAmount,
+                        statement.CurrencyCode))
+                .ToListAsync(
+                    cancellationToken);
+
+        var changes =
+            await _dbContext.BillChanges
+                .AsNoTracking()
+                .Where(change =>
+                    change.UserId == userId &&
+                    change.BillStreamId ==
+                        billStreamId)
+                .OrderByDescending(change =>
+                    change.DetectedAtUtc)
+                .Select(change =>
+                    new BillChangeResult(
+                        change.Id,
+                        change.PreviousStatementId,
+                        change.CurrentStatementId,
+                        change.ChangeType.ToString(),
+                        change.Confidence.ToString(),
+                        change.Description,
+                        change.PreviousAmount,
+                        change.CurrentAmount,
+                        change.AmountDifference,
+                        change.AnnualizedImpact,
+                        change.IsAcknowledged,
+                        change.DetectedAtUtc))
+                .ToListAsync(
+                    cancellationToken);
+
+        return Ok(
+            new BillStreamDetailResult(
+                Id:
+                    stream.Id,
+
+                ProviderName:
+                    stream.ProviderName,
+
+                Category:
+                    stream.Category.ToString(),
+
+                IsActive:
+                    stream.IsActive,
+
+                CurrentAmount:
+                    currentAmount,
+
+                PreviousAverage:
+                    previousAverage,
+
+                Statements:
+                    statements,
+
+                Changes:
+                    changes));
+    }
+
     [HttpPost]
     public async Task<ActionResult<BillStreamResult>>
         CreateBillStream(
@@ -197,12 +332,16 @@ public sealed class BillStreamsController : ControllerBase
 
         if (existingStream is not null)
         {
-            var changed = false;
+            var changed =
+                false;
 
             if (!existingStream.IsActive)
             {
-                existingStream.IsActive = true;
-                changed = true;
+                existingStream.IsActive =
+                    true;
+
+                changed =
+                    true;
             }
 
             if (existingStream.Category ==
@@ -212,7 +351,8 @@ public sealed class BillStreamsController : ControllerBase
                 existingStream.Category =
                     category;
 
-                changed = true;
+                changed =
+                    true;
             }
 
             if (existingStream.Source ==
@@ -221,7 +361,8 @@ public sealed class BillStreamsController : ControllerBase
                 existingStream.Source =
                     BillStreamSource.Manual;
 
-                changed = true;
+                changed =
+                    true;
             }
 
             if (changed)
@@ -260,7 +401,8 @@ public sealed class BillStreamsController : ControllerBase
         var stream =
             new BillStreamEntity
             {
-                UserId = userId,
+                UserId =
+                    userId,
 
                 ProviderName =
                     providerName,
@@ -271,7 +413,8 @@ public sealed class BillStreamsController : ControllerBase
                 Source =
                     BillStreamSource.Manual,
 
-                IsActive = true,
+                IsActive =
+                    true,
 
                 CreatedAtUtc =
                     now,
@@ -330,3 +473,36 @@ public sealed record BillStreamResult(
     bool IsActive,
     decimal CurrentAmount,
     decimal PreviousAverage);
+
+public sealed record BillStreamDetailResult(
+    Guid Id,
+    string ProviderName,
+    string Category,
+    bool IsActive,
+    decimal CurrentAmount,
+    decimal PreviousAverage,
+    IReadOnlyList<BillStatementHistoryResult> Statements,
+    IReadOnlyList<BillChangeResult> Changes);
+
+public sealed record BillStatementHistoryResult(
+    Guid Id,
+    DateOnly PeriodStart,
+    DateOnly PeriodEnd,
+    DateOnly? StatementDate,
+    DateOnly? DueDate,
+    decimal TotalAmount,
+    string CurrencyCode);
+
+public sealed record BillChangeResult(
+    Guid Id,
+    Guid? PreviousStatementId,
+    Guid CurrentStatementId,
+    string ChangeType,
+    string Confidence,
+    string Description,
+    decimal PreviousAmount,
+    decimal CurrentAmount,
+    decimal AmountDifference,
+    decimal AnnualizedImpact,
+    bool IsAcknowledged,
+    DateTimeOffset DetectedAtUtc);

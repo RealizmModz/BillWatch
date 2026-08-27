@@ -133,6 +133,12 @@
                                 Style="{StaticResource CardStyle}"
                                 StrokeShape="RoundRectangle 22">
 
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Tapped="OnBillTapped"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+
                                 <Grid
                                     ColumnDefinitions="*,Auto"
                                     ColumnSpacing="20">
@@ -253,6 +259,12 @@
                                                 Style="{StaticResource BrandTextStyle}" />
 
                                         </Border>
+
+                                        <Label
+                                            Text="View details →"
+                                            FontSize="11"
+                                            HorizontalTextAlignment="End"
+                                            Style="{StaticResource BrandTextStyle}" />
 
                                     </VerticalStackLayout>
 

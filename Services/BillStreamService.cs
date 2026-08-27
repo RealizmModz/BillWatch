@@ -33,4 +33,29 @@ public sealed class BillStreamService
                 accessToken,
                 cancellationToken);
     }
+    public async Task<BillStreamDetailResult>
+        GetBillStreamDetailAsync(
+            Guid billStreamId,
+            CancellationToken cancellationToken = default)
+    {
+        if (billStreamId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Bill stream ID is required.",
+                nameof(billStreamId));
+        }
+
+        var accessToken =
+            await _authenticationService
+                .GetValidAccessTokenAsync(
+                    cancellationToken);
+
+        return await _apiClient
+            .GetBillStreamDetailAsync(
+                accessToken,
+                billStreamId,
+                cancellationToken);
+    }
+
+
 }

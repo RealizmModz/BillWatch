@@ -104,6 +104,43 @@ public sealed class BillWatchApiClient
         return billStreams ?? [];
     }
 
+    public async Task<BillStreamDetailResult>
+        GetBillStreamDetailAsync(
+            string accessToken,
+            Guid billStreamId,
+            CancellationToken cancellationToken = default)
+    {
+        if (billStreamId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Bill stream ID is required.",
+                nameof(billStreamId));
+        }
+
+        using var request =
+            CreateAuthorizedRequest(
+                HttpMethod.Get,
+                $"/api/bill-streams/{billStreamId}",
+                accessToken);
+
+        using var response =
+            await _httpClient.SendAsync(
+                request,
+                cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        var detail =
+            await response.Content
+                .ReadFromJsonAsync<BillStreamDetailResult>(
+                    cancellationToken:
+                        cancellationToken);
+
+        return detail
+            ?? throw new InvalidOperationException(
+                "The bill detail response was empty.");
+    }
+
     public async Task<IReadOnlyList<BankAccountResult>>
         GetBankAccountsAsync(
             string accessToken,
@@ -358,6 +395,39 @@ public sealed record BillStreamResult(
     bool IsActive,
     decimal CurrentAmount,
     decimal PreviousAverage);
+
+public sealed record BillStreamDetailResult(
+    Guid Id,
+    string ProviderName,
+    string Category,
+    bool IsActive,
+    decimal CurrentAmount,
+    decimal PreviousAverage,
+    IReadOnlyList<BillStatementHistoryResult> Statements,
+    IReadOnlyList<BillChangeResult> Changes);
+
+public sealed record BillStatementHistoryResult(
+    Guid Id,
+    DateOnly PeriodStart,
+    DateOnly PeriodEnd,
+    DateOnly? StatementDate,
+    DateOnly? DueDate,
+    decimal TotalAmount,
+    string CurrencyCode);
+
+public sealed record BillChangeResult(
+    Guid Id,
+    Guid? PreviousStatementId,
+    Guid CurrentStatementId,
+    string ChangeType,
+    string Confidence,
+    string Description,
+    decimal PreviousAmount,
+    decimal CurrentAmount,
+    decimal AmountDifference,
+    decimal AnnualizedImpact,
+    bool IsAcknowledged,
+    DateTimeOffset DetectedAtUtc);
 
 public sealed record BankAccountResult(
     Guid Id,

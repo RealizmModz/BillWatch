@@ -140,6 +140,7 @@ public sealed class BillsPageViewModel : INotifyPropertyChanged
                             stream.PreviousAverage) >= 0.10m;
 
                     return new BillListItem(
+                        Id: stream.Id,
                         ProviderName: stream.ProviderName,
                         Category: FormatCategory(stream.Category),
                         CurrentAmount: stream.CurrentAmount,
@@ -205,6 +206,7 @@ public sealed class BillsPageViewModel : INotifyPropertyChanged
 }
 
 public sealed record BillListItem(
+    Guid Id,
     string ProviderName,
     string Category,
     decimal CurrentAmount,
