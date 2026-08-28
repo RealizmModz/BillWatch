@@ -12,15 +12,36 @@ public sealed class BillStatementPersistenceService
     private readonly BillStatementChangeDetectionService
         _changeDetectionService;
 
+    private readonly BillStatementPaymentDueAlertService
+        _paymentDueAlertService;
+
+    /*
+     * Preserve existing direct test construction.
+     */
     public BillStatementPersistenceService(
         BillWatchDbContext dbContext,
         BillStatementChangeDetectionService changeDetectionService)
+        : this(
+            dbContext,
+            changeDetectionService,
+            new BillStatementPaymentDueAlertService(
+                dbContext))
+    {
+    }
+
+    public BillStatementPersistenceService(
+        BillWatchDbContext dbContext,
+        BillStatementChangeDetectionService changeDetectionService,
+        BillStatementPaymentDueAlertService paymentDueAlertService)
     {
         _dbContext =
             dbContext;
 
         _changeDetectionService =
             changeDetectionService;
+
+        _paymentDueAlertService =
+            paymentDueAlertService;
     }
 
     public async Task<BillStatementPersistenceResult>
@@ -119,6 +140,10 @@ public sealed class BillStatementPersistenceService
         var now =
             DateTimeOffset.UtcNow;
 
+        var today =
+            DateOnly.FromDateTime(
+                now.UtcDateTime);
+
         if (existingStatement is not null)
         {
             IReadOnlyList<BillLineItemEntity>
@@ -162,6 +187,17 @@ public sealed class BillStatementPersistenceService
                         cancellationToken:
                             cancellationToken);
             }
+
+            await _paymentDueAlertService
+                .ReconcileAsync(
+                    upload.UserId,
+                    upload.BillStreamId,
+                    existingStatement.DueDate,
+                    existingStatement.TotalAmount,
+                    existingStatement.CurrencyCode,
+                    today,
+                    now,
+                    cancellationToken);
 
             upload.BillStatementId =
                 existingStatement.Id;
@@ -250,6 +286,17 @@ public sealed class BillStatementPersistenceService
                 cancellationToken:
                     cancellationToken);
 
+        await _paymentDueAlertService
+            .ReconcileAsync(
+                upload.UserId,
+                upload.BillStreamId,
+                statement.DueDate,
+                statement.TotalAmount,
+                statement.CurrencyCode,
+                today,
+                now,
+                cancellationToken);
+
         upload.BillStatementId =
             statement.Id;
 
@@ -259,6 +306,10 @@ public sealed class BillStatementPersistenceService
         upload.UpdatedAtUtc =
             now;
 
+        /*
+         * Statement, line items, change detection, alert generation
+         * and upload completion commit together.
+         */
         await _dbContext.SaveChangesAsync(
             cancellationToken);
 

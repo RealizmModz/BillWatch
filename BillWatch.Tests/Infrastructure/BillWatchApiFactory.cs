@@ -66,7 +66,14 @@ public sealed class BillWatchApiFactory
 
                         ["BillStatementStorage:MaxFileSizeBytes"] =
                             (15L * 1024 * 1024)
-                                .ToString()
+                                .ToString(),
+
+                        /*
+                         * Never let integration tests launch the real
+                         * scheduled Plaid monitoring worker.
+                         */
+                        ["BillMonitoring:BackgroundRefresh:Enabled"] =
+                            "false"
                     };
 
                 configuration.AddInMemoryCollection(

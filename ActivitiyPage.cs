@@ -550,29 +550,8 @@ public sealed class ActivityPage : ContentPage
         if (alert.BillStreamId.HasValue)
         {
             var viewBillButton =
-                new Button
-                {
-                    Text =
-                        "View bill",
-
-                    CornerRadius =
-                        14,
-
-                    Padding =
-                        new Thickness(
-                            18,
-                            10),
-
-                    FontAttributes =
-                        FontAttributes.Bold,
-
-                    TextColor =
-                        Colors.White
-                };
-
-            viewBillButton.SetDynamicResource(
-                BackgroundColorProperty,
-                "BrandPrimary");
+                CreatePrimaryButton(
+                    "View bill");
 
             viewBillButton.Clicked +=
                 async (_, _) =>
@@ -583,6 +562,25 @@ public sealed class ActivityPage : ContentPage
 
             buttonRow.Children.Add(
                 viewBillButton);
+        }
+        else if (string.Equals(
+                     alert.AlertType,
+                     "ConnectionIssue",
+                     StringComparison.Ordinal))
+        {
+            var reviewConnectionButton =
+                CreatePrimaryButton(
+                    "Review connection");
+
+            reviewConnectionButton.Clicked +=
+                async (_, _) =>
+                {
+                    await ReviewConnectionAsync(
+                        alert);
+                };
+
+            buttonRow.Children.Add(
+                reviewConnectionButton);
         }
 
         var dismissButton =
@@ -617,21 +615,6 @@ public sealed class ActivityPage : ContentPage
         buttonRow.Children.Add(
             dismissButton);
 
-        var cardContent =
-            new VerticalStackLayout
-            {
-                Spacing =
-                    12,
-
-                Children =
-                {
-                    topRow,
-                    title,
-                    message,
-                    buttonRow
-                }
-            };
-
         var card =
             new Border
             {
@@ -653,7 +636,19 @@ public sealed class ActivityPage : ContentPage
                     },
 
                 Content =
-                    cardContent
+                    new VerticalStackLayout
+                    {
+                        Spacing =
+                            12,
+
+                        Children =
+                        {
+                            topRow,
+                            title,
+                            message,
+                            buttonRow
+                        }
+                    }
             };
 
         card.SetDynamicResource(
@@ -669,6 +664,37 @@ public sealed class ActivityPage : ContentPage
         return card;
     }
 
+    private static Button CreatePrimaryButton(
+        string text)
+    {
+        var button =
+            new Button
+            {
+                Text =
+                    text,
+
+                CornerRadius =
+                    14,
+
+                Padding =
+                    new Thickness(
+                        18,
+                        10),
+
+                FontAttributes =
+                    FontAttributes.Bold,
+
+                TextColor =
+                    Colors.White
+            };
+
+        button.SetDynamicResource(
+            BackgroundColorProperty,
+            "BrandPrimary");
+
+        return button;
+    }
+
     private async Task OpenBillAsync(
         BillAlertResult alert)
     {
@@ -679,12 +705,8 @@ public sealed class ActivityPage : ContentPage
 
         try
         {
-            if (!alert.IsRead)
-            {
-                await _billAlertService
-                    .MarkReadAsync(
-                        alert.Id);
-            }
+            await MarkReadIfNeededAsync(
+                alert);
 
             var detailPage =
                 new BillDetailPage(
@@ -711,6 +733,43 @@ public sealed class ActivityPage : ContentPage
             ShowError(
                 "BillWatch couldn't open this bill.");
         }
+    }
+
+    private async Task ReviewConnectionAsync(
+        BillAlertResult alert)
+    {
+        try
+        {
+            await MarkReadIfNeededAsync(
+                alert);
+
+            await Shell.Current
+                .GoToAsync(
+                    "//Connect");
+        }
+        catch (SessionExpiredException)
+        {
+            ShowError(
+                "Your BillWatch session expired. Please sign in again.");
+        }
+        catch
+        {
+            ShowError(
+                "BillWatch couldn't open your bank connections.");
+        }
+    }
+
+    private async Task MarkReadIfNeededAsync(
+        BillAlertResult alert)
+    {
+        if (alert.IsRead)
+        {
+            return;
+        }
+
+        await _billAlertService
+            .MarkReadAsync(
+                alert.Id);
     }
 
     private async Task DismissAsync(
@@ -781,7 +840,7 @@ public sealed class ActivityPage : ContentPage
             new Label
             {
                 Text =
-                    "When BillWatch detects a meaningful bill change, you'll see it here.",
+                    "When BillWatch detects a meaningful bill change or monitoring problem, you'll see it here.",
 
                 HorizontalTextAlignment =
                     TextAlignment.Center
@@ -866,21 +925,8 @@ public sealed class ActivityPage : ContentPage
             "BodyTextStyle");
 
         var retry =
-            new Button
-            {
-                Text =
-                    "Try again",
-
-                CornerRadius =
-                    14,
-
-                TextColor =
-                    Colors.White
-            };
-
-        retry.SetDynamicResource(
-            BackgroundColorProperty,
-            "BrandPrimary");
+            CreatePrimaryButton(
+                "Try again");
 
         retry.Clicked +=
             async (_, _) =>

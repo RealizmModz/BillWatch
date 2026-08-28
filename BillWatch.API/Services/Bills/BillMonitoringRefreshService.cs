@@ -1,4 +1,5 @@
-﻿using BillWatch.API.Services.Plaid;
+﻿using BillWatch.API.Data;
+using BillWatch.API.Services.Plaid;
 
 namespace BillWatch.API.Services.Bills;
 
@@ -13,6 +14,15 @@ public sealed class BillMonitoringRefreshService
     private readonly RecurringBillDiscoveryPersistenceService
         _billDiscoveryService;
 
+    private readonly BankConnectionHealthAlertService?
+        _connectionHealthAlertService;
+
+    private readonly ILogger<BillMonitoringRefreshService>?
+        _logger;
+
+    /*
+     * Preserve existing direct test construction.
+     */
     public BillMonitoringRefreshService(
         PlaidAccountSyncService accountSyncService,
         PlaidTransactionSyncService transactionSyncService,
@@ -28,36 +38,143 @@ public sealed class BillMonitoringRefreshService
             billDiscoveryService;
     }
 
+    /*
+     * ASP.NET Core DI uses this fuller constructor.
+     *
+     * No extra Program.cs registration is required because the
+     * DbContext and logger are already registered by the framework.
+     */
+    public BillMonitoringRefreshService(
+        PlaidAccountSyncService accountSyncService,
+        PlaidTransactionSyncService transactionSyncService,
+        RecurringBillDiscoveryPersistenceService billDiscoveryService,
+        BillWatchDbContext dbContext,
+        ILogger<BillMonitoringRefreshService> logger)
+        : this(
+            accountSyncService,
+            transactionSyncService,
+            billDiscoveryService)
+    {
+        _connectionHealthAlertService =
+            new BankConnectionHealthAlertService(
+                dbContext);
+
+        _logger =
+            logger;
+    }
+
     public async Task<RecurringBillDiscoveryPersistenceResult>
         RefreshAsync(
             Guid userId,
             CancellationToken cancellationToken = default)
     {
-        /*
-         * Always synchronize accounts first.
-         *
-         * A brand-new Plaid connection may exist before BillWatch
-         * has persisted its checking/credit/etc. accounts. The
-         * transaction sync depends on those local BankAccount rows.
-         */
-        await _accountSyncService.SyncAllAccountsAsync(
-            userId,
-            cancellationToken);
+        if (userId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "User ID is required.",
+                nameof(userId));
+        }
 
-        /*
-         * Pull new/modified/removed Plaid transactions using the
-         * connection's persisted cursor.
-         */
-        await _transactionSyncService.SyncAllAsync(
-            userId,
-            cancellationToken);
+        try
+        {
+            /*
+             * Always synchronize accounts first.
+             *
+             * A brand-new Plaid connection may exist before BillWatch
+             * has persisted its checking/credit/etc. accounts. The
+             * transaction sync depends on those local BankAccount rows.
+             */
+            await _accountSyncService.SyncAllAccountsAsync(
+                userId,
+                cancellationToken);
 
-        /*
-         * Re-run deterministic recurring-bill discovery against
-         * the newly synchronized transaction history.
-         */
-        return await _billDiscoveryService.DiscoverAndSaveAsync(
-            userId,
-            cancellationToken);
+            /*
+             * Pull new/modified/removed Plaid transactions using the
+             * connection's persisted cursor.
+             */
+            await _transactionSyncService.SyncAllAsync(
+                userId,
+                cancellationToken);
+
+            /*
+             * Re-run deterministic recurring-bill discovery against
+             * the newly synchronized transaction history.
+             */
+            var result =
+                await _billDiscoveryService
+                    .DiscoverAndSaveAsync(
+                        userId,
+                        cancellationToken);
+
+            /*
+             * Connection alerts are secondary to the core refresh.
+             *
+             * Failure to create an Activity alert must never cause a
+             * successful financial-data refresh to be reported as
+             * failed.
+             */
+            await TryReconcileConnectionHealthAsync(
+                userId,
+                cancellationToken);
+
+            return result;
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken
+                .IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            /*
+             * A Plaid sync implementation may persist
+             * RequiresAttention before propagating an error.
+             *
+             * Reconcile that persisted state, but preserve the original
+             * refresh exception.
+             */
+            await TryReconcileConnectionHealthAsync(
+                userId,
+                CancellationToken.None);
+
+            throw;
+        }
+    }
+
+    private async Task TryReconcileConnectionHealthAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (_connectionHealthAlertService is
+            null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _connectionHealthAlertService
+                .ReconcileAsync(
+                    userId,
+                    cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken
+                .IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            /*
+             * Never log account data, tokens, connection IDs,
+             * institution lists, or financial information here.
+             */
+            _logger?.LogWarning(
+                "Bank connection health alert reconciliation failed with {ExceptionType}.",
+                ex.GetType().Name);
+        }
     }
 }

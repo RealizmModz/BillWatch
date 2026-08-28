@@ -31,14 +31,9 @@
             ContentTemplate="{DataTemplate local:ActivityPage}" />
 
         <ShellContent
-            Title="Transactions"
-            Route="Transactions"
-            ContentTemplate="{DataTemplate local:TransactionsPage}" />
-
-        <ShellContent
-            Title="Connect"
-            Route="Connect"
-            ContentTemplate="{DataTemplate local:ConnectBankPage}" />
+            Title="Account"
+            Route="Account"
+            ContentTemplate="{DataTemplate local:AccountPage}" />
 
     </TabBar>
 

@@ -1,100 +1,294 @@
-﻿using BillWatch.Core.Models;
-using BillWatch.Core.Services;
-using BillWatch.Services;
+﻿using BillWatch.Services;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 
 namespace BillWatch.ViewModels;
 
 public sealed class MainPageViewModel : INotifyPropertyChanged
 {
-    private readonly BillStreamService _billStreamService;
+    private readonly BillStreamService
+        _billStreamService;
+
+    private readonly BillAlertService
+        _billAlertService;
 
     public MainPageViewModel(
-        BillStreamService billStreamService)
+        BillStreamService billStreamService,
+        BillAlertService billAlertService)
     {
-        _billStreamService = billStreamService;
+        _billStreamService =
+            billStreamService;
+
+        _billAlertService =
+            billAlertService;
+
+        OpenActivityCommand =
+            new Command(
+                async () =>
+                    await Shell.Current.GoToAsync(
+                        "//Activity"));
+
+        OpenBillsCommand =
+            new Command(
+                async () =>
+                    await Shell.Current.GoToAsync(
+                        "//Bills"));
+
+        RefreshCommand =
+            new Command(
+                async () =>
+                    await LoadAsync());
     }
 
-    public string ProviderName { get; private set; } =
-        "No bill selected";
+    public int BillsMonitored
+    {
+        get;
+        private set;
+    }
 
-    public decimal PreviousAmount { get; private set; }
+    public decimal TotalMonthlyBills
+    {
+        get;
+        private set;
+    }
 
-    public decimal CurrentAmount { get; private set; }
+    public decimal TotalAnnualBills
+    {
+        get;
+        private set;
+    }
 
-    public decimal MonthlyChange { get; private set; }
+    public int ChangesDetected
+    {
+        get;
+        private set;
+    }
 
-    public decimal AnnualChange { get; private set; }
+    public decimal AddedAnnualCost
+    {
+        get;
+        private set;
+    }
 
-    public string Summary { get; private set; } =
-        "Waiting for bill history.";
+    public decimal ReducedAnnualCost
+    {
+        get;
+        private set;
+    }
 
-    public string Confidence { get; private set; } =
-        "Unknown";
+    public int UnreadAlerts
+    {
+        get;
+        private set;
+    }
 
-    public IReadOnlyList<BillExplanationItem> Changes { get; private set; } =
-        [];
+    public int AttentionCount
+    {
+        get;
+        private set;
+    }
 
-    public decimal BankTransactionAmount { get; private set; }
+    public string PrimaryAlertType
+    {
+        get;
+        private set;
+    } =
+        string.Empty;
 
-    public bool BankTransactionMatches { get; private set; }
+    public string PrimaryAlertTitle
+    {
+        get;
+        private set;
+    } =
+        string.Empty;
 
-    public string BankTransactionStatus { get; private set; } =
-        "Waiting for transaction";
+    public string PrimaryAlertMessage
+    {
+        get;
+        private set;
+    } =
+        string.Empty;
 
-    public string BankTransactionDescription { get; private set; } =
-        "No linked bank transaction yet.";
+    public bool IsLoading
+    {
+        get;
+        private set;
+    }
 
-    public bool HasBankTransaction { get; private set; }
-
-    public bool HasStatement { get; private set; }
-
-    public string StatementStatus { get; private set; } =
-        "Waiting for statement";
-
-    public string StatementDescription { get; private set; } =
-        "No provider statement retrieved yet.";
-
-    public bool HasDetailedChange { get; private set; }
-
-    public string DetailedChangeTitle { get; private set; } =
-        "Waiting for bill history";
-
-    public int RecurringBillsFound { get; private set; }
-
-    public IReadOnlyList<RecurringBillDetectionResult> RecurringBills { get; private set; } =
-        [];
-
-    public int AlertsFound { get; private set; }
-
-    public IReadOnlyList<BillAlert> Alerts { get; private set; } =
-        [];
-
-    public int BillStreamsFound { get; private set; }
-
-    public IReadOnlyList<BillStream> BillStreams { get; private set; } =
-        [];
-
-    public int BillsMonitored { get; private set; }
-
-    public decimal TotalMonthlyBills { get; private set; }
-
-    public decimal TotalAnnualBills { get; private set; }
-
-    public int ChangesDetected { get; private set; }
-
-    public decimal AddedAnnualCost { get; private set; }
-
-    public decimal ReducedAnnualCost { get; private set; }
-
-    public bool IsLoading { get; private set; }
-
-    public string ErrorMessage { get; private set; } =
+    public string ErrorMessage
+    {
+        get;
+        private set;
+    } =
         string.Empty;
 
     public bool HasError =>
-        !string.IsNullOrWhiteSpace(ErrorMessage);
+        !string.IsNullOrWhiteSpace(
+            ErrorMessage);
+
+    public bool HasContent =>
+        !IsLoading &&
+        !HasError;
+
+    public bool HasBills =>
+        BillsMonitored >
+        0;
+
+    public bool HasNoBills =>
+        !HasBills;
+
+    public bool HasAttention =>
+        AttentionCount >
+        0;
+
+    public bool HasNoAttention =>
+        !HasAttention;
+
+    public string MonthlyBillsText =>
+        $"${TotalMonthlyBills:0.00}";
+
+    public string AnnualBillsText =>
+        $"${TotalAnnualBills:0.00} per year monitored";
+
+    public string AnnualImpactHeadline
+    {
+        get
+        {
+            if (AddedAnnualCost >
+                0m)
+            {
+                return
+                    $"+${AddedAnnualCost:0.00}/year";
+            }
+
+            if (ReducedAnnualCost >
+                0m)
+            {
+                return
+                    $"${ReducedAnnualCost:0.00}/year less";
+            }
+
+            return
+                "$0/year";
+        }
+    }
+
+    public string AnnualImpactCaption
+    {
+        get
+        {
+            if (AddedAnnualCost >
+                0m)
+            {
+                return
+                    "New annual cost detected";
+            }
+
+            if (ReducedAnnualCost >
+                0m)
+            {
+                return
+                    "Annual cost reduction detected";
+            }
+
+            return
+                "No meaningful cost change detected";
+        }
+    }
+
+    public string MonitoringSummary =>
+        BillsMonitored switch
+        {
+            0 =>
+                "No recurring bills monitored yet",
+
+            1 =>
+                "1 recurring bill monitored",
+
+            _ =>
+                $"{BillsMonitored} recurring bills monitored"
+        };
+
+    public string ChangeSummary =>
+        ChangesDetected switch
+        {
+            0 =>
+                "No meaningful changes",
+
+            1 =>
+                "1 meaningful change",
+
+            _ =>
+                $"{ChangesDetected} meaningful changes"
+        };
+
+    public string AlertSummary =>
+        UnreadAlerts switch
+        {
+            0 =>
+                "No unread alerts",
+
+            1 =>
+                "1 unread alert",
+
+            _ =>
+                $"{UnreadAlerts} unread alerts"
+        };
+
+    public string AttentionHeadline =>
+        AttentionCount switch
+        {
+            0 =>
+                "Nothing needs your attention",
+
+            1 =>
+                "1 item needs attention",
+
+            _ =>
+                $"{AttentionCount} items need attention"
+        };
+
+    public string StatusHeadline =>
+        HasBills
+            ? "Watching"
+            : "Ready to watch";
+
+    public string StatusDescription
+    {
+        get
+        {
+            if (!HasBills)
+            {
+                return
+                    "Connect a bank or add bill history to start automatic monitoring.";
+            }
+
+            if (HasAttention)
+            {
+                return
+                    $"BillWatch is monitoring {BillsMonitored} {(BillsMonitored == 1 ? "bill" : "bills")} and found {AttentionCount} {(AttentionCount == 1 ? "item" : "items")} that need attention.";
+            }
+
+            return
+                $"BillWatch is monitoring {BillsMonitored} {(BillsMonitored == 1 ? "bill" : "bills")} and nothing currently needs attention.";
+        }
+    }
+
+    public ICommand OpenActivityCommand
+    {
+        get;
+    }
+
+    public ICommand OpenBillsCommand
+    {
+        get;
+    }
+
+    public ICommand RefreshCommand
+    {
+        get;
+    }
 
     public async Task LoadAsync(
         CancellationToken cancellationToken = default)
@@ -106,146 +300,70 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
 
         try
         {
-            IsLoading = true;
-            ErrorMessage = string.Empty;
+            IsLoading =
+                true;
+
+            ErrorMessage =
+                string.Empty;
+
             NotifyAll();
 
+            /*
+             * These requests are independent, so run them together.
+             * Home should feel immediate rather than serially waiting
+             * for bill data and then alert data.
+             */
+            var billStreamsTask =
+                _billStreamService
+                    .GetBillStreamsAsync(
+                        cancellationToken);
+
+            var alertsTask =
+                _billAlertService
+                    .GetAlertsAsync(
+                        includeDismissed:
+                            false,
+
+                        unreadOnly:
+                            false,
+
+                        take:
+                            100,
+
+                        cancellationToken:
+                            cancellationToken);
+
+            await Task.WhenAll(
+                billStreamsTask,
+                alertsTask);
+
             var billStreams =
-                await _billStreamService.GetBillStreamsAsync(
-                    cancellationToken);
+                await billStreamsTask;
 
-            BillsMonitored = billStreams.Count;
+            var alerts =
+                await alertsTask;
 
-            TotalMonthlyBills = decimal.Round(
-                billStreams.Sum(stream => stream.CurrentAmount),
-                2,
-                MidpointRounding.AwayFromZero);
+            ApplyBillSummary(
+                billStreams);
 
-            TotalAnnualBills = decimal.Round(
-                TotalMonthlyBills * 12m,
-                2,
-                MidpointRounding.AwayFromZero);
-
-            var meaningfulChanges = billStreams
-                .Select(stream => new
-                {
-                    Stream = stream,
-                    MonthlyChange =
-                        stream.CurrentAmount -
-                        stream.PreviousAverage
-                })
-                .Where(item =>
-                    item.Stream.PreviousAverage > 0m &&
-                    Math.Abs(item.MonthlyChange) >= 5m &&
-                    Math.Abs(
-                        item.MonthlyChange /
-                        item.Stream.PreviousAverage) >= 0.10m)
-                .ToList();
-
-            ChangesDetected =
-                meaningfulChanges.Count;
-
-            AddedAnnualCost = decimal.Round(
-                meaningfulChanges
-                    .Where(item => item.MonthlyChange > 0m)
-                    .Sum(item => item.MonthlyChange * 12m),
-                2,
-                MidpointRounding.AwayFromZero);
-
-            ReducedAnnualCost = decimal.Round(
-                meaningfulChanges
-                    .Where(item => item.MonthlyChange < 0m)
-                    .Sum(item => Math.Abs(item.MonthlyChange) * 12m),
-                2,
-                MidpointRounding.AwayFromZero);
-
-            var primaryBill =
-                billStreams.FirstOrDefault();
-
-            if (primaryBill is null)
-            {
-                ResetPrimaryBill();
-            }
-            else
-            {
-                ProviderName =
-                    primaryBill.ProviderName;
-
-                PreviousAmount =
-                    primaryBill.PreviousAverage;
-
-                CurrentAmount =
-                    primaryBill.CurrentAmount;
-
-                MonthlyChange = decimal.Round(
-                    CurrentAmount - PreviousAmount,
-                    2,
-                    MidpointRounding.AwayFromZero);
-
-                AnnualChange = decimal.Round(
-                    MonthlyChange * 12m,
-                    2,
-                    MidpointRounding.AwayFromZero);
-
-                HasBankTransaction =
-                    CurrentAmount > 0m;
-
-                BankTransactionAmount =
-                    CurrentAmount;
-
-                BankTransactionStatus =
-                    HasBankTransaction
-                        ? "Transaction found"
-                        : "Waiting for transaction";
-
-                BankTransactionDescription =
-                    HasBankTransaction
-                        ? $"{ProviderName} charged ${CurrentAmount:F2}"
-                        : "No linked bank transaction yet.";
-
-                HasDetailedChange =
-                    PreviousAmount > 0m &&
-                    Math.Abs(MonthlyChange) >= 5m &&
-                    Math.Abs(
-                        MonthlyChange /
-                        PreviousAmount) >= 0.10m;
-
-                DetailedChangeTitle =
-                    HasDetailedChange
-                        ? "Bill change detected"
-                        : "Waiting for bill history";
-
-                Summary =
-                    PreviousAmount > 0m
-                        ? "BillWatch has enough transaction history to compare this bill."
-                        : "BillWatch is waiting for more transaction history before comparing this bill.";
-
-                // Statements are not connected to the API yet.
-                HasStatement = false;
-                StatementStatus =
-                    "Waiting for statement";
-
-                StatementDescription =
-                    "No provider statement retrieved yet.";
-
-                BankTransactionMatches = false;
-                Confidence = "Unknown";
-                Changes = [];
-            }
-
-            RecurringBillsFound = 0;
-            RecurringBills = [];
-
-            AlertsFound = 0;
-            Alerts = [];
-
-            BillStreamsFound = 0;
-            BillStreams = [];
+            ApplyAlertSummary(
+                alerts);
+        }
+        catch (SessionExpiredException)
+        {
+            ErrorMessage =
+                "Your BillWatch session expired. Please sign in again.";
         }
         catch (HttpRequestException)
         {
             ErrorMessage =
-                "Unable to load your BillWatch dashboard.";
+                "BillWatch couldn't load your dashboard right now.";
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken
+                .IsCancellationRequested)
+        {
+            return;
         }
         catch (Exception)
         {
@@ -254,53 +372,237 @@ public sealed class MainPageViewModel : INotifyPropertyChanged
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
+
             NotifyAll();
         }
     }
 
-    private void ResetPrimaryBill()
+    private void ApplyBillSummary(
+        IReadOnlyList<BillStreamResult> billStreams)
     {
-        ProviderName = "No bill selected";
+        BillsMonitored =
+            billStreams.Count;
 
-        PreviousAmount = 0m;
-        CurrentAmount = 0m;
-        MonthlyChange = 0m;
-        AnnualChange = 0m;
+        TotalMonthlyBills =
+            decimal.Round(
+                billStreams.Sum(
+                    stream =>
+                        stream.CurrentAmount),
+                2,
+                MidpointRounding.AwayFromZero);
 
-        HasBankTransaction = false;
-        BankTransactionAmount = 0m;
-        BankTransactionMatches = false;
-        BankTransactionStatus = "Waiting for transaction";
-        BankTransactionDescription =
-            "No linked bank transaction yet.";
+        TotalAnnualBills =
+            decimal.Round(
+                TotalMonthlyBills *
+                12m,
+                2,
+                MidpointRounding.AwayFromZero);
 
-        HasStatement = false;
-        StatementStatus = "Waiting for statement";
-        StatementDescription =
-            "No provider statement retrieved yet.";
+        /*
+         * Keep the same deterministic "meaningful change" threshold
+         * used by the Bills experience.
+         *
+         * Home performs arithmetic only; it does not invent causes.
+         */
+        var meaningfulChanges =
+            billStreams
+                .Where(
+                    stream =>
+                        stream.PreviousAverage >
+                        0m)
+                .Select(
+                    stream =>
+                    {
+                        var monthlyChange =
+                            decimal.Round(
+                                stream.CurrentAmount -
+                                stream.PreviousAverage,
+                                2,
+                                MidpointRounding.AwayFromZero);
 
-        HasDetailedChange = false;
-        DetailedChangeTitle =
-            "Waiting for bill history";
+                        return new DashboardBillChange(
+                            MonthlyChange:
+                                monthlyChange,
 
-        Summary = "No monitored bills yet.";
-        Confidence = "Unknown";
-        Changes = [];
+                            PreviousAmount:
+                                stream.PreviousAverage);
+                    })
+                .Where(
+                    change =>
+                        Math.Abs(
+                            change.MonthlyChange) >=
+                            5m &&
+                        Math.Abs(
+                            change.MonthlyChange /
+                            change.PreviousAmount) >=
+                            0.10m)
+                .ToList();
+
+        ChangesDetected =
+            meaningfulChanges.Count;
+
+        AddedAnnualCost =
+            decimal.Round(
+                meaningfulChanges
+                    .Where(
+                        change =>
+                            change.MonthlyChange >
+                            0m)
+                    .Sum(
+                        change =>
+                            change.MonthlyChange *
+                            12m),
+                2,
+                MidpointRounding.AwayFromZero);
+
+        ReducedAnnualCost =
+            decimal.Round(
+                meaningfulChanges
+                    .Where(
+                        change =>
+                            change.MonthlyChange <
+                            0m)
+                    .Sum(
+                        change =>
+                            Math.Abs(
+                                change.MonthlyChange) *
+                            12m),
+                2,
+                MidpointRounding.AwayFromZero);
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
+    private void ApplyAlertSummary(
+        IReadOnlyList<BillAlertResult> alerts)
+    {
+        UnreadAlerts =
+            alerts.Count(
+                alert =>
+                    !alert.IsRead);
+
+        var attentionAlerts =
+            alerts
+                .Where(
+                    alert =>
+                        IsAttentionSeverity(
+                            alert.Severity))
+                .OrderBy(
+                    alert =>
+                        alert.IsRead)
+                .ThenByDescending(
+                    alert =>
+                        IsCritical(
+                            alert.Severity))
+                .ThenByDescending(
+                    alert =>
+                        alert.CreatedAtUtc)
+                .ToList();
+
+        AttentionCount =
+            attentionAlerts.Count;
+
+        var primaryAlert =
+            attentionAlerts
+                .FirstOrDefault();
+
+        if (primaryAlert is
+            null)
+        {
+            PrimaryAlertType =
+                string.Empty;
+
+            PrimaryAlertTitle =
+                string.Empty;
+
+            PrimaryAlertMessage =
+                string.Empty;
+
+            return;
+        }
+
+        PrimaryAlertType =
+            FormatAlertType(
+                primaryAlert.AlertType);
+
+        PrimaryAlertTitle =
+            primaryAlert.Title;
+
+        PrimaryAlertMessage =
+            primaryAlert.Message;
+    }
+
+    private static bool IsAttentionSeverity(
+        string severity)
+    {
+        return
+            string.Equals(
+                severity,
+                "Warning",
+                StringComparison.Ordinal) ||
+            string.Equals(
+                severity,
+                "Critical",
+                StringComparison.Ordinal);
+    }
+
+    private static bool IsCritical(
+        string severity)
+    {
+        return string.Equals(
+            severity,
+            "Critical",
+            StringComparison.Ordinal);
+    }
+
+    private static string FormatAlertType(
+        string alertType)
+    {
+        return alertType switch
+        {
+            "BillIncrease" =>
+                "BILL INCREASE",
+
+            "BillDecrease" =>
+                "BILL DECREASE",
+
+            "NewFee" =>
+                "NEW FEE",
+
+            "RemovedDiscount" =>
+                "DISCOUNT REMOVED",
+
+            "PaymentDue" =>
+                "PAYMENT DUE",
+
+            "ConnectionIssue" =>
+                "CONNECTION ISSUE",
+
+            _ =>
+                "NEEDS ATTENTION"
+        };
+    }
 
     private void NotifyAll()
     {
-        OnPropertyChanged(string.Empty);
+        OnPropertyChanged(
+            string.Empty);
     }
 
+    public event PropertyChangedEventHandler?
+        PropertyChanged;
+
     private void OnPropertyChanged(
-        [CallerMemberName] string? propertyName = null)
+        [CallerMemberName]
+        string? propertyName = null)
     {
         PropertyChanged?.Invoke(
             this,
-            new PropertyChangedEventArgs(propertyName));
+            new PropertyChangedEventArgs(
+                propertyName));
     }
+
+    private sealed record DashboardBillChange(
+        decimal MonthlyChange,
+        decimal PreviousAmount);
 }

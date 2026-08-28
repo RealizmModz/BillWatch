@@ -8,14 +8,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi"
-						  Version="10.0.11" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
 
-		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"
-						  Version="10.0.11" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.11" />
 
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design"
-						  Version="10.0.11">
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>
 				runtime;
@@ -27,18 +24,13 @@
 			</IncludeAssets>
 		</PackageReference>
 
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"
-						  Version="10.0.3" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
 
-		<PackageReference Include="PdfPig"
-						  Version="0.1.16" />
+		<PackageReference Include="PdfPig" Version="0.1.16" />
 
-		<PackageReference Include="TesseractOCR"
-						  Version="5.5.2" />
+		<PackageReference Include="TesseractOCR" Version="5.5.2" />
 
-		<PackageReference Include="Tesseract.Data.English"
-						  Version="4.0.0"
-						  PrivateAssets="all" />
+		<PackageReference Include="Tesseract.Data.English" Version="4.0.0" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup>

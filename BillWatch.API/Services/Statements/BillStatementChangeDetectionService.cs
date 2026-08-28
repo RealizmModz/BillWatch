@@ -26,11 +26,18 @@ public sealed class BillStatementChangeDetectionService
         _analysisService =
             new();
 
+    private readonly BillStatementEvidenceAlertService
+        _evidenceAlertService;
+
     public BillStatementChangeDetectionService(
         BillWatchDbContext dbContext)
     {
         _dbContext =
             dbContext;
+
+        _evidenceAlertService =
+            new BillStatementEvidenceAlertService(
+                dbContext);
     }
 
     public async Task<BillStatementChangeReconciliationResult>
@@ -407,6 +414,46 @@ public sealed class BillStatementChangeDetectionService
                 activeChange,
                 alertsByChangeId,
                 now);
+
+            IReadOnlyList<BillLineItemEntity>
+                previousEvidence =
+                    [];
+
+            IReadOnlyList<BillLineItemEntity>
+                currentEvidence =
+                    [];
+
+            if (activeChange
+                    .PreviousStatementId
+                    .HasValue &&
+                lineItemsByStatement.TryGetValue(
+                    activeChange
+                        .PreviousStatementId
+                        .Value,
+                    out var previousItems))
+            {
+                previousEvidence =
+                    previousItems;
+            }
+
+            if (lineItemsByStatement.TryGetValue(
+                    activeChange.CurrentStatementId,
+                    out var currentItems))
+            {
+                currentEvidence =
+                    currentItems;
+            }
+
+            await _evidenceAlertService
+                .ReconcileAsync(
+                    userId,
+                    billStreamId,
+                    providerName,
+                    activeChange,
+                    previousEvidence,
+                    currentEvidence,
+                    now,
+                    cancellationToken);
         }
 
         return new BillStatementChangeReconciliationResult(

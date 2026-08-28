@@ -195,7 +195,21 @@ builder.Services.AddScoped<
     RecurringBillDiscoveryPersistenceService>();
 
 builder.Services.AddScoped<
+    BankConnectionHealthAlertService>();
+
+builder.Services.AddScoped<
     BillMonitoringRefreshService>();
+
+builder.Services.Configure<
+    BillMonitoringBackgroundOptions>(
+    builder.Configuration.GetSection(
+        BillMonitoringBackgroundOptions.SectionName));
+
+builder.Services.AddScoped<
+    BillMonitoringRefreshScheduler>();
+
+builder.Services.AddHostedService<
+    BillMonitoringBackgroundService>();
 
 var configuredStatementStoragePath =
     builder.Configuration[
@@ -223,12 +237,6 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     PdfBillStatementTextExtractor>();
 
-/*
- * One shared lazy Tesseract engine.
- *
- * It does not initialize until an image statement actually requires
- * OCR, which keeps normal API startup and text-PDF processing fast.
- */
 builder.Services.AddSingleton<
     IBillStatementOcrEngine,
     TesseractBillStatementOcrEngine>();
@@ -246,7 +254,13 @@ builder.Services.AddSingleton<
     BillComparisonService>();
 
 builder.Services.AddScoped<
+    BillStatementEvidenceAlertService>();
+
+builder.Services.AddScoped<
     BillStatementChangeDetectionService>();
+
+builder.Services.AddScoped<
+    BillStatementPaymentDueAlertService>();
 
 builder.Services.AddScoped<
     BillStatementPersistenceService>();
