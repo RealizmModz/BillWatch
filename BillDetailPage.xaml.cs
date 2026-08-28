@@ -7,8 +7,25 @@ public partial class BillDetailPage : ContentPage
     private const long MaxUploadSizeBytes =
         15L * 1024 * 1024;
 
+    private static readonly TimeSpan[]
+        UploadStatusPollingDelays =
+        [
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(200),
+            TimeSpan.FromMilliseconds(400),
+            TimeSpan.FromMilliseconds(800),
+            TimeSpan.FromMilliseconds(1200),
+            TimeSpan.FromMilliseconds(1800),
+            TimeSpan.FromMilliseconds(2500),
+            TimeSpan.FromMilliseconds(3000)
+        ];
+
     private readonly BillStreamService
         _billStreamService;
+
+    private CancellationTokenSource
+        _pageCancellationTokenSource =
+            new();
 
     private Guid
         _billStreamId;
@@ -21,6 +38,9 @@ public partial class BillDetailPage : ContentPage
 
     private bool
         _isUploading;
+
+    private bool
+        _isProcessingUpload;
 
     private bool
         _uploadSucceeded;
@@ -100,6 +120,9 @@ public partial class BillDetailPage : ContentPage
 
             OnPropertyChanged(
                 nameof(HasContent));
+
+            OnPropertyChanged(
+                nameof(CanUpload));
         }
     }
 
@@ -121,13 +144,59 @@ public partial class BillDetailPage : ContentPage
 
             OnPropertyChanged();
 
-            OnPropertyChanged(
-                nameof(CanUpload));
+            NotifyUploadActivityChanged();
+        }
+    }
+
+    public bool IsProcessingUpload
+    {
+        get =>
+            _isProcessingUpload;
+
+        private set
+        {
+            if (_isProcessingUpload ==
+                value)
+            {
+                return;
+            }
+
+            _isProcessingUpload =
+                value;
+
+            OnPropertyChanged();
+
+            NotifyUploadActivityChanged();
+        }
+    }
+
+    public bool HasActiveUploadWork =>
+        IsUploading ||
+        IsProcessingUpload;
+
+    public string UploadActivityText
+    {
+        get
+        {
+            if (IsUploading)
+            {
+                return
+                    "Uploading statement securely...";
+            }
+
+            if (IsProcessingUpload)
+            {
+                return
+                    "BillWatch is reading your statement...";
+            }
+
+            return
+                string.Empty;
         }
     }
 
     public bool CanUpload =>
-        !IsUploading &&
+        !HasActiveUploadWork &&
         !IsLoading &&
         _billStreamId != Guid.Empty;
 
@@ -348,12 +417,23 @@ public partial class BillDetailPage : ContentPage
     {
         base.OnAppearing();
 
+        EnsurePageCancellationToken();
+
         if (_hasLoaded)
         {
             return;
         }
 
-        await LoadAsync();
+        await LoadAsync(
+            _pageCancellationTokenSource.Token);
+    }
+
+    protected override void
+        OnDisappearing()
+    {
+        _pageCancellationTokenSource.Cancel();
+
+        base.OnDisappearing();
     }
 
     private async Task LoadAsync(
@@ -416,6 +496,10 @@ public partial class BillDetailPage : ContentPage
 
             NotifyDetailChanged();
         }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+        }
         catch (SessionExpiredException)
         {
             ErrorMessage =
@@ -442,7 +526,7 @@ public partial class BillDetailPage : ContentPage
         object? sender,
         EventArgs e)
     {
-        if (IsUploading ||
+        if (HasActiveUploadWork ||
             _billStreamId ==
                 Guid.Empty)
         {
@@ -465,6 +549,11 @@ public partial class BillDetailPage : ContentPage
             {
                 return;
             }
+
+            EnsurePageCancellationToken();
+
+            var cancellationToken =
+                _pageCancellationTokenSource.Token;
 
             var extension =
                 Path.GetExtension(
@@ -510,15 +599,23 @@ public partial class BillDetailPage : ContentPage
                         _billStreamId,
                         fileStream,
                         selectedFile.FileName,
-                        mediaType);
+                        mediaType,
+                        cancellationToken);
 
-            _uploadSucceeded =
+            IsUploading =
+                false;
+
+            IsProcessingUpload =
                 true;
 
-            UploadMessage =
-                result.Status == "Uploaded"
-                    ? "Statement uploaded securely. It is ready for BillWatch's document-processing pipeline."
-                    : $"Statement received. Current status: {result.Status}.";
+            await TrackUploadProcessingAsync(
+                result,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (_pageCancellationTokenSource
+                .IsCancellationRequested)
+        {
         }
         catch (SessionExpiredException)
         {
@@ -547,7 +644,123 @@ public partial class BillDetailPage : ContentPage
         {
             IsUploading =
                 false;
+
+            IsProcessingUpload =
+                false;
         }
+    }
+
+    private async Task TrackUploadProcessingAsync(
+        BillStatementUploadResult upload,
+        CancellationToken cancellationToken)
+    {
+        if (TryApplyTerminalUploadStatus(
+                upload.Status))
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var delay in
+                     UploadStatusPollingDelays)
+            {
+                await Task.Delay(
+                    delay,
+                    cancellationToken);
+
+                var status =
+                    await _billStreamService
+                        .GetStatementUploadStatusAsync(
+                            upload.BillStreamId,
+                            upload.Id,
+                            cancellationToken);
+
+                if (TryApplyTerminalUploadStatus(
+                        status.Status))
+                {
+                    return;
+                }
+            }
+
+            SetUploadSuccess(
+                "Statement uploaded securely. Processing is continuing in the background.");
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (SessionExpiredException)
+        {
+            SetUploadSuccess(
+                "Statement uploaded securely. Sign in again later to see its processing status.");
+        }
+        catch (HttpRequestException)
+        {
+            SetUploadSuccess(
+                "Statement uploaded securely. BillWatch will continue processing it in the background.");
+        }
+    }
+
+    private bool TryApplyTerminalUploadStatus(
+        string? status)
+    {
+        switch (status)
+        {
+            case "ReadyForParsing":
+                SetUploadSuccess(
+                    "Statement read successfully. BillWatch is ready to extract the bill details.");
+
+                return true;
+
+            case "NeedsOcr":
+                SetUploadSuccess(
+                    "Statement uploaded securely. This document needs OCR before BillWatch can read it.");
+
+                return true;
+
+            case "Processed":
+                SetUploadSuccess(
+                    "Statement processed successfully.");
+
+                return true;
+
+            case "Failed":
+                SetUploadError(
+                    "The statement was uploaded, but BillWatch could not read it. Try a clearer copy or a different file.");
+
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private void EnsurePageCancellationToken()
+    {
+        if (!_pageCancellationTokenSource
+            .IsCancellationRequested)
+        {
+            return;
+        }
+
+        _pageCancellationTokenSource.Dispose();
+
+        _pageCancellationTokenSource =
+            new CancellationTokenSource();
+    }
+
+    private void NotifyUploadActivityChanged()
+    {
+        OnPropertyChanged(
+            nameof(HasActiveUploadWork));
+
+        OnPropertyChanged(
+            nameof(UploadActivityText));
+
+        OnPropertyChanged(
+            nameof(CanUpload));
     }
 
     private void ClearUploadMessage()
@@ -557,6 +770,22 @@ public partial class BillDetailPage : ContentPage
 
         UploadMessage =
             string.Empty;
+
+        OnPropertyChanged(
+            nameof(HasUploadSuccess));
+
+        OnPropertyChanged(
+            nameof(HasUploadError));
+    }
+
+    private void SetUploadSuccess(
+        string message)
+    {
+        _uploadSucceeded =
+            true;
+
+        UploadMessage =
+            message;
 
         OnPropertyChanged(
             nameof(HasUploadSuccess));
@@ -633,6 +862,8 @@ public partial class BillDetailPage : ContentPage
         object? sender,
         EventArgs e)
     {
+        _pageCancellationTokenSource.Cancel();
+
         await Navigation.PopModalAsync();
     }
 

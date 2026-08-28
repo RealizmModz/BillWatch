@@ -1,5 +1,6 @@
 ﻿using BillWatch.API;
 using BillWatch.API.Data;
+using BillWatch.API.Services.Statements;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -91,6 +92,19 @@ public sealed class BillWatchApiFactory
                     options =>
                         options.UseInMemoryDatabase(
                             _databaseName));
+
+                /*
+                 * Routine tests do not load native Tesseract.
+                 *
+                 * Native OCR tests explicitly replace this fake with
+                 * the production engine.
+                 */
+                services.RemoveAll<
+                    IBillStatementOcrEngine>();
+
+                services.AddSingleton<
+                    IBillStatementOcrEngine,
+                    TestBillStatementOcrEngine>();
             });
     }
 
@@ -112,12 +126,30 @@ public sealed class BillWatchApiFactory
             {
                 Directory.Delete(
                     _statementStorageRoot,
-                    recursive: true);
+                    recursive:
+                        true);
             }
         }
         catch
         {
-            // Test cleanup must not hide the actual test result.
+            // Test cleanup must not hide a real test failure.
+        }
+    }
+
+    private sealed class TestBillStatementOcrEngine
+        : IBillStatementOcrEngine
+    {
+        public BillStatementOcrResult TryExtract(
+            Stream source,
+            string mediaType,
+            string fileExtension)
+        {
+            ArgumentNullException.ThrowIfNull(
+                source);
+
+            return BillStatementOcrResult.Failure(
+                pageCount:
+                    1);
         }
     }
 }

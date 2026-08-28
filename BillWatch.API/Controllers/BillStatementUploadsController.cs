@@ -20,11 +20,13 @@ public sealed class BillStatementUploadsController
     private readonly BillWatchDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SecureBillStatementStorageService _storageService;
+    private readonly BillStatementProcessingSignal _processingSignal;
 
     public BillStatementUploadsController(
         BillWatchDbContext dbContext,
         UserManager<ApplicationUser> userManager,
-        SecureBillStatementStorageService storageService)
+        SecureBillStatementStorageService storageService,
+        BillStatementProcessingSignal processingSignal)
     {
         _dbContext =
             dbContext;
@@ -34,6 +36,9 @@ public sealed class BillStatementUploadsController
 
         _storageService =
             storageService;
+
+        _processingSignal =
+            processingSignal;
     }
 
     [HttpPost]
@@ -169,6 +174,8 @@ public sealed class BillStatementUploadsController
 
             throw;
         }
+
+        _processingSignal.Notify();
 
         return Created(
             $"/api/bill-streams/{billStreamId}/statement-uploads/{upload.Id}",

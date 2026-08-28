@@ -205,20 +205,20 @@
                             Clicked="OnUploadStatementClicked" />
 
                         <Grid
-                            IsVisible="{Binding IsUploading}"
+                            IsVisible="{Binding HasActiveUploadWork}"
                             ColumnDefinitions="Auto,*"
                             ColumnSpacing="10">
 
                             <ActivityIndicator
                                 Grid.Column="0"
-                                IsRunning="{Binding IsUploading}"
+                                IsRunning="{Binding HasActiveUploadWork}"
                                 WidthRequest="20"
                                 HeightRequest="20"
                                 VerticalOptions="Center" />
 
                             <Label
                                 Grid.Column="1"
-                                Text="Uploading statement securely..."
+                                Text="{Binding UploadActivityText}"
                                 VerticalOptions="Center"
                                 Style="{StaticResource MutedTextStyle}" />
 
@@ -235,7 +235,7 @@
                             Style="{StaticResource BodyTextStyle}" />
 
                         <Label
-                            Text="The uploaded document is stored separately from your normal bill data. BillWatch does not expose its internal storage location."
+                            Text="Statements are stored securely and processed separately from your normal bill data. BillWatch never exposes the internal storage location."
                             Style="{StaticResource SmallTextStyle}" />
 
                     </VerticalStackLayout>

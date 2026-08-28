@@ -5,7 +5,9 @@ public enum BillStatementUploadStatus
     Uploaded = 0,
     Processing = 1,
     Processed = 2,
-    Failed = 3
+    Failed = 3,
+    NeedsOcr = 4,
+    ReadyForParsing = 5
 }
 
 public sealed class BillStatementUploadEntity

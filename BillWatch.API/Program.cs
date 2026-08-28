@@ -4,12 +4,15 @@ using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Bills;
 using BillWatch.API.Services.Plaid;
 using BillWatch.API.Services.Statements;
+using BillWatch.Core.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder =
+    WebApplication.CreateBuilder(
+        args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -60,7 +63,8 @@ builder.Services.Configure<IdentityOptions>(
             5;
 
         options.Lockout.DefaultLockoutTimeSpan =
-            TimeSpan.FromMinutes(15);
+            TimeSpan.FromMinutes(
+                15);
     });
 
 builder.Services.AddAuthorization();
@@ -72,7 +76,9 @@ builder.Services.AddRateLimiter(
             StatusCodes.Status429TooManyRequests;
 
         options.GlobalLimiter =
-            PartitionedRateLimiter.Create<HttpContext, string>(
+            PartitionedRateLimiter.Create<
+                HttpContext,
+                string>(
                 httpContext =>
                     RateLimitPartition.GetFixedWindowLimiter(
                         partitionKey:
@@ -85,11 +91,18 @@ builder.Services.AddRateLimiter(
                             _ =>
                                 new FixedWindowRateLimiterOptions
                                 {
-                                    PermitLimit = 300,
+                                    PermitLimit =
+                                        300,
+
                                     Window =
-                                        TimeSpan.FromMinutes(1),
-                                    QueueLimit = 0,
-                                    AutoReplenishment = true
+                                        TimeSpan.FromMinutes(
+                                            1),
+
+                                    QueueLimit =
+                                        0,
+
+                                    AutoReplenishment =
+                                        true
                                 }));
 
         options.AddPolicy(
@@ -106,11 +119,18 @@ builder.Services.AddRateLimiter(
                         _ =>
                             new FixedWindowRateLimiterOptions
                             {
-                                PermitLimit = 20,
+                                PermitLimit =
+                                    20,
+
                                 Window =
-                                    TimeSpan.FromMinutes(1),
-                                QueueLimit = 0,
-                                AutoReplenishment = true
+                                    TimeSpan.FromMinutes(
+                                        1),
+
+                                QueueLimit =
+                                    0,
+
+                                AutoReplenishment =
+                                    true
                             }));
     });
 
@@ -150,16 +170,32 @@ builder.Services.Configure<PlaidOptions>(
 
 builder.Services.AddHttpClient<PlaidApiClient>();
 
-builder.Services.AddScoped<PlaidTokenProtector>();
-builder.Services.AddScoped<PlaidConnectionExchangeService>();
-builder.Services.AddScoped<PlaidLinkService>();
-builder.Services.AddScoped<PlaidHostedLinkCompletionService>();
-builder.Services.AddScoped<PlaidAccountSyncService>();
-builder.Services.AddScoped<PlaidTransactionSyncService>();
-builder.Services.AddScoped<PlaidConnectionDisconnectService>();
+builder.Services.AddScoped<
+    PlaidTokenProtector>();
 
-builder.Services.AddScoped<RecurringBillDiscoveryPersistenceService>();
-builder.Services.AddScoped<BillMonitoringRefreshService>();
+builder.Services.AddScoped<
+    PlaidConnectionExchangeService>();
+
+builder.Services.AddScoped<
+    PlaidLinkService>();
+
+builder.Services.AddScoped<
+    PlaidHostedLinkCompletionService>();
+
+builder.Services.AddScoped<
+    PlaidAccountSyncService>();
+
+builder.Services.AddScoped<
+    PlaidTransactionSyncService>();
+
+builder.Services.AddScoped<
+    PlaidConnectionDisconnectService>();
+
+builder.Services.AddScoped<
+    RecurringBillDiscoveryPersistenceService>();
+
+builder.Services.AddScoped<
+    BillMonitoringRefreshService>();
 
 var configuredStatementStoragePath =
     builder.Configuration[
@@ -177,10 +213,55 @@ builder.Services.Configure<BillStatementStorageOptions>(
     builder.Configuration.GetSection(
         BillStatementStorageOptions.SectionName));
 
+builder.Services.Configure<BillStatementOcrOptions>(
+    builder.Configuration.GetSection(
+        BillStatementOcrOptions.SectionName));
+
 builder.Services.AddScoped<
     SecureBillStatementStorageService>();
 
-var app = builder.Build();
+builder.Services.AddScoped<
+    PdfBillStatementTextExtractor>();
+
+/*
+ * One shared lazy Tesseract engine.
+ *
+ * It does not initialize until an image statement actually requires
+ * OCR, which keeps normal API startup and text-PDF processing fast.
+ */
+builder.Services.AddSingleton<
+    IBillStatementOcrEngine,
+    TesseractBillStatementOcrEngine>();
+
+builder.Services.AddScoped<
+    BillStatementDocumentTextReader>();
+
+builder.Services.AddSingleton<
+    DeterministicBillStatementParser>();
+
+builder.Services.AddSingleton<
+    BillStatementValidationService>();
+
+builder.Services.AddSingleton<
+    BillComparisonService>();
+
+builder.Services.AddScoped<
+    BillStatementChangeDetectionService>();
+
+builder.Services.AddScoped<
+    BillStatementPersistenceService>();
+
+builder.Services.AddScoped<
+    BillStatementProcessingService>();
+
+builder.Services.AddSingleton<
+    BillStatementProcessingSignal>();
+
+builder.Services.AddHostedService<
+    BillStatementProcessingBackgroundService>();
+
+var app =
+    builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
@@ -200,7 +281,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 var authenticationGroup =
-    app.MapGroup("/api/auth")
+    app.MapGroup(
+            "/api/auth")
         .RequireRateLimiting(
             "authentication");
 

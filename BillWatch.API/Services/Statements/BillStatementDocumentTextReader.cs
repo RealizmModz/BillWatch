@@ -2,18 +2,28 @@
 
 public sealed class BillStatementDocumentTextReader
 {
-    private readonly SecureBillStatementStorageService _storageService;
-    private readonly PdfBillStatementTextExtractor _pdfTextExtractor;
+    private readonly SecureBillStatementStorageService
+        _storageService;
+
+    private readonly PdfBillStatementTextExtractor
+        _pdfTextExtractor;
+
+    private readonly IBillStatementOcrEngine
+        _ocrEngine;
 
     public BillStatementDocumentTextReader(
         SecureBillStatementStorageService storageService,
-        PdfBillStatementTextExtractor pdfTextExtractor)
+        PdfBillStatementTextExtractor pdfTextExtractor,
+        IBillStatementOcrEngine ocrEngine)
     {
         _storageService =
             storageService;
 
         _pdfTextExtractor =
             pdfTextExtractor;
+
+        _ocrEngine =
+            ocrEngine;
     }
 
     public BillStatementTextExtractionResult Read(
@@ -54,43 +64,152 @@ public sealed class BillStatementDocumentTextReader
                 nameof(fileExtension));
         }
 
-        var isPdf =
-            IsPdf(
+        if (IsPdf(
                 mediaType,
-                fileExtension);
-
-        var isImage =
-            IsImage(
-                mediaType,
-                fileExtension);
-
-        if (!isPdf &&
-            !isImage)
+                fileExtension))
         {
-            throw new BillStatementTextExtractionException(
-                "The stored bill statement has an unsupported document type.");
+            return ReadPdf(
+                userId,
+                storageKey,
+                mediaType,
+                fileExtension);
         }
 
+        if (IsImage(
+                mediaType,
+                fileExtension))
+        {
+            return ReadImage(
+                userId,
+                storageKey,
+                mediaType,
+                fileExtension);
+        }
+
+        throw new BillStatementTextExtractionException(
+            "The stored bill statement has an unsupported document type.");
+    }
+
+    private BillStatementTextExtractionResult ReadPdf(
+        Guid userId,
+        string storageKey,
+        string mediaType,
+        string fileExtension)
+    {
+        BillStatementTextExtractionResult
+            pdfExtraction;
+
+        /*
+         * Fast path:
+         *
+         * A normal text PDF gets read only by PdfPig.
+         * No native OCR initialization and no second file read.
+         */
+        using (var statementStream =
+               _storageService.OpenRead(
+                   userId,
+                   storageKey))
+        {
+            pdfExtraction =
+                _pdfTextExtractor.Extract(
+                    statementStream);
+        }
+
+        if (!pdfExtraction.RequiresOcr)
+        {
+            return pdfExtraction;
+        }
+
+        /*
+         * Sparse/scanned PDFs are reopened specifically for the OCR
+         * fallback.
+         */
+        BillStatementOcrResult
+            ocrResult;
+
+        using (var statementStream =
+               _storageService.OpenRead(
+                   userId,
+                   storageKey))
+        {
+            ocrResult =
+                _ocrEngine.TryExtract(
+                    statementStream,
+                    mediaType,
+                    fileExtension);
+        }
+
+        if (!ocrResult.IsUsable)
+        {
+            return new BillStatementTextExtractionResult(
+                Text:
+                    pdfExtraction.Text,
+
+                PageCount:
+                    Math.Max(
+                        pdfExtraction.PageCount,
+                        ocrResult.PageCount),
+
+                RequiresOcr:
+                    true);
+        }
+
+        return new BillStatementTextExtractionResult(
+            Text:
+                ocrResult.Text,
+
+            PageCount:
+                Math.Max(
+                    pdfExtraction.PageCount,
+                    ocrResult.PageCount),
+
+            RequiresOcr:
+                false);
+    }
+
+    private BillStatementTextExtractionResult ReadImage(
+        Guid userId,
+        string storageKey,
+        string mediaType,
+        string fileExtension)
+    {
         using var statementStream =
             _storageService.OpenRead(
                 userId,
                 storageKey);
 
-        if (isImage)
+        var ocrResult =
+            _ocrEngine.TryExtract(
+                statementStream,
+                mediaType,
+                fileExtension);
+
+        if (!ocrResult.IsUsable)
         {
             return new BillStatementTextExtractionResult(
                 Text:
                     string.Empty,
 
                 PageCount:
-                    1,
+                    Math.Max(
+                        1,
+                        ocrResult.PageCount),
 
                 RequiresOcr:
                     true);
         }
 
-        return _pdfTextExtractor.Extract(
-            statementStream);
+        return new BillStatementTextExtractionResult(
+            Text:
+                ocrResult.Text,
+
+            PageCount:
+                Math.Max(
+                    1,
+                    ocrResult.PageCount),
+
+            RequiresOcr:
+                false);
     }
 
     private static bool IsPdf(
@@ -112,16 +231,6 @@ public sealed class BillStatementDocumentTextReader
         string mediaType,
         string fileExtension)
     {
-        var isJpeg =
-            string.Equals(
-                mediaType,
-                "image/jpeg",
-                StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(
-                fileExtension,
-                ".jpg",
-                StringComparison.OrdinalIgnoreCase);
-
         var isPng =
             string.Equals(
                 mediaType,
@@ -132,8 +241,24 @@ public sealed class BillStatementDocumentTextReader
                 ".png",
                 StringComparison.OrdinalIgnoreCase);
 
+        var isJpeg =
+            string.Equals(
+                mediaType,
+                "image/jpeg",
+                StringComparison.OrdinalIgnoreCase) &&
+            (
+                string.Equals(
+                    fileExtension,
+                    ".jpg",
+                    StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    fileExtension,
+                    ".jpeg",
+                    StringComparison.OrdinalIgnoreCase)
+            );
+
         return
-            isJpeg ||
-            isPng;
+            isPng ||
+            isJpeg;
     }
 }

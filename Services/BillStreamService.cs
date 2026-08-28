@@ -1,4 +1,7 @@
-﻿namespace BillWatch.Services;
+﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
+
+namespace BillWatch.Services;
 
 public sealed class BillStreamService
 {
@@ -8,15 +11,22 @@ public sealed class BillStreamService
     private readonly AuthenticationService
         _authenticationService;
 
+    private readonly HttpClient
+        _httpClient;
+
     public BillStreamService(
         BillWatchApiClient apiClient,
-        AuthenticationService authenticationService)
+        AuthenticationService authenticationService,
+        HttpClient httpClient)
     {
         _apiClient =
             apiClient;
 
         _authenticationService =
             authenticationService;
+
+        _httpClient =
+            httpClient;
     }
 
     public async Task<IReadOnlyList<BillStreamResult>>
@@ -87,4 +97,65 @@ public sealed class BillStreamService
                 mediaType,
                 cancellationToken);
     }
+
+    public async Task<BillStatementUploadStatusResult>
+        GetStatementUploadStatusAsync(
+            Guid billStreamId,
+            Guid uploadId,
+            CancellationToken cancellationToken = default)
+    {
+        if (billStreamId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Bill stream ID is required.",
+                nameof(billStreamId));
+        }
+
+        if (uploadId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Statement upload ID is required.",
+                nameof(uploadId));
+        }
+
+        var accessToken =
+            await _authenticationService
+                .GetValidAccessTokenAsync(
+                    cancellationToken);
+
+        using var request =
+            new HttpRequestMessage(
+                HttpMethod.Get,
+                $"/api/bill-streams/{billStreamId}/statement-uploads/{uploadId}");
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue(
+                "Bearer",
+                accessToken);
+
+        using var response =
+            await _httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        var result =
+            await response.Content
+                .ReadFromJsonAsync<BillStatementUploadStatusResult>(
+                    cancellationToken:
+                        cancellationToken);
+
+        return result
+            ?? throw new InvalidOperationException(
+                "The statement processing status response was empty.");
+    }
 }
+
+public sealed record BillStatementUploadStatusResult(
+    Guid Id,
+    Guid BillStreamId,
+    string Status,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
