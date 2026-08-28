@@ -26,6 +26,11 @@
             ContentTemplate="{DataTemplate local:BillsPage}" />
 
         <ShellContent
+            Title="Activity"
+            Route="Activity"
+            ContentTemplate="{DataTemplate local:ActivityPage}" />
+
+        <ShellContent
             Title="Transactions"
             Route="Transactions"
             ContentTemplate="{DataTemplate local:TransactionsPage}" />

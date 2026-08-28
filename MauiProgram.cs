@@ -40,6 +40,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<PlaidConnectionService>();
         builder.Services.AddSingleton<BankDataService>();
 
+        builder.Services.AddSingleton<BillAlertService>();
+
         builder.Services.AddTransient<LoginPageViewModel>();
         builder.Services.AddTransient<LoginPage>();
 
@@ -54,6 +56,8 @@ public static class MauiProgram
 
         builder.Services.AddTransient<TransactionsPageViewModel>();
         builder.Services.AddTransient<TransactionsPage>();
+
+        builder.Services.AddTransient<ActivityPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

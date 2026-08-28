@@ -3,6 +3,8 @@ using BillWatch.API.Data.Entities;
 using BillWatch.Core.Models;
 using BillWatch.Core.Services;
 using Microsoft.EntityFrameworkCore;
+using EntityBillAlertType =
+    BillWatch.API.Data.Entities.BillAlertType;
 
 namespace BillWatch.API.Services.Statements;
 
@@ -10,6 +12,12 @@ public sealed class BillStatementChangeDetectionService
 {
     private const int MaxDescriptionLength =
         950;
+
+    private const int MaxAlertTitleLength =
+        300;
+
+    private const int MaxAlertMessageLength =
+        2000;
 
     private readonly BillWatchDbContext
         _dbContext;
@@ -230,6 +238,29 @@ public sealed class BillStatementChangeDetectionService
                 .ToListAsync(
                     cancellationToken);
 
+        var existingAlerts =
+            await _dbContext.BillAlerts
+                .Where(
+                    alert =>
+                        alert.UserId ==
+                            userId &&
+                        alert.BillStreamId ==
+                            billStreamId &&
+                        alert.BillChangeId.HasValue)
+                .ToListAsync(
+                    cancellationToken);
+
+        var alertsByChangeId =
+            existingAlerts
+                .GroupBy(
+                    alert =>
+                        alert.BillChangeId!.Value)
+                .ToDictionary(
+                    group =>
+                        group.Key,
+                    group =>
+                        group.ToList());
+
         var desiredChanges =
             BuildDesiredChanges(
                 providerName,
@@ -275,24 +306,18 @@ public sealed class BillStatementChangeDetectionService
             }
         }
 
-        if (duplicateExistingChanges.Count >
-            0)
-        {
-            _dbContext.BillChanges.RemoveRange(
-                duplicateExistingChanges);
-        }
-
         var createdCount =
             0;
 
         var updatedCount =
             0;
 
-        var removedCount =
-            duplicateExistingChanges.Count;
-
         var now =
             DateTimeOffset.UtcNow;
+
+        var activeChanges =
+            new List<BillChangeEntity>(
+                desiredChanges.Count);
 
         foreach (var desiredChange in
                  desiredChanges)
@@ -311,12 +336,18 @@ public sealed class BillStatementChangeDetectionService
                     pair,
                     out var existingChange))
             {
-                _dbContext.BillChanges.Add(
+                var newChange =
                     CreateChangeEntity(
                         userId,
                         billStreamId,
                         desiredChange,
-                        now));
+                        now);
+
+                _dbContext.BillChanges.Add(
+                    newChange);
+
+                activeChanges.Add(
+                    newChange);
 
                 createdCount++;
 
@@ -333,16 +364,49 @@ public sealed class BillStatementChangeDetectionService
             {
                 updatedCount++;
             }
+
+            activeChanges.Add(
+                existingChange);
         }
 
-        if (existingByPair.Count >
+        var changesToRemove =
+            duplicateExistingChanges
+                .Concat(
+                    existingByPair.Values)
+                .DistinctBy(
+                    change =>
+                        change.Id)
+                .ToList();
+
+        foreach (var changeToRemove in
+                 changesToRemove)
+        {
+            if (!alertsByChangeId.TryGetValue(
+                    changeToRemove.Id,
+                    out var linkedAlerts))
+            {
+                continue;
+            }
+
+            _dbContext.BillAlerts.RemoveRange(
+                linkedAlerts);
+        }
+
+        if (changesToRemove.Count >
             0)
         {
             _dbContext.BillChanges.RemoveRange(
-                existingByPair.Values);
+                changesToRemove);
+        }
 
-            removedCount +=
-                existingByPair.Count;
+        foreach (var activeChange in
+                 activeChanges)
+        {
+            ReconcileAlert(
+                providerName,
+                activeChange,
+                alertsByChangeId,
+                now);
         }
 
         return new BillStatementChangeReconciliationResult(
@@ -353,7 +417,7 @@ public sealed class BillStatementChangeDetectionService
                 updatedCount,
 
             RemovedCount:
-                removedCount);
+                changesToRemove.Count);
     }
 
     private IReadOnlyList<DesiredBillChange>
@@ -541,6 +605,215 @@ public sealed class BillStatementChangeDetectionService
             $"{summary} Evidence found: {evidence} {FormatMoney(unexplainedAmount)}/month remains unexplained.");
     }
 
+    private void ReconcileAlert(
+        string providerName,
+        BillChangeEntity change,
+        IReadOnlyDictionary<
+            Guid,
+            List<BillAlertEntity>> alertsByChangeId,
+        DateTimeOffset now)
+    {
+        var desiredAlert =
+            BuildDesiredAlert(
+                providerName,
+                change);
+
+        if (desiredAlert is null)
+        {
+            return;
+        }
+
+        alertsByChangeId.TryGetValue(
+            change.Id,
+            out var linkedAlerts);
+
+        linkedAlerts ??=
+            [];
+
+        var changeAlerts =
+            linkedAlerts
+                .Where(
+                    alert =>
+                        alert.AlertType ==
+                            EntityBillAlertType.BillIncrease ||
+                        alert.AlertType ==
+                            EntityBillAlertType.BillDecrease)
+                .OrderBy(
+                    alert =>
+                        alert.CreatedAtUtc)
+                .ThenBy(
+                    alert =>
+                        alert.Id)
+                .ToList();
+
+        if (changeAlerts.Count ==
+            0)
+        {
+            _dbContext.BillAlerts.Add(
+                new BillAlertEntity
+                {
+                    UserId =
+                        change.UserId,
+
+                    BillStreamId =
+                        change.BillStreamId,
+
+                    BillChangeId =
+                        change.Id,
+
+                    BillChange =
+                        change,
+
+                    AlertType =
+                        desiredAlert.AlertType,
+
+                    Severity =
+                        desiredAlert.Severity,
+
+                    Title =
+                        desiredAlert.Title,
+
+                    Message =
+                        desiredAlert.Message,
+
+                    IsRead =
+                        false,
+
+                    IsDismissed =
+                        false,
+
+                    CreatedAtUtc =
+                        now,
+
+                    UpdatedAtUtc =
+                        now
+                });
+
+            return;
+        }
+
+        var primaryAlert =
+            changeAlerts[0];
+
+        var contentChanged =
+            primaryAlert.AlertType !=
+                desiredAlert.AlertType ||
+            primaryAlert.Severity !=
+                desiredAlert.Severity ||
+            !string.Equals(
+                primaryAlert.Title,
+                desiredAlert.Title,
+                StringComparison.Ordinal) ||
+            !string.Equals(
+                primaryAlert.Message,
+                desiredAlert.Message,
+                StringComparison.Ordinal);
+
+        if (contentChanged)
+        {
+            primaryAlert.AlertType =
+                desiredAlert.AlertType;
+
+            primaryAlert.Severity =
+                desiredAlert.Severity;
+
+            primaryAlert.Title =
+                desiredAlert.Title;
+
+            primaryAlert.Message =
+                desiredAlert.Message;
+
+            primaryAlert.IsRead =
+                false;
+
+            primaryAlert.IsDismissed =
+                false;
+
+            primaryAlert.UpdatedAtUtc =
+                now;
+        }
+
+        if (changeAlerts.Count >
+            1)
+        {
+            _dbContext.BillAlerts.RemoveRange(
+                changeAlerts.Skip(
+                    1));
+        }
+    }
+
+    private static DesiredBillAlert?
+        BuildDesiredAlert(
+            string providerName,
+            BillChangeEntity change)
+    {
+        var monthlyImpact =
+            Math.Abs(
+                change.AmountDifference);
+
+        var annualImpact =
+            Math.Abs(
+                change.AnnualizedImpact);
+
+        switch (change.ChangeType)
+        {
+            case BillChangeType.TotalIncrease:
+                {
+                    var title =
+                        TruncateAlertValue(
+                            $"{providerName} increased by {FormatMoney(monthlyImpact)}/month",
+                            MaxAlertTitleLength);
+
+                    var message =
+                        TruncateAlertValue(
+                            $"{FormatMoney(change.PreviousAmount)} → {FormatMoney(change.CurrentAmount)}. +{FormatMoney(monthlyImpact)}/month · +{FormatMoney(annualImpact)}/year. {change.Description}",
+                            MaxAlertMessageLength);
+
+                    return new DesiredBillAlert(
+                        AlertType:
+                            EntityBillAlertType.BillIncrease,
+
+                        Severity:
+                            BillAlertSeverity.Warning,
+
+                        Title:
+                            title,
+
+                        Message:
+                            message);
+                }
+
+            case BillChangeType.TotalDecrease:
+                {
+                    var title =
+                        TruncateAlertValue(
+                            $"{providerName} decreased by {FormatMoney(monthlyImpact)}/month",
+                            MaxAlertTitleLength);
+
+                    var message =
+                        TruncateAlertValue(
+                            $"{FormatMoney(change.PreviousAmount)} → {FormatMoney(change.CurrentAmount)}. {FormatMoney(monthlyImpact)}/month less · {FormatMoney(annualImpact)}/year less. {change.Description}",
+                            MaxAlertMessageLength);
+
+                    return new DesiredBillAlert(
+                        AlertType:
+                            EntityBillAlertType.BillDecrease,
+
+                        Severity:
+                            BillAlertSeverity.Info,
+
+                        Title:
+                            title,
+
+                        Message:
+                            message);
+                }
+
+            default:
+                return null;
+        }
+    }
+
     private static BillChangeEntity
         CreateChangeEntity(
             Guid userId,
@@ -724,6 +997,21 @@ public sealed class BillStatementChangeDetectionService
             + "…";
     }
 
+    private static string TruncateAlertValue(
+        string value,
+        int maximumLength)
+    {
+        if (value.Length <=
+            maximumLength)
+        {
+            return value;
+        }
+
+        return
+            value[..(maximumLength - 1)]
+            + "…";
+    }
+
     private readonly record struct StatementPair(
         Guid PreviousStatementId,
         Guid CurrentStatementId);
@@ -737,6 +1025,12 @@ public sealed class BillStatementChangeDetectionService
         decimal AmountDifference,
         decimal AnnualizedImpact,
         string Description);
+
+    private sealed record DesiredBillAlert(
+        EntityBillAlertType AlertType,
+        BillAlertSeverity Severity,
+        string Title,
+        string Message);
 }
 
 public sealed record BillStatementChangeReconciliationResult(
