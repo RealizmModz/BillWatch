@@ -181,13 +181,13 @@ public partial class BillDetailPage : ContentPage
             if (IsUploading)
             {
                 return
-                    "Uploading statement securely...";
+                    "Uploading statement securely…";
             }
 
             if (IsProcessingUpload)
             {
                 return
-                    "BillWatch is reading your statement...";
+                    "BillWatch is reading and validating your statement…";
             }
 
             return
@@ -198,7 +198,8 @@ public partial class BillDetailPage : ContentPage
     public bool CanUpload =>
         !HasActiveUploadWork &&
         !IsLoading &&
-        _billStreamId != Guid.Empty;
+        _billStreamId !=
+            Guid.Empty;
 
     public string UploadMessage
     {
@@ -269,7 +270,8 @@ public partial class BillDetailPage : ContentPage
     public bool HasContent =>
         !IsLoading &&
         !HasError &&
-        _detail is not null;
+        _detail is not
+            null;
 
     public string ProviderName =>
         _detail?.ProviderName
@@ -279,8 +281,15 @@ public partial class BillDetailPage : ContentPage
         FormatCategory(
             _detail?.Category);
 
+    public string MonitoringStatusText =>
+        _detail?.IsActive ==
+        true
+            ? "MONITORING"
+            : "INACTIVE";
+
     public string CurrentAmountText =>
-        _detail is null
+        _detail is
+        null
             ? "$0.00"
             : FormatMoney(
                 _detail.CurrentAmount);
@@ -289,16 +298,17 @@ public partial class BillDetailPage : ContentPage
     {
         get
         {
-            if (_detail is null ||
+            if (_detail is
+                    null ||
                 _detail.PreviousAverage <=
-                0m)
+                    0m)
             {
                 return
-                    "Not enough history for an average yet.";
+                    "Building historical average";
             }
 
             return
-                $"Previous average: {FormatMoney(_detail.PreviousAverage)}";
+                $"Previous average {FormatMoney(_detail.PreviousAverage)}";
         }
     }
 
@@ -312,10 +322,63 @@ public partial class BillDetailPage : ContentPage
                 .FirstOrDefault();
 
     public bool HasDetectedChange =>
-        LatestChange is not null;
+        LatestChange is not
+        null;
 
     public bool HasNoDetectedChange =>
         !HasDetectedChange;
+
+    public string ChangeHeadlineText
+    {
+        get
+        {
+            var change =
+                LatestChange;
+
+            if (change is
+                null)
+            {
+                return
+                    string.Empty;
+            }
+
+            if (change.AmountDifference >
+                0m)
+            {
+                return
+                    "Your bill increased";
+            }
+
+            if (change.AmountDifference <
+                0m)
+            {
+                return
+                    "Your bill decreased";
+            }
+
+            return
+                "Your bill stayed the same";
+        }
+    }
+
+    public string ChangeAmountPathText
+    {
+        get
+        {
+            var change =
+                LatestChange;
+
+            if (change is
+                null)
+            {
+                return
+                    string.Empty;
+            }
+
+            return
+                $"{FormatMoney(change.PreviousAmount)} → {FormatMoney(change.CurrentAmount)}";
+        }
+    }
 
     public string ChangeSummaryText
     {
@@ -324,7 +387,8 @@ public partial class BillDetailPage : ContentPage
             var change =
                 LatestChange;
 
-            if (change is null)
+            if (change is
+                null)
             {
                 return
                     string.Empty;
@@ -333,20 +397,22 @@ public partial class BillDetailPage : ContentPage
             var difference =
                 change.AmountDifference;
 
-            if (difference > 0m)
+            if (difference >
+                0m)
             {
                 return
-                    $"+{FormatMoney(difference)}/month";
+                    $"+{FormatMoney(difference)}/mo";
             }
 
-            if (difference < 0m)
+            if (difference <
+                0m)
             {
                 return
-                    $"-{FormatMoney(Math.Abs(difference))}/month";
+                    $"-{FormatMoney(Math.Abs(difference))}/mo";
             }
 
             return
-                "No price difference";
+                "$0/month";
         }
     }
 
@@ -357,7 +423,8 @@ public partial class BillDetailPage : ContentPage
             var change =
                 LatestChange;
 
-            if (change is null)
+            if (change is
+                null)
             {
                 return
                     string.Empty;
@@ -366,20 +433,22 @@ public partial class BillDetailPage : ContentPage
             var impact =
                 change.AnnualizedImpact;
 
-            if (impact > 0m)
+            if (impact >
+                0m)
             {
                 return
-                    $"+{FormatMoney(impact)} per year";
+                    $"+{FormatMoney(impact)}/yr";
             }
 
-            if (impact < 0m)
+            if (impact <
+                0m)
             {
                 return
-                    $"{FormatMoney(Math.Abs(impact))} less per year";
+                    $"-{FormatMoney(Math.Abs(impact))}/yr";
             }
 
             return
-                "No annual cost impact";
+                "$0/year";
         }
     }
 
@@ -394,7 +463,7 @@ public partial class BillDetailPage : ContentPage
             return
                 string.IsNullOrWhiteSpace(
                     description)
-                    ? "BillWatch detected a change, but does not yet have enough evidence to explain the cause."
+                    ? "BillWatch confirmed the amount changed, but there is not enough provider evidence yet to explain why."
                     : description;
         }
     }
@@ -411,6 +480,54 @@ public partial class BillDetailPage : ContentPage
     public bool HasNoStatements =>
         Statements.Count ==
         0;
+
+    public string StatementHistorySummaryText
+    {
+        get
+        {
+            return Statements.Count switch
+            {
+                0 =>
+                    "No provider statement history yet.",
+
+                1 =>
+                    "1 provider statement processed.",
+
+                _ =>
+                    $"{Statements.Count} provider statements processed."
+            };
+        }
+    }
+
+    public string LatestStatementSummaryText
+    {
+        get
+        {
+            var latest =
+                _detail?
+                    .Statements
+                    .OrderByDescending(
+                        statement =>
+                            statement.PeriodEnd)
+                    .FirstOrDefault();
+
+            if (latest is
+                null)
+            {
+                return
+                    "No provider statement has been processed yet.";
+            }
+
+            if (latest.DueDate.HasValue)
+            {
+                return
+                    $"Latest provider statement: {latest.PeriodEnd:MMM d, yyyy} · Due date shown: {latest.DueDate.Value:MMM d, yyyy}";
+            }
+
+            return
+                $"Latest provider statement: {latest.PeriodEnd:MMM d, yyyy} · No explicit due date found";
+        }
+    }
 
     protected override async void
         OnAppearing()
@@ -485,6 +602,10 @@ public partial class BillDetailPage : ContentPage
                                     FormatMoney(
                                         statement.TotalAmount),
 
+                                StatementDateText:
+                                    FormatStatementDate(
+                                        statement),
+
                                 DueDateText:
                                     FormatDueDate(
                                         statement)))
@@ -497,7 +618,8 @@ public partial class BillDetailPage : ContentPage
             NotifyDetailChanged();
         }
         catch (OperationCanceledException)
-            when (cancellationToken.IsCancellationRequested)
+            when (cancellationToken
+                .IsCancellationRequested)
         {
         }
         catch (SessionExpiredException)
@@ -538,14 +660,16 @@ public partial class BillDetailPage : ContentPage
             ClearUploadMessage();
 
             var selectedFile =
-                await FilePicker.Default.PickAsync(
-                    new PickOptions
-                    {
-                        PickerTitle =
-                            "Choose bill statement"
-                    });
+                await FilePicker.Default
+                    .PickAsync(
+                        new PickOptions
+                        {
+                            PickerTitle =
+                                "Choose bill statement"
+                        });
 
-            if (selectedFile is null)
+            if (selectedFile is
+                null)
             {
                 return;
             }
@@ -553,7 +677,8 @@ public partial class BillDetailPage : ContentPage
             EnsurePageCancellationToken();
 
             var cancellationToken =
-                _pageCancellationTokenSource.Token;
+                _pageCancellationTokenSource
+                    .Token;
 
             var extension =
                 Path.GetExtension(
@@ -657,6 +782,13 @@ public partial class BillDetailPage : ContentPage
         if (TryApplyTerminalUploadStatus(
                 upload.Status))
         {
+            if (IsProcessedStatus(
+                    upload.Status))
+            {
+                await RefreshDetailAfterProcessingAsync(
+                    cancellationToken);
+            }
+
             return;
         }
 
@@ -676,18 +808,28 @@ public partial class BillDetailPage : ContentPage
                             upload.Id,
                             cancellationToken);
 
-                if (TryApplyTerminalUploadStatus(
+                if (!TryApplyTerminalUploadStatus(
                         status.Status))
                 {
-                    return;
+                    continue;
                 }
+
+                if (IsProcessedStatus(
+                        status.Status))
+                {
+                    await RefreshDetailAfterProcessingAsync(
+                        cancellationToken);
+                }
+
+                return;
             }
 
             SetUploadSuccess(
-                "Statement uploaded securely. Processing is continuing in the background.");
+                "Statement uploaded securely. BillWatch is continuing to process it in the background.");
         }
         catch (OperationCanceledException)
-            when (cancellationToken.IsCancellationRequested)
+            when (cancellationToken
+                .IsCancellationRequested)
         {
             throw;
         }
@@ -703,6 +845,16 @@ public partial class BillDetailPage : ContentPage
         }
     }
 
+    private async Task RefreshDetailAfterProcessingAsync(
+        CancellationToken cancellationToken)
+    {
+        _hasLoaded =
+            false;
+
+        await LoadAsync(
+            cancellationToken);
+    }
+
     private bool TryApplyTerminalUploadStatus(
         string? status)
     {
@@ -710,31 +862,40 @@ public partial class BillDetailPage : ContentPage
         {
             case "ReadyForParsing":
                 SetUploadSuccess(
-                    "Statement read successfully. BillWatch is ready to extract the bill details.");
+                    "BillWatch read the statement, but it needs review before the extracted values can become trusted bill history.");
 
                 return true;
 
             case "NeedsOcr":
-                SetUploadSuccess(
-                    "Statement uploaded securely. This document needs OCR before BillWatch can read it.");
+                SetUploadError(
+                    "BillWatch could not confidently read this copy. Try a clearer PDF, screenshot, or photo of the statement.");
 
                 return true;
 
             case "Processed":
                 SetUploadSuccess(
-                    "Statement processed successfully.");
+                    "Statement processed. BillWatch updated this bill's evidence and history.");
 
                 return true;
 
             case "Failed":
                 SetUploadError(
-                    "The statement was uploaded, but BillWatch could not read it. Try a clearer copy or a different file.");
+                    "The statement was uploaded, but BillWatch could not safely process it. Try a clearer copy or a different file.");
 
                 return true;
 
             default:
                 return false;
         }
+    }
+
+    private static bool IsProcessedStatus(
+        string? status)
+    {
+        return string.Equals(
+            status,
+            "Processed",
+            StringComparison.Ordinal);
     }
 
     private void EnsurePageCancellationToken()
@@ -819,6 +980,9 @@ public partial class BillDetailPage : ContentPage
             nameof(Category));
 
         OnPropertyChanged(
+            nameof(MonitoringStatusText));
+
+        OnPropertyChanged(
             nameof(CurrentAmountText));
 
         OnPropertyChanged(
@@ -832,6 +996,12 @@ public partial class BillDetailPage : ContentPage
 
         OnPropertyChanged(
             nameof(HasNoDetectedChange));
+
+        OnPropertyChanged(
+            nameof(ChangeHeadlineText));
+
+        OnPropertyChanged(
+            nameof(ChangeAmountPathText));
 
         OnPropertyChanged(
             nameof(ChangeSummaryText));
@@ -852,6 +1022,12 @@ public partial class BillDetailPage : ContentPage
             nameof(HasNoStatements));
 
         OnPropertyChanged(
+            nameof(StatementHistorySummaryText));
+
+        OnPropertyChanged(
+            nameof(LatestStatementSummaryText));
+
+        OnPropertyChanged(
             nameof(HasContent));
 
         OnPropertyChanged(
@@ -862,9 +1038,11 @@ public partial class BillDetailPage : ContentPage
         object? sender,
         EventArgs e)
     {
-        _pageCancellationTokenSource.Cancel();
+        _pageCancellationTokenSource
+            .Cancel();
 
-        await Navigation.PopModalAsync();
+        await Navigation
+            .PopModalAsync();
     }
 
     private static string GetMediaType(
@@ -918,16 +1096,16 @@ public partial class BillDetailPage : ContentPage
         return confidence switch
         {
             "Confirmed" =>
-                "Confirmed",
+                "Confirmed from provider evidence",
 
             "StrongInference" =>
                 "Strong evidence",
 
             "Possible" =>
-                "Possible",
+                "Possible explanation",
 
             _ =>
-                "Unknown"
+                "Cause not confirmed"
         };
     }
 
@@ -938,21 +1116,35 @@ public partial class BillDetailPage : ContentPage
             $"{statement.PeriodStart:MMM d} – {statement.PeriodEnd:MMM d, yyyy}";
     }
 
+    private static string FormatStatementDate(
+        BillStatementHistoryResult statement)
+    {
+        if (!statement.StatementDate.HasValue)
+        {
+            return
+                "Statement date unavailable";
+        }
+
+        return
+            $"Statement dated {statement.StatementDate.Value:MMM d, yyyy}";
+    }
+
     private static string FormatDueDate(
         BillStatementHistoryResult statement)
     {
         if (!statement.DueDate.HasValue)
         {
             return
-                "Due date unavailable";
+                "No explicit due date found";
         }
 
         return
-            $"Due {statement.DueDate.Value:MMM d, yyyy}";
+            $"Due date shown: {statement.DueDate.Value:MMM d, yyyy}";
     }
 }
 
 public sealed record BillStatementDisplayItem(
     string PeriodText,
     string AmountText,
+    string StatementDateText,
     string DueDateText);

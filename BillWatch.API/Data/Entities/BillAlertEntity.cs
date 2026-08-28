@@ -2,13 +2,19 @@
 
 public enum BillAlertType
 {
-    Unknown,
-    BillIncrease,
-    BillDecrease,
-    NewFee,
-    RemovedDiscount,
-    PaymentDue,
-    ConnectionIssue
+    Unknown = 0,
+    BillIncrease = 1,
+    BillDecrease = 2,
+    NewFee = 3,
+    RemovedDiscount = 4,
+    PaymentDue = 5,
+    ConnectionIssue = 6,
+
+    /*
+     * Keep new enum values appended so existing persisted numeric
+     * values retain their meaning.
+     */
+    NewBill = 7
 }
 
 public enum BillAlertSeverity

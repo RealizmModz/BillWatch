@@ -3,14 +3,18 @@ using BillWatch.API.Data.Entities;
 using BillWatch.Core.Services;
 using Microsoft.EntityFrameworkCore;
 
-using BillCategory = BillWatch.Core.Models.BillCategory;
-using CoreBankTransaction = BillWatch.Core.Models.BankTransaction;
+using BillCategory =
+    BillWatch.Core.Models.BillCategory;
+
+using CoreBankTransaction =
+    BillWatch.Core.Models.BankTransaction;
 
 namespace BillWatch.API.Services.Bills;
 
 public sealed class RecurringBillDiscoveryPersistenceService
 {
-    private readonly BillWatchDbContext _dbContext;
+    private readonly BillWatchDbContext
+        _dbContext;
 
     private readonly BillStreamDiscoveryService
         _discoveryService;
@@ -21,10 +25,14 @@ public sealed class RecurringBillDiscoveryPersistenceService
     private readonly BillMerchantNormalizer
         _merchantNormalizer;
 
+    private readonly RecurringBillDiscoveryAlertService
+        _discoveryAlertService;
+
     public RecurringBillDiscoveryPersistenceService(
         BillWatchDbContext dbContext)
     {
-        _dbContext = dbContext;
+        _dbContext =
+            dbContext;
 
         _discoveryService =
             new BillStreamDiscoveryService();
@@ -34,6 +42,10 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
         _merchantNormalizer =
             new BillMerchantNormalizer();
+
+        _discoveryAlertService =
+            new RecurringBillDiscoveryAlertService(
+                dbContext);
     }
 
     public async Task<RecurringBillDiscoveryPersistenceResult>
@@ -41,24 +53,37 @@ public sealed class RecurringBillDiscoveryPersistenceService
             Guid userId,
             CancellationToken cancellationToken = default)
     {
+        if (userId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "User ID is required.",
+                nameof(userId));
+        }
+
         var persistedTransactions =
             await _dbContext.BankTransactions
-                .Where(transaction =>
-                    transaction.UserId == userId &&
-                    !transaction.IsRemoved)
-                .OrderBy(transaction =>
-                    transaction.PostedDate)
+                .Where(
+                    transaction =>
+                        transaction.UserId ==
+                            userId &&
+                        !transaction.IsRemoved)
+                .OrderBy(
+                    transaction =>
+                        transaction.PostedDate)
                 .ToListAsync(
                     cancellationToken);
 
         var eligibleTransactions =
             persistedTransactions
-                .Where(IsEligibleBillTransaction)
+                .Where(
+                    IsEligibleBillTransaction)
                 .ToList();
 
         var coreTransactions =
             eligibleTransactions
-                .Select(ToCoreTransaction)
+                .Select(
+                    ToCoreTransaction)
                 .ToList();
 
         var discoveredStreams =
@@ -67,28 +92,44 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
         var existingStreams =
             await _dbContext.BillStreams
-                .Where(stream =>
-                    stream.UserId == userId)
+                .Where(
+                    stream =>
+                        stream.UserId ==
+                            userId)
                 .ToListAsync(
                     cancellationToken);
 
         var discoveredProviderNames =
             discoveredStreams
-                .Select(stream =>
-                    stream.ProviderName)
+                .Select(
+                    stream =>
+                        stream.ProviderName)
                 .ToHashSet(
                     StringComparer.OrdinalIgnoreCase);
 
-        var createdCount = 0;
-        var updatedCount = 0;
-        var deactivatedCount = 0;
-        var linkedTransactionCount = 0;
-        var unlinkedTransactionCount = 0;
+        var createdCount =
+            0;
+
+        var updatedCount =
+            0;
+
+        var deactivatedCount =
+            0;
+
+        var linkedTransactionCount =
+            0;
+
+        var unlinkedTransactionCount =
+            0;
+
+        var newBillAlertCount =
+            0;
 
         var now =
             DateTimeOffset.UtcNow;
 
-        foreach (var existingStream in existingStreams)
+        foreach (var existingStream in
+                 existingStreams)
         {
             if (existingStream.Source !=
                 BillStreamSource.AutomaticDiscovery)
@@ -117,7 +158,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 deactivatedCount++;
             }
 
-            foreach (var transaction in persistedTransactions)
+            foreach (var transaction in
+                     persistedTransactions)
             {
                 if (transaction.BillStreamId !=
                     existingStream.Id)
@@ -135,19 +177,22 @@ public sealed class RecurringBillDiscoveryPersistenceService
             }
         }
 
-        foreach (var discoveredStream in discoveredStreams)
+        foreach (var discoveredStream in
+                 discoveredStreams)
         {
             var matchingTransactions =
                 eligibleTransactions
-                    .Where(transaction =>
-                        string.Equals(
-                            GetNormalizedMerchantName(
-                                transaction),
-                            discoveredStream.ProviderName,
-                            StringComparison.OrdinalIgnoreCase))
+                    .Where(
+                        transaction =>
+                            string.Equals(
+                                GetNormalizedMerchantName(
+                                    transaction),
+                                discoveredStream.ProviderName,
+                                StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
-            if (matchingTransactions.Count == 0)
+            if (matchingTransactions.Count ==
+                0)
             {
                 continue;
             }
@@ -163,20 +208,23 @@ public sealed class RecurringBillDiscoveryPersistenceService
             }
 
             var persistedStream =
-                existingStreams.FirstOrDefault(
-                    existing =>
-                        string.Equals(
-                            _merchantNormalizer.Normalize(
-                                existing.ProviderName),
-                            discoveredStream.ProviderName,
-                            StringComparison.OrdinalIgnoreCase));
+                existingStreams
+                    .FirstOrDefault(
+                        existing =>
+                            string.Equals(
+                                _merchantNormalizer.Normalize(
+                                    existing.ProviderName),
+                                discoveredStream.ProviderName,
+                                StringComparison.OrdinalIgnoreCase));
 
-            if (persistedStream is null)
+            if (persistedStream is
+                null)
             {
                 persistedStream =
                     new BillStreamEntity
                     {
-                        UserId = userId,
+                        UserId =
+                            userId,
 
                         ProviderName =
                             GetMerchantName(
@@ -188,10 +236,14 @@ public sealed class RecurringBillDiscoveryPersistenceService
                         Source =
                             BillStreamSource.AutomaticDiscovery,
 
-                        IsActive = true,
+                        IsActive =
+                            true,
 
-                        CreatedAtUtc = now,
-                        UpdatedAtUtc = now
+                        CreatedAtUtc =
+                            now,
+
+                        UpdatedAtUtc =
+                            now
                     };
 
                 _dbContext.BillStreams.Add(
@@ -201,16 +253,39 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     persistedStream);
 
                 createdCount++;
+
+                /*
+                 * The alert is generated only for a genuinely new
+                 * automatically discovered Bill Stream.
+                 *
+                 * Reactivation or normal rediscovery of an existing
+                 * stream does not create another notification.
+                 */
+                var alertCreated =
+                    await _discoveryAlertService
+                        .EnsureNewBillAlertAsync(
+                            userId,
+                            persistedStream,
+                            matchingTransactions.Count,
+                            now,
+                            cancellationToken);
+
+                if (alertCreated)
+                {
+                    newBillAlertCount++;
+                }
             }
             else
             {
-                var changed = false;
+                var changed =
+                    false;
 
                 var wasAlreadyLinked =
-                    matchingTransactions.Any(
-                        transaction =>
-                            transaction.BillStreamId ==
-                            persistedStream.Id);
+                    matchingTransactions
+                        .Any(
+                            transaction =>
+                                transaction.BillStreamId ==
+                                persistedStream.Id);
 
                 if (persistedStream.Source ==
                         BillStreamSource.Unknown &&
@@ -219,7 +294,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     persistedStream.Source =
                         BillStreamSource.AutomaticDiscovery;
 
-                    changed = true;
+                    changed =
+                        true;
                 }
 
                 if (persistedStream.Category ==
@@ -230,7 +306,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     persistedStream.Category =
                         resolvedCategory;
 
-                    changed = true;
+                    changed =
+                        true;
                 }
 
                 if (!persistedStream.IsActive)
@@ -238,7 +315,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     persistedStream.IsActive =
                         true;
 
-                    changed = true;
+                    changed =
+                        true;
                 }
 
                 if (changed)
@@ -250,7 +328,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 }
             }
 
-            foreach (var transaction in matchingTransactions)
+            foreach (var transaction in
+                     matchingTransactions)
             {
                 if (transaction.BillStreamId ==
                     persistedStream.Id)
@@ -268,6 +347,10 @@ public sealed class RecurringBillDiscoveryPersistenceService
             }
         }
 
+        /*
+         * Bill Streams, transaction links, and discovery alerts commit
+         * together.
+         */
         await _dbContext.SaveChangesAsync(
             cancellationToken);
 
@@ -291,7 +374,10 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 linkedTransactionCount,
 
             TransactionsUnlinked:
-                unlinkedTransactionCount);
+                unlinkedTransactionCount,
+
+            NewBillAlertsCreated:
+                newBillAlertCount);
     }
 
     private bool IsEligibleBillTransaction(
@@ -302,7 +388,8 @@ public sealed class RecurringBillDiscoveryPersistenceService
             return false;
         }
 
-        if (transaction.Amount <= 0m)
+        if (transaction.Amount <=
+            0m)
         {
             return false;
         }
@@ -321,9 +408,11 @@ public sealed class RecurringBillDiscoveryPersistenceService
     }
 
     private BillCategory ResolveBillCategory(
-        IReadOnlyCollection<BankTransactionEntity> transactions)
+        IReadOnlyCollection<BankTransactionEntity>
+            transactions)
     {
-        foreach (var transaction in transactions)
+        foreach (var transaction in
+                 transactions)
         {
             if (_categoryClassifier.TryClassify(
                     transaction.CategoryPrimary,
@@ -383,4 +472,5 @@ public sealed record RecurringBillDiscoveryPersistenceResult(
     int BillStreamsUpdated,
     int BillStreamsDeactivated,
     int TransactionsLinked,
-    int TransactionsUnlinked);
+    int TransactionsUnlinked,
+    int NewBillAlertsCreated);
