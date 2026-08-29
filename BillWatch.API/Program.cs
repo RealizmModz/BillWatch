@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder =
     WebApplication.CreateBuilder(
@@ -333,6 +334,26 @@ builder.Services.AddSingleton<
 
 builder.Services.AddSingleton<
     BillStatementAiCandidateConversionService>();
+
+builder.Services
+    .AddOptions<OpenAiBillStatementOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            OpenAiBillStatementOptions.SectionName))
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<
+    IValidateOptions<OpenAiBillStatementOptions>,
+    OpenAiBillStatementOptionsValidator>();
+
+builder.Services.AddHttpClient<
+    OpenAiBillStatementAiExtractor>();
+
+builder.Services.AddTransient<
+    IBillStatementAiExtractor>(
+    serviceProvider =>
+        serviceProvider.GetRequiredService<
+            OpenAiBillStatementAiExtractor>());
 
 builder.Services.AddSingleton<
     BillStatementValidationService>();

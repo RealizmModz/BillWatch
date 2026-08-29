@@ -117,11 +117,11 @@ The hybrid statement-intelligence foundation now has three explicit trust layers
 2. `IBillStatementAiExtractor` defines vendor-neutral AI candidate output with source evidence.
 3. `BillStatementAiCandidateValidator` plus `BillStatementAiCandidateConversionService` reject unsupported model facts before mapping accepted candidates into BillWatch's existing structured statement model.
 
-The active runtime extractor is still deterministic. No AI provider is enabled yet, so current production behavior is unchanged.
+The active runtime statement extractor is still deterministic. A first server-side OpenAI implementation now exists behind `IBillStatementAiExtractor`, but it is disabled by default and is not part of statement persistence, so current production behavior is unchanged.
 
-The next AI-specific checkpoint should add validated server-side AI configuration and one provider implementation behind `IBillStatementAiExtractor`, with AI disabled by default. The provider must use structured output, bounded document text, explicit prompt/schema versioning, timeout/cancellation, and safe failure behavior.
+The OpenAI provider configuration is validated at startup. When explicitly enabled with a server-side key, the adapter uses strict structured output, bounded document text, explicit prompt/schema versioning, timeout/cancellation, and sanitized failure behavior. Provider credentials and request configuration remain inside the API.
 
-Do not route AI output into persistence until the hybrid orchestration path has tests proving deterministic fallback, candidate validation, evidence enforcement, and cost-control behavior.
+The next AI-specific checkpoint should add the hybrid orchestration path with tests proving deterministic fallback, candidate validation, evidence enforcement, and cost-control behavior. Do not route AI output into persistence before those protections exist.
 
 ## Remaining private-beta launch gates
 
