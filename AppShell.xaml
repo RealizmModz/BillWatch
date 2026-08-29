@@ -13,28 +13,16 @@
         ContentTemplate="{DataTemplate local:LoginPage}"
         Shell.TabBarIsVisible="False" />
 
+    <ShellContent
+        Title="Connect"
+        Route="Connect"
+        ContentTemplate="{DataTemplate local:ConnectBankPage}"
+        Shell.TabBarIsVisible="False" />
+
     <TabBar>
-
-        <ShellContent
-            Title="Home"
-            Route="Home"
-            ContentTemplate="{DataTemplate local:MainPage}" />
-
-        <ShellContent
-            Title="Bills"
-            Route="Bills"
-            ContentTemplate="{DataTemplate local:BillsPage}" />
-
-        <ShellContent
-            Title="Activity"
-            Route="Activity"
-            ContentTemplate="{DataTemplate local:ActivityPage}" />
-
-        <ShellContent
-            Title="Account"
-            Route="Account"
-            ContentTemplate="{DataTemplate local:AccountPage}" />
-
+        <ShellContent Title="Home" Route="Home" ContentTemplate="{DataTemplate local:MainPage}" />
+        <ShellContent Title="Bills" Route="Bills" ContentTemplate="{DataTemplate local:BillsPage}" />
+        <ShellContent Title="Activity" Route="Activity" ContentTemplate="{DataTemplate local:ActivityPage}" />
+        <ShellContent Title="Account" Route="Account" ContentTemplate="{DataTemplate local:AccountPage}" />
     </TabBar>
-
 </Shell>

@@ -1,4 +1,4 @@
-﻿using BillWatch.Services;
+using BillWatch.Services;
 using BillWatch.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -58,6 +58,7 @@ public static class MauiProgram
         builder.Services.AddTransient<TransactionsPage>();
 
         builder.Services.AddTransient<ActivityPage>();
+        builder.Services.AddTransient<AccountPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

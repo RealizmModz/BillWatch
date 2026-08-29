@@ -1,17 +1,53 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using BillWatch.Services;
 
-namespace BillWatch
+namespace BillWatch;
+
+public partial class App : Application
 {
-    public partial class App : Application
+    private readonly AuthenticationService
+        _authenticationService;
+
+    private AppShell?
+        _appShell;
+
+    public App(
+        AuthenticationService authenticationService)
     {
-        public App()
+        InitializeComponent();
+
+        _authenticationService =
+            authenticationService;
+
+        _authenticationService.SessionExpired +=
+            OnSessionExpired;
+    }
+
+    protected override Window CreateWindow(
+        IActivationState? activationState)
+    {
+        _appShell =
+            new AppShell();
+
+        return new Window(
+            _appShell);
+    }
+
+    private void OnSessionExpired(
+        object? sender,
+        EventArgs e)
+    {
+        var shell =
+            _appShell;
+
+        if (shell is null)
         {
-            InitializeComponent();
+            return;
         }
 
-        protected override Window CreateWindow(IActivationState? activationState)
-        {
-            return new Window(new AppShell());
-        }
+        _ =
+            MainThread.InvokeOnMainThreadAsync(
+                () =>
+                    shell.GoToAsync(
+                        "//Login"));
     }
 }

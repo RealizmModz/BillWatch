@@ -37,18 +37,14 @@ public sealed class BillStatementProcessingSignal
 
 public sealed class BillStatementProcessingService
 {
-    private static readonly DeterministicBillLineItemParser
-        LineItemParser =
-            new();
-
     private readonly BillWatchDbContext
         _dbContext;
 
     private readonly BillStatementDocumentTextReader
         _documentTextReader;
 
-    private readonly DeterministicBillStatementParser
-        _statementParser;
+    private readonly IBillStatementExtractionService
+        _extractionService;
 
     private readonly BillStatementValidationService
         _validationService;
@@ -62,23 +58,7 @@ public sealed class BillStatementProcessingService
     public BillStatementProcessingService(
         BillWatchDbContext dbContext,
         BillStatementDocumentTextReader documentTextReader,
-        DeterministicBillStatementParser statementParser,
-        BillStatementPersistenceService persistenceService,
-        ILogger<BillStatementProcessingService> logger)
-        : this(
-            dbContext,
-            documentTextReader,
-            statementParser,
-            new BillStatementValidationService(),
-            persistenceService,
-            logger)
-    {
-    }
-
-    public BillStatementProcessingService(
-        BillWatchDbContext dbContext,
-        BillStatementDocumentTextReader documentTextReader,
-        DeterministicBillStatementParser statementParser,
+        IBillStatementExtractionService extractionService,
         BillStatementValidationService validationService,
         BillStatementPersistenceService persistenceService,
         ILogger<BillStatementProcessingService> logger)
@@ -89,8 +69,8 @@ public sealed class BillStatementProcessingService
         _documentTextReader =
             documentTextReader;
 
-        _statementParser =
-            statementParser;
+        _extractionService =
+            extractionService;
 
         _validationService =
             validationService;
@@ -196,6 +176,12 @@ public sealed class BillStatementProcessingService
 
         try
         {
+            /*
+             * Read/extract the document only once.
+             *
+             * The transient text is passed into the structured
+             * extraction boundary and is not persisted as raw text.
+             */
             var extractionResult =
                 _documentTextReader.Read(
                     upload.UserId,
@@ -217,11 +203,72 @@ public sealed class BillStatementProcessingService
                 return;
             }
 
-            var parsedStatement =
-                _statementParser.Parse(
-                    extractionResult.Text);
+            /*
+             * Resolve Bill Stream context using BOTH resource ID and
+             * owner ID.
+             *
+             * This context can help future AI/provider extraction,
+             * but it is only a hint. It does not prove any fact found
+             * in the statement.
+             */
+            var billStreamContext =
+                await _dbContext.BillStreams
+                    .AsNoTracking()
+                    .Where(
+                        stream =>
+                            stream.Id ==
+                                upload.BillStreamId &&
+                            stream.UserId ==
+                                upload.UserId)
+                    .Select(
+                        stream =>
+                            new
+                            {
+                                stream.ProviderName,
+                                stream.Category
+                            })
+                    .SingleOrDefaultAsync(
+                        cancellationToken);
 
-            if (!parsedStatement.IsReadyForPersistence)
+            if (billStreamContext is null)
+            {
+                throw new InvalidOperationException(
+                    "The statement upload is not associated with an owned Bill Stream.");
+            }
+
+            /*
+             * The processing pipeline no longer knows HOW structured
+             * statement facts are extracted.
+             *
+             * Today this resolves to the deterministic extractor.
+             * Future AI/provider/hybrid implementations can live
+             * behind the same server-side boundary.
+             */
+            var structuredExtraction =
+                await _extractionService.ExtractAsync(
+                    new BillStatementExtractionRequest(
+                        DocumentText:
+                            extractionResult.Text,
+
+                        Hints:
+                            new BillStatementExtractionHints(
+                                ExpectedProviderName:
+                                    billStreamContext.ProviderName,
+
+                                ExpectedCategory:
+                                    billStreamContext.Category.ToString())),
+                    cancellationToken);
+
+            var parsedStatement =
+                structuredExtraction.Statement;
+
+            /*
+             * Extraction confidence does not bypass validation.
+             *
+             * Even a future AI result cannot persist merely because
+             * the model says it is confident.
+             */
+            if (!structuredExtraction.IsReadyForValidation)
             {
                 upload.Status =
                     BillStatementUploadStatus.ReadyForParsing;
@@ -273,14 +320,15 @@ public sealed class BillStatementProcessingService
                 return;
             }
 
-            var parsedLineItems =
-                LineItemParser.Parse(
-                    extractionResult.Text);
-
+            /*
+             * Persistence still receives only validated structured
+             * facts. Financial comparison/arithmetic remains outside
+             * the extractor.
+             */
             await _persistenceService.PersistAsync(
                 upload,
                 parsedStatement,
-                parsedLineItems,
+                structuredExtraction.LineItems,
                 cancellationToken);
         }
         catch (OperationCanceledException)
@@ -306,8 +354,12 @@ public sealed class BillStatementProcessingService
             await _dbContext.SaveChangesAsync(
                 cancellationToken);
 
+            /*
+             * Do not log raw document text, extracted facts,
+             * account data, or future AI request/response bodies.
+             */
             _logger.LogWarning(
-                "Bill statement upload {UploadId} failed during deterministic document processing with {ExceptionType}.",
+                "Bill statement upload {UploadId} failed during document evidence processing with {ExceptionType}.",
                 upload.Id,
                 ex.GetType().Name);
         }

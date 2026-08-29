@@ -16,6 +16,7 @@ var builder =
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
 
 var connectionString =
     builder.Configuration.GetConnectionString(
@@ -132,6 +133,37 @@ builder.Services.AddRateLimiter(
                                 AutoReplenishment =
                                     true
                             }));
+
+        options.AddPolicy(
+            "statement-upload",
+            httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey:
+                        httpContext.User.FindFirst(
+                            System.Security.Claims.ClaimTypes.NameIdentifier)?
+                            .Value
+                        ?? httpContext.Connection
+                            .RemoteIpAddress?
+                            .ToString()
+                        ?? "unknown",
+
+                    factory:
+                        _ =>
+                            new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit =
+                                    12,
+
+                                Window =
+                                    TimeSpan.FromMinutes(
+                                        10),
+
+                                QueueLimit =
+                                    0,
+
+                                AutoReplenishment =
+                                    true
+                            }));
     });
 
 var dataProtectionBuilder =
@@ -164,9 +196,56 @@ else if (!builder.Environment.IsDevelopment())
         "DataProtection:KeysPath must be configured outside development.");
 }
 
+var configuredStatementStoragePath =
+    builder.Configuration[
+        $"{BillStatementStorageOptions.SectionName}:RootPath"];
+
+if (!builder.Environment.IsDevelopment() &&
+    string.IsNullOrWhiteSpace(
+        configuredStatementStoragePath))
+{
+    throw new InvalidOperationException(
+        "BillStatementStorage:RootPath must be configured outside development.");
+}
+
+if (!builder.Environment.IsDevelopment())
+{
+    var plaidClientId =
+        builder.Configuration[
+            $"{PlaidOptions.SectionName}:ClientId"];
+
+    var plaidSecret =
+        builder.Configuration[
+            $"{PlaidOptions.SectionName}:Secret"];
+
+    if (string.IsNullOrWhiteSpace(
+            plaidClientId) ||
+        string.IsNullOrWhiteSpace(
+            plaidSecret))
+    {
+        throw new InvalidOperationException(
+            "Plaid credentials must be configured outside development.");
+    }
+
+    var allowedHosts =
+        builder.Configuration[
+            "AllowedHosts"];
+
+    if (string.IsNullOrWhiteSpace(
+            allowedHosts) ||
+        string.Equals(
+            allowedHosts.Trim(),
+            "*",
+            StringComparison.Ordinal))
+    {
+        throw new InvalidOperationException(
+            "AllowedHosts must be explicitly configured outside development.");
+    }
+}
+
 builder.Services.Configure<PlaidOptions>(
     builder.Configuration.GetSection(
-        "Plaid"));
+        PlaidOptions.SectionName));
 
 builder.Services.AddHttpClient<PlaidApiClient>();
 
@@ -211,18 +290,6 @@ builder.Services.AddScoped<
 builder.Services.AddHostedService<
     BillMonitoringBackgroundService>();
 
-var configuredStatementStoragePath =
-    builder.Configuration[
-        $"{BillStatementStorageOptions.SectionName}:RootPath"];
-
-if (!builder.Environment.IsDevelopment() &&
-    string.IsNullOrWhiteSpace(
-        configuredStatementStoragePath))
-{
-    throw new InvalidOperationException(
-        "BillStatementStorage:RootPath must be configured outside development.");
-}
-
 builder.Services.Configure<BillStatementStorageOptions>(
     builder.Configuration.GetSection(
         BillStatementStorageOptions.SectionName));
@@ -244,8 +311,28 @@ builder.Services.AddSingleton<
 builder.Services.AddScoped<
     BillStatementDocumentTextReader>();
 
+/*
+ * Deterministic extraction remains the active implementation today.
+ *
+ * Statement processing depends only on the extraction interface, so a
+ * future AI-assisted/provider/hybrid implementation can replace or
+ * supplement this without changing controllers or the MAUI client.
+ */
 builder.Services.AddSingleton<
     DeterministicBillStatementParser>();
+
+builder.Services.AddSingleton<
+    DeterministicBillLineItemParser>();
+
+builder.Services.AddSingleton<
+    IBillStatementExtractionService,
+    DeterministicBillStatementExtractionService>();
+
+builder.Services.AddSingleton<
+    BillStatementAiCandidateValidator>();
+
+builder.Services.AddSingleton<
+    BillStatementAiCandidateConversionService>();
 
 builder.Services.AddSingleton<
     BillStatementValidationService>();
@@ -283,14 +370,81 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
+    app.UseExceptionHandler();
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 
-app.UseRateLimiter();
+app.Use(
+    async (context, next) =>
+    {
+        context.Response.Headers[
+            "X-Content-Type-Options"] =
+            "nosniff";
 
+        context.Response.Headers[
+            "X-Frame-Options"] =
+            "DENY";
+
+        context.Response.Headers[
+            "Referrer-Policy"] =
+            "no-referrer";
+
+        context.Response.Headers[
+            "Permissions-Policy"] =
+            "camera=(), microphone=(), geolocation=()";
+
+        if (context.Request.Path.StartsWithSegments(
+                "/api"))
+        {
+            context.Response.Headers[
+                "Cache-Control"] =
+                "no-store, max-age=0";
+
+            context.Response.Headers[
+                "Pragma"] =
+                "no-cache";
+        }
+
+        await next();
+    });
+
+app.UseRateLimiter();
 app.UseAuthorization();
+
+app.MapGet(
+        "/health/live",
+        () =>
+            Results.Ok(
+                new
+                {
+                    status =
+                        "live"
+                }))
+    .AllowAnonymous();
+
+app.MapGet(
+        "/health/ready",
+        async (
+            BillWatchDbContext dbContext,
+            CancellationToken cancellationToken) =>
+        {
+            var canConnect =
+                await dbContext.Database.CanConnectAsync(
+                    cancellationToken);
+
+            return canConnect
+                ? Results.Ok(
+                    new
+                    {
+                        status =
+                            "ready"
+                    })
+                : Results.StatusCode(
+                    StatusCodes.Status503ServiceUnavailable);
+        })
+    .AllowAnonymous();
 
 app.MapControllers();
 

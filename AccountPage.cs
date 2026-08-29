@@ -1,115 +1,60 @@
-﻿using Microsoft.Maui.Controls.Shapes;
+using BillWatch.Services;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace BillWatch;
 
 public sealed class AccountPage : ContentPage
 {
-    public AccountPage()
+    private readonly AuthenticationService _authenticationService;
+    private bool _isWorking;
+
+    public AccountPage(AuthenticationService authenticationService)
     {
-        Title =
-            "Account";
+        _authenticationService = authenticationService;
+        Title = "Account";
+        SetDynamicResource(StyleProperty, "BillWatchPageStyle");
 
-        SetDynamicResource(
-            StyleProperty,
-            "BillWatchPageStyle");
-
-        Content =
-            new ScrollView
+        Content = new ScrollView
+        {
+            Content = new VerticalStackLayout
             {
-                Content =
-                    new VerticalStackLayout
-                    {
-                        Padding =
-                            new Thickness(
-                                28,
-                                28,
-                                28,
-                                48),
-
-                        MaximumWidthRequest =
-                            760,
-
-                        HorizontalOptions =
-                            LayoutOptions.Center,
-
-                        Spacing =
-                            24,
-
-                        Children =
-                        {
-                            CreateHeader(),
-
-                            CreateNavigationCard(
-                                title:
-                                    "Connected banks",
-
-                                description:
-                                    "Review the financial institutions BillWatch is monitoring and manage connection health.",
-
-                                actionText:
-                                    "Manage connections",
-
-                                onClicked:
-                                    OpenConnectionsAsync),
-
-                            CreateNavigationCard(
-                                title:
-                                    "Transactions",
-
-                                description:
-                                    "Review the bank transactions BillWatch uses to discover recurring bills.",
-
-                                actionText:
-                                    "View transactions",
-
-                                onClicked:
-                                    OpenTransactionsAsync),
-
-                            CreateTrustCard()
-                        }
-                    }
-            };
+                Padding = new Thickness(28, 28, 28, 48),
+                MaximumWidthRequest = 760,
+                HorizontalOptions = LayoutOptions.Center,
+                Spacing = 24,
+                Children =
+                {
+                    CreateHeader(),
+                    CreateNavigationCard(
+                        "Connected banks",
+                        "Review the financial institutions BillWatch is monitoring, connection health, and disconnect controls.",
+                        "Manage connections",
+                        () => Shell.Current.GoToAsync(nameof(ConnectBankPage))),
+                    CreateNavigationCard(
+                        "Transactions",
+                        "Review the bank transactions BillWatch uses to discover recurring bills.",
+                        "View transactions",
+                        () => Shell.Current.GoToAsync(nameof(TransactionsPage))),
+                    CreateInfoCard(),
+                    CreateSessionCard(),
+                    CreateDangerCard()
+                }
+            }
+        };
     }
 
     private static View CreateHeader()
     {
-        var title =
-            new Label
-            {
-                Text =
-                    "Account",
-
-                FontSize =
-                    34,
-
-                FontAttributes =
-                    FontAttributes.Bold
-            };
-
-        title.SetDynamicResource(
-            StyleProperty,
-            "PrimaryTextStyle");
-
-        var subtitle =
-            new Label
-            {
-                Text =
-                    "Connections, privacy, and the data BillWatch uses to keep watching your bills."
-            };
-
-        subtitle.SetDynamicResource(
-            StyleProperty,
-            "BodyTextStyle");
+        var title = CreateTitleLabel("Account");
+        title.FontSize = 34;
 
         return new VerticalStackLayout
         {
-            Spacing =
-                6,
-
+            Spacing = 6,
             Children =
             {
                 title,
-                subtitle
+                CreateBodyLabel("Connections, privacy, security, and your BillWatch account.")
             }
         };
     }
@@ -120,207 +65,217 @@ public sealed class AccountPage : ContentPage
         string actionText,
         Func<Task> onClicked)
     {
-        var titleLabel =
-            new Label
+        var button = CreatePrimaryButton(actionText);
+        button.Clicked += async (_, _) =>
+        {
+            button.IsEnabled = false;
+            try
             {
-                Text =
-                    title,
-
-                FontSize =
-                    21,
-
-                FontAttributes =
-                    FontAttributes.Bold
-            };
-
-        titleLabel.SetDynamicResource(
-            StyleProperty,
-            "PrimaryTextStyle");
-
-        var descriptionLabel =
-            new Label
+                await onClicked();
+            }
+            finally
             {
-                Text =
-                    description,
+                button.IsEnabled = true;
+            }
+        };
 
-                LineBreakMode =
-                    LineBreakMode.WordWrap
-            };
-
-        descriptionLabel.SetDynamicResource(
-            StyleProperty,
-            "BodyTextStyle");
-
-        var button =
-            new Button
+        return CreateCard(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
             {
-                Text =
-                    actionText,
+                CreateTitleLabel(title),
+                CreateBodyLabel(description),
+                button
+            }
+        });
+    }
 
-                HorizontalOptions =
-                    LayoutOptions.Start,
-
-                CornerRadius =
-                    14,
-
-                Padding =
-                    new Thickness(
-                        18,
-                        10),
-
-                FontAttributes =
-                    FontAttributes.Bold,
-
-                TextColor =
-                    Colors.White
-            };
-
-        button.SetDynamicResource(
-            BackgroundColorProperty,
-            "BrandPrimary");
-
-        button.Clicked +=
-            async (_, _) =>
+    private static View CreateInfoCard()
+    {
+        return CreateCard(new VerticalStackLayout
+        {
+            Spacing = 10,
+            Children =
             {
-                button.IsEnabled =
-                    false;
+                CreateTitleLabel("Your financial data"),
+                CreateBodyLabel("BillWatch uses connected transaction data to identify recurring bills and meaningful changes. Plaid access tokens stay protected on the server and are never returned to this app."),
+                CreateBodyLabel("Uploaded provider statements are stored privately by BillWatch and used as evidence for bill history and change explanations.")
+            }
+        });
+    }
 
-                try
+    private View CreateSessionCard()
+    {
+        var signOut = CreatePrimaryButton("Sign out");
+        signOut.Clicked += async (_, _) =>
+        {
+            if (_isWorking) return;
+
+            var confirmed = await DisplayAlertAsync(
+                "Sign out",
+                "Sign out of BillWatch on this device? Automatic monitoring will continue in the background.",
+                "Sign out",
+                "Cancel");
+
+            if (confirmed)
+            {
+                _authenticationService.Logout();
+            }
+        };
+
+        return CreateCard(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                CreateTitleLabel("Sign-in session"),
+                CreateBodyLabel("Signing out removes BillWatch authentication tokens from this device. Server-side monitoring continues for connected banks until you disconnect them or delete your account."),
+                signOut
+            }
+        });
+    }
+
+    private View CreateDangerCard()
+    {
+        var deleteButton = new Button
+        {
+            Text = "Delete account permanently",
+            HorizontalOptions = LayoutOptions.Start,
+            BackgroundColor = Colors.Transparent,
+            TextColor = Colors.IndianRed,
+            BorderColor = Colors.IndianRed,
+            BorderWidth = 1,
+            CornerRadius = 14,
+            Padding = new Thickness(18, 10),
+            FontAttributes = FontAttributes.Bold
+        };
+
+        deleteButton.Clicked += async (_, _) => await DeleteAccountAsync(deleteButton);
+
+        return CreateCard(new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children =
+            {
+                CreateTitleLabel("Delete BillWatch account"),
+                CreateBodyLabel("Permanently deleting your account removes your BillWatch financial data, detected bills, alerts, bill history, and stored statement files. BillWatch first attempts to revoke active bank connections."),
+                new Label
                 {
-                    await onClicked();
-                }
-                finally
-                {
-                    button.IsEnabled =
-                        true;
-                }
-            };
+                    Text = "This cannot be undone.",
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Colors.IndianRed
+                },
+                deleteButton
+            }
+        });
+    }
 
-        var card =
-            new Border
-            {
-                Padding =
-                    new Thickness(
-                        22),
+    private async Task DeleteAccountAsync(Button deleteButton)
+    {
+        if (_isWorking) return;
 
-                StrokeThickness =
-                    1,
+        var first = await DisplayAlertAsync(
+            "Delete your account?",
+            "BillWatch will permanently remove your account and financial history after safely revoking connected banks.",
+            "Continue",
+            "Cancel");
 
-                StrokeShape =
-                    new RoundRectangle
-                    {
-                        CornerRadius =
-                            new CornerRadius(
-                                22)
-                    },
+        if (!first) return;
 
-                Content =
-                    new VerticalStackLayout
-                    {
-                        Spacing =
-                            12,
+        var final = await DisplayAlertAsync(
+            "Final confirmation",
+            "This action is permanent. Your BillWatch data and stored statement files cannot be recovered after deletion.",
+            "Delete permanently",
+            "Keep my account");
 
-                        Children =
-                        {
-                            titleLabel,
-                            descriptionLabel,
-                            button
-                        }
-                    }
-            };
+        if (!final) return;
 
-        card.SetDynamicResource(
-            BackgroundColorProperty,
-            "CardBackground");
+        try
+        {
+            _isWorking = true;
+            deleteButton.IsEnabled = false;
+            deleteButton.Text = "Deleting securely…";
+            await _authenticationService.DeleteAccountAsync();
+        }
+        catch (AccountDeletionException exception)
+        {
+            await DisplayAlertAsync("Account not deleted", exception.Message, "OK");
+        }
+        catch (SessionExpiredException)
+        {
+        }
+        catch (HttpRequestException)
+        {
+            await DisplayAlertAsync(
+                "Account not deleted",
+                "BillWatch could not reach the server. Your account was not deleted. Check your connection and try again.",
+                "OK");
+        }
+        catch
+        {
+            await DisplayAlertAsync(
+                "Account not deleted",
+                "BillWatch could not safely complete account deletion. Your account was not deleted.",
+                "OK");
+        }
+        finally
+        {
+            _isWorking = false;
+            deleteButton.IsEnabled = true;
+            deleteButton.Text = "Delete account permanently";
+        }
+    }
 
-        card.SetDynamicResource(
-            Border.StrokeProperty,
-            "CardBorder");
+    private static Label CreateTitleLabel(string text)
+    {
+        var label = new Label
+        {
+            Text = text,
+            FontSize = 21,
+            FontAttributes = FontAttributes.Bold
+        };
+        label.SetDynamicResource(StyleProperty, "PrimaryTextStyle");
+        return label;
+    }
 
+    private static Label CreateBodyLabel(string text)
+    {
+        var label = new Label
+        {
+            Text = text,
+            LineBreakMode = LineBreakMode.WordWrap
+        };
+        label.SetDynamicResource(StyleProperty, "BodyTextStyle");
+        return label;
+    }
+
+    private static Button CreatePrimaryButton(string text)
+    {
+        var button = new Button
+        {
+            Text = text,
+            HorizontalOptions = LayoutOptions.Start,
+            CornerRadius = 14,
+            Padding = new Thickness(18, 10),
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White
+        };
+        button.SetDynamicResource(BackgroundColorProperty, "BrandPrimary");
+        return button;
+    }
+
+    private static Border CreateCard(View content)
+    {
+        var card = new Border
+        {
+            Padding = new Thickness(22),
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(22) },
+            Content = content
+        };
+        card.SetDynamicResource(BackgroundColorProperty, "CardBackground");
+        card.SetDynamicResource(Border.StrokeProperty, "CardBorder");
         return card;
-    }
-
-    private static View CreateTrustCard()
-    {
-        var heading =
-            new Label
-            {
-                Text =
-                    "Your financial connections",
-
-                FontSize =
-                    18,
-
-                FontAttributes =
-                    FontAttributes.Bold
-            };
-
-        heading.SetDynamicResource(
-            StyleProperty,
-            "PrimaryTextStyle");
-
-        var detail =
-            new Label
-            {
-                Text =
-                    "BillWatch uses connected financial data to detect recurring bills and meaningful changes. Financial connections can be reviewed or disconnected from Connected banks.",
-
-                LineBreakMode =
-                    LineBreakMode.WordWrap
-            };
-
-        detail.SetDynamicResource(
-            StyleProperty,
-            "BodyTextStyle");
-
-        var card =
-            new Border
-            {
-                Padding =
-                    new Thickness(
-                        22),
-
-                StrokeThickness =
-                    0,
-
-                StrokeShape =
-                    new RoundRectangle
-                    {
-                        CornerRadius =
-                            new CornerRadius(
-                                22)
-                    },
-
-                Content =
-                    new VerticalStackLayout
-                    {
-                        Spacing =
-                            8,
-
-                        Children =
-                        {
-                            heading,
-                            detail
-                        }
-                    }
-            };
-
-        card.SetDynamicResource(
-            BackgroundColorProperty,
-            "CardBackground");
-
-        return card;
-    }
-
-    private static Task OpenConnectionsAsync()
-    {
-        return Shell.Current.GoToAsync(
-            nameof(ConnectBankPage));
-    }
-
-    private static Task OpenTransactionsAsync()
-    {
-        return Shell.Current.GoToAsync(
-            nameof(TransactionsPage));
     }
 }
