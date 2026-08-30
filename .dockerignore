@@ -1,0 +1,14 @@
+.git
+.github
+.vs
+.private
+**/bin
+**/obj
+**/TestResults
+**/*.user
+**/*.suo
+.env
+.env.*
+BillWatch.Tests
+Resources
+Platforms

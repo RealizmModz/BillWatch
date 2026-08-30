@@ -1,12 +1,15 @@
 using System.Threading.RateLimiting;
+using System.Net;
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
+using BillWatch.API.Infrastructure;
 using BillWatch.API.Services.Bills;
 using BillWatch.API.Services.Plaid;
 using BillWatch.API.Services.Statements;
 using BillWatch.Core.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -18,6 +21,45 @@ var builder =
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+
+var configuredKnownProxies =
+    builder.Configuration
+        .GetSection(
+            "ReverseProxy:KnownProxies")
+        .Get<string[]>()
+    ?? [];
+
+var useForwardedHeaders =
+    configuredKnownProxies.Length > 0;
+
+if (useForwardedHeaders)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(
+        options =>
+        {
+            options.ForwardedHeaders =
+                ForwardedHeaders.XForwardedFor |
+                ForwardedHeaders.XForwardedProto;
+
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+
+            foreach (var configuredProxy in
+                     configuredKnownProxies)
+            {
+                if (!IPAddress.TryParse(
+                        configuredProxy,
+                        out var proxyAddress))
+                {
+                    throw new InvalidOperationException(
+                        "ReverseProxy:KnownProxies contains an invalid IP address.");
+                }
+
+                options.KnownProxies.Add(
+                    proxyAddress);
+            }
+        });
+}
 
 var connectionString =
     builder.Configuration.GetConnectionString(
@@ -449,6 +491,9 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     BillStatementProcessingService>();
 
+builder.Services.AddScoped<
+    BillWatchReadinessService>();
+
 builder.Services.AddSingleton<
     BillStatementProcessingSignal>();
 
@@ -457,6 +502,24 @@ builder.Services.AddHostedService<
 
 var app =
     builder.Build();
+
+if (builder.Configuration.GetValue<bool>(
+        "Database:MigrateOnStartup"))
+{
+    await using var migrationScope =
+        app.Services.CreateAsyncScope();
+
+    var migrationDbContext =
+        migrationScope.ServiceProvider
+            .GetRequiredService<BillWatchDbContext>();
+
+    await migrationDbContext.Database.MigrateAsync();
+}
+
+if (useForwardedHeaders)
+{
+    app.UseForwardedHeaders();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -468,7 +531,12 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+app.UseWhen(
+    context =>
+        !context.Request.Path.StartsWithSegments(
+            "/health"),
+    branch =>
+        branch.UseHttpsRedirection());
 
 app.Use(
     async (context, next) =>
@@ -522,14 +590,14 @@ app.MapGet(
 app.MapGet(
         "/health/ready",
         async (
-            BillWatchDbContext dbContext,
+            BillWatchReadinessService readinessService,
             CancellationToken cancellationToken) =>
         {
-            var canConnect =
-                await dbContext.Database.CanConnectAsync(
+            var isReady =
+                await readinessService.IsReadyAsync(
                     cancellationToken);
 
-            return canConnect
+            return isReady
                 ? Results.Ok(
                     new
                     {

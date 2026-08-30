@@ -1,0 +1,82 @@
+name: billwatch
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: 8080
+      AllowedHosts: ${BILLWATCH_HOST:?Set BILLWATCH_HOST}
+      ConnectionStrings__BillWatchDatabase: Host=database;Port=5432;Database=billwatch;Username=billwatch;Password=${BILLWATCH_DATABASE_PASSWORD:?Set BILLWATCH_DATABASE_PASSWORD}
+      Database__MigrateOnStartup: "true"
+      DataProtection__KeysPath: /var/lib/billwatch/keys
+      BillStatementStorage__RootPath: /var/lib/billwatch/statements
+      Plaid__ClientId: ${PLAID_CLIENT_ID:?Set PLAID_CLIENT_ID}
+      Plaid__Secret: ${PLAID_SECRET:?Set PLAID_SECRET}
+      Plaid__Environment: ${PLAID_ENVIRONMENT:?Set PLAID_ENVIRONMENT}
+      ReverseProxy__KnownProxies__0: 172.28.0.10
+      StatementAi__OpenAI__Enabled: "false"
+      StatementAi__Shadow__Enabled: "false"
+      StatementAi__Shadow__AllowProviderCalls: "false"
+    volumes:
+      - data_protection_keys:/var/lib/billwatch/keys
+      - statement_files:/var/lib/billwatch/statements
+    networks:
+      - private
+
+  database:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: billwatch
+      POSTGRES_USER: billwatch
+      POSTGRES_PASSWORD: ${BILLWATCH_DATABASE_PASSWORD:?Set BILLWATCH_DATABASE_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - private
+
+  edge:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+      BILLWATCH_HOST: ${BILLWATCH_HOST:?Set BILLWATCH_HOST}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      private:
+        ipv4_address: 172.28.0.10
+
+networks:
+  private:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+volumes:
+  caddy_config:
+  caddy_data:
+  data_protection_keys:
+  postgres_data:
+  statement_files:
