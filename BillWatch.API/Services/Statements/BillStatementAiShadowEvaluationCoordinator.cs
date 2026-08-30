@@ -17,10 +17,14 @@ public sealed class BillStatementAiShadowEvaluationCoordinator
     private readonly BillStatementAiProviderIdentity
         _providerIdentity;
 
+    private readonly BillStatementAiShadowActivationPolicy
+        _activationPolicy;
+
     public BillStatementAiShadowEvaluationCoordinator(
         BillStatementAiShadowEvaluationService shadowEvaluationService,
         BillStatementAiEvaluationLedger evaluationLedger,
-        BillStatementAiProviderIdentity providerIdentity)
+        BillStatementAiProviderIdentity providerIdentity,
+        BillStatementAiShadowActivationPolicy activationPolicy)
     {
         ArgumentNullException.ThrowIfNull(
             shadowEvaluationService);
@@ -31,6 +35,9 @@ public sealed class BillStatementAiShadowEvaluationCoordinator
         ArgumentNullException.ThrowIfNull(
             providerIdentity);
 
+        ArgumentNullException.ThrowIfNull(
+            activationPolicy);
+
         _shadowEvaluationService =
             shadowEvaluationService;
 
@@ -39,6 +46,9 @@ public sealed class BillStatementAiShadowEvaluationCoordinator
 
         _providerIdentity =
             providerIdentity;
+
+        _activationPolicy =
+            activationPolicy;
     }
 
     public async Task<BillStatementAiShadowEvaluationResult> EvaluateAsync(
@@ -59,6 +69,15 @@ public sealed class BillStatementAiShadowEvaluationCoordinator
                     request,
                     async gateCancellationToken =>
                     {
+                        var activation =
+                            _activationPolicy.Evaluate(
+                                _providerIdentity.Enabled);
+
+                        if (!activation.MayAttemptProvider)
+                        {
+                            return false;
+                        }
+
                         startResult =
                             await _evaluationLedger.TryBeginAsync(
                                 userId,
@@ -144,4 +163,5 @@ public sealed class BillStatementAiShadowEvaluationCoordinator
 public sealed record BillStatementAiProviderIdentity(
     string Provider,
     string Model,
-    string PromptVersion);
+    string PromptVersion,
+    bool Enabled);

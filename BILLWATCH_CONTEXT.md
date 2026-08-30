@@ -137,6 +137,8 @@ Durable AI attempt accounting now has an ownership-scoped `BillStatementAiEvalua
 
 `BillStatementAiGroundTruthScorer` now deterministically compares approved in-memory corpus truth with validated extraction results and emits only aggregate readiness counters. Incorrect values count as both a false prediction and a missed true fact, line items are compared as order-independent composite facts, and false alerts cannot be counted without an explicit alert evaluation. The scorer stores and logs nothing, has no corpus bundled with the repository, and remains unregistered.
 
+Server configuration now has a separate fail-closed `StatementAi:Shadow` section. A future provider attempt requires shadow mode, shadow provider calls, and the provider itself to be explicitly enabled; the coordinator checks this policy before acquiring a durable cost claim. The activation decision can never authorize AI-derived persistence. Shadow orchestration remains unregistered and the default configuration disables both shadow switches.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates

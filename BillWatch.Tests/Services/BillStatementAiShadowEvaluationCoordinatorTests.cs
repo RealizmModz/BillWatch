@@ -2,6 +2,7 @@ using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Statements;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BillWatch.Tests.Services;
 
@@ -156,6 +157,46 @@ public sealed class BillStatementAiShadowEvaluationCoordinatorTests
     }
 
     [Fact]
+    public async Task DisabledShadowConfiguration_SuppressesLedgerAndProvider()
+    {
+        await using var dbContext =
+            CreateDbContext();
+
+        var userId =
+            Guid.NewGuid();
+
+        var uploadId =
+            await AddUploadAsync(
+                dbContext,
+                userId);
+
+        var aiExtractor =
+            new RecordingAiExtractor(
+                CompleteCandidate());
+
+        var result =
+            await CreateCoordinator(
+                    dbContext,
+                    aiExtractor,
+                    shadowEnabled:
+                        false)
+                .EvaluateAsync(
+                    userId,
+                    uploadId,
+                    IncompleteRequest());
+
+        Assert.True(
+            result.AiSuppressedByCostControl);
+
+        Assert.Equal(
+            0,
+            aiExtractor.CallCount);
+
+        Assert.Empty(
+            dbContext.BillStatementAiEvaluations);
+    }
+
+    [Fact]
     public async Task ProviderFailure_IsRecordedWithoutProviderDetails()
     {
         await using var dbContext =
@@ -264,7 +305,9 @@ public sealed class BillStatementAiShadowEvaluationCoordinatorTests
 
     private static BillStatementAiShadowEvaluationCoordinator CreateCoordinator(
         BillWatchDbContext dbContext,
-        IBillStatementAiExtractor aiExtractor)
+        IBillStatementAiExtractor aiExtractor,
+        bool shadowEnabled = true,
+        bool providerEnabled = true)
     {
         var promptVersion =
             "bill-statement-extraction-v1";
@@ -287,7 +330,17 @@ public sealed class BillStatementAiShadowEvaluationCoordinatorTests
             new BillStatementAiProviderIdentity(
                 "OpenAI",
                 "gpt-4.1-mini",
-                promptVersion));
+                promptVersion,
+                providerEnabled),
+            new BillStatementAiShadowActivationPolicy(
+                Options.Create(
+                    new BillStatementAiShadowOptions
+                    {
+                        Enabled =
+                            shadowEnabled,
+                        AllowProviderCalls =
+                            shadowEnabled
+                    })));
     }
 
     private static BillStatementExtractionRequest IncompleteRequest()

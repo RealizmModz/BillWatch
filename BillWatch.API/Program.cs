@@ -346,6 +346,17 @@ builder.Services.AddSingleton<
     IValidateOptions<OpenAiBillStatementOptions>,
     OpenAiBillStatementOptionsValidator>();
 
+builder.Services
+    .AddOptions<BillStatementAiShadowOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            BillStatementAiShadowOptions.SectionName))
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<
+    IValidateOptions<BillStatementAiShadowOptions>,
+    BillStatementAiShadowOptionsValidator>();
+
 builder.Services.AddHttpClient<
     OpenAiBillStatementAiExtractor>();
 
