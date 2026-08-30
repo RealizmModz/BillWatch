@@ -53,7 +53,7 @@ public sealed class BillStatementAiShadowReadinessEvaluator
         var falseAlertRate =
             Divide(
                 metrics.FalseAlertStatementCount,
-                metrics.EvaluatedStatementCount);
+                metrics.AlertEvaluatedStatementCount);
 
         var providerFailureRate =
             Divide(
@@ -79,6 +79,18 @@ public sealed class BillStatementAiShadowReadinessEvaluator
             metrics.MinimumStatementsForAnyProvider,
             policy.MinimumStatementsPerProvider,
             "minimum statements per provider",
+            failures);
+
+        RequireMinimum(
+            metrics.ProviderAttemptCount,
+            policy.MinimumProviderAttemptCount,
+            "provider attempt count",
+            failures);
+
+        RequireMinimum(
+            metrics.AlertEvaluatedStatementCount,
+            policy.MinimumAlertEvaluatedStatementCount,
+            "alert-evaluated statement count",
             failures);
 
         RequireRateAtLeast(
@@ -242,6 +254,11 @@ public sealed class BillStatementAiShadowReadinessEvaluator
             nameof(
                 metrics.FalseAlertStatementCount));
 
+        ValidateNonNegative(
+            metrics.AlertEvaluatedStatementCount,
+            nameof(
+                metrics.AlertEvaluatedStatementCount));
+
         RequireNotGreaterThan(
             metrics.DistinctProviderCount,
             metrics.EvaluatedStatementCount,
@@ -274,9 +291,15 @@ public sealed class BillStatementAiShadowReadinessEvaluator
 
         RequireNotGreaterThan(
             metrics.FalseAlertStatementCount,
-            metrics.EvaluatedStatementCount,
+            metrics.AlertEvaluatedStatementCount,
             nameof(
                 metrics.FalseAlertStatementCount));
+
+        RequireNotGreaterThan(
+            metrics.AlertEvaluatedStatementCount,
+            metrics.EvaluatedStatementCount,
+            nameof(
+                metrics.AlertEvaluatedStatementCount));
     }
 
     private static void ValidatePolicy(
@@ -287,6 +310,10 @@ public sealed class BillStatementAiShadowReadinessEvaluator
             policy.MinimumDistinctProviderCount <=
                 0 ||
             policy.MinimumStatementsPerProvider <=
+                0 ||
+            policy.MinimumProviderAttemptCount <=
+                0 ||
+            policy.MinimumAlertEvaluatedStatementCount <=
                 0)
         {
             throw new ArgumentOutOfRangeException(
@@ -376,12 +403,15 @@ public sealed record BillStatementAiShadowReadinessMetrics(
     long CorrectFactCount,
     long IncorrectFactCount,
     long MissedFactCount,
+    long AlertEvaluatedStatementCount,
     long FalseAlertStatementCount);
 
 public sealed record BillStatementAiShadowReadinessPolicy(
     long MinimumEvaluatedStatementCount,
     long MinimumDistinctProviderCount,
     long MinimumStatementsPerProvider,
+    long MinimumProviderAttemptCount,
+    long MinimumAlertEvaluatedStatementCount,
     decimal MinimumFactPrecision,
     decimal MinimumFactRecall,
     decimal MinimumReadyCandidateRate,
@@ -403,6 +433,10 @@ public sealed record BillStatementAiShadowReadinessPolicy(
                 5,
             MinimumStatementsPerProvider:
                 10,
+            MinimumProviderAttemptCount:
+                100,
+            MinimumAlertEvaluatedStatementCount:
+                100,
             MinimumFactPrecision:
                 0.99m,
             MinimumFactRecall:

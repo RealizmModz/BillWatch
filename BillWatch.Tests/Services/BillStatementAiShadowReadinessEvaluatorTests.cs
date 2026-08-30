@@ -29,6 +29,8 @@ public sealed class BillStatementAiShadowReadinessEvaluatorTests
                             10,
                         MissedFactCount:
                             52,
+                        AlertEvaluatedStatementCount:
+                            100,
                         FalseAlertStatementCount:
                             1),
                     BillStatementAiShadowReadinessPolicy
@@ -74,6 +76,8 @@ public sealed class BillStatementAiShadowReadinessEvaluatorTests
                             20,
                         MissedFactCount:
                             20,
+                        AlertEvaluatedStatementCount:
+                            20,
                         FalseAlertStatementCount:
                             2),
                     BillStatementAiShadowReadinessPolicy
@@ -83,7 +87,7 @@ public sealed class BillStatementAiShadowReadinessEvaluatorTests
             result.MeetsShadowAccuracyGate);
 
         Assert.Equal(
-            8,
+            10,
             result.Failures.Count);
 
         Assert.Contains(
@@ -118,6 +122,8 @@ public sealed class BillStatementAiShadowReadinessEvaluatorTests
                         IncorrectFactCount:
                             0,
                         MissedFactCount:
+                            0,
+                        AlertEvaluatedStatementCount:
                             0,
                         FalseAlertStatementCount:
                             0),
@@ -159,6 +165,8 @@ public sealed class BillStatementAiShadowReadinessEvaluatorTests
                     0,
                 MissedFactCount:
                     0,
+                AlertEvaluatedStatementCount:
+                    5,
                 FalseAlertStatementCount:
                     0);
 
@@ -169,6 +177,49 @@ public sealed class BillStatementAiShadowReadinessEvaluatorTests
                         metrics,
                         BillStatementAiShadowReadinessPolicy
                             .PrivateBetaDefault));
+    }
+
+    [Fact]
+    public void UnevaluatedAlerts_CannotBeReportedAsZeroFalseAlerts()
+    {
+        var result =
+            new BillStatementAiShadowReadinessEvaluator()
+                .Evaluate(
+                    new BillStatementAiShadowReadinessMetrics(
+                        EvaluatedStatementCount:
+                            100,
+                        DistinctProviderCount:
+                            5,
+                        MinimumStatementsForAnyProvider:
+                            10,
+                        ProviderAttemptCount:
+                            100,
+                        ProviderFailureCount:
+                            0,
+                        ReadyCandidateStatementCount:
+                            100,
+                        CorrectFactCount:
+                            1000,
+                        IncorrectFactCount:
+                            0,
+                        MissedFactCount:
+                            0,
+                        AlertEvaluatedStatementCount:
+                            0,
+                        FalseAlertStatementCount:
+                            0),
+                    BillStatementAiShadowReadinessPolicy
+                        .PrivateBetaDefault);
+
+        Assert.False(
+            result.MeetsShadowAccuracyGate);
+
+        Assert.Contains(
+            result.Failures,
+            failure =>
+                failure.Contains(
+                    "alert-evaluated statement count",
+                    StringComparison.Ordinal));
     }
 
     [Fact]
