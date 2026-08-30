@@ -149,6 +149,8 @@ The repository now ignores the only supported temporary in-repo private corpus l
 
 `BillStatementDeterministicPrivateCorpusEvaluator` now establishes a no-provider-call baseline over an explicit, unique private case list. It runs the existing deterministic extraction service, compares results with approved truth, and returns aggregate ready-statement, precision, recall, and fact counts only. It remains unregistered and cannot be mistaken for AI readiness approval.
 
+Account deletion now explicitly removes ownership-scoped `BillStatementAiEvaluationEntity` rows before statement uploads, rather than relying only on relational cascade behavior. End-to-end regression coverage proves deleting one account removes its identity, Bill Stream, statement upload, stored statement file, and AI attempt metadata while preserving another user's corresponding rows and file.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates

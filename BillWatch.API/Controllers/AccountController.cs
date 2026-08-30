@@ -215,6 +215,15 @@ public sealed class AccountController : ControllerBase
                     .ToListAsync(
                         cancellationToken);
 
+            var aiEvaluations =
+                await _dbContext.BillStatementAiEvaluations
+                    .Where(
+                        evaluation =>
+                            evaluation.UserId ==
+                                userId)
+                    .ToListAsync(
+                        cancellationToken);
+
             var changes =
                 await _dbContext.BillChanges
                     .Where(
@@ -238,6 +247,9 @@ public sealed class AccountController : ControllerBase
 
             _dbContext.BillLineItems.RemoveRange(
                 lineItems);
+
+            _dbContext.BillStatementAiEvaluations.RemoveRange(
+                aiEvaluations);
 
             _dbContext.BillStatementUploads.RemoveRange(
                 uploads);
