@@ -145,6 +145,8 @@ The repository now ignores the only supported temporary in-repo private corpus l
 
 `BillStatementAiPrivateCorpusCatalogInspector` now provides a no-provider-call preflight. It discovers at most 1,000 safe, non-linked case directories, validates every case through the bounded loader, and returns only aggregate case/provider coverage. The inspector exposes no case identifiers, provider keys, facts, statement text, or physical paths and remains unregistered.
 
+`BillStatementAiPrivateCorpusCoverageGate` now prevents an offline provider evaluation from beginning until the validated catalog satisfies the largest required measurement population, provider diversity, and minimum-per-provider sample. Its decision is aggregate-only and can never authorize runtime shadow mode or persistence. The gate remains unregistered.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
