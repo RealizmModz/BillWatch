@@ -171,6 +171,10 @@ public sealed class OpenAiBillStatementAiExtractorTests
                 .GetProperty("type")
                 .GetString());
 
+        Assert.False(
+            root.GetProperty("store")
+                .GetBoolean());
+
         Assert.Contains(
             options.PromptVersion,
             root.GetProperty("instructions")
@@ -228,6 +232,54 @@ public sealed class OpenAiBillStatementAiExtractorTests
 
         Assert.DoesNotContain(
             sensitiveProviderBody,
+            exception.ToString(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task IncompleteProviderResponse_IsRejected()
+    {
+        var handler =
+            new RecordingHandler(
+                _ =>
+                    new HttpResponseMessage(
+                        HttpStatusCode.OK)
+                    {
+                        Content =
+                            new StringContent(
+                                """
+                                {
+                                  "status": "incomplete",
+                                  "incomplete_details": {
+                                    "reason": "max_output_tokens"
+                                  },
+                                  "output": []
+                                }
+                                """,
+                                Encoding.UTF8,
+                                "application/json")
+                    });
+
+        var extractor =
+            CreateExtractor(
+                handler,
+                CreateEnabledOptions());
+
+        var exception =
+            await Assert.ThrowsAsync<
+                BillStatementAiExtractionException>(
+                () =>
+                    extractor.ExtractAsync(
+                        CreateRequest(
+                            "ACME Total due $10.00 USD")));
+
+        Assert.Contains(
+            "did not complete",
+            exception.Message,
+            StringComparison.OrdinalIgnoreCase);
+
+        Assert.DoesNotContain(
+            "max_output_tokens",
             exception.ToString(),
             StringComparison.Ordinal);
     }
@@ -321,6 +373,9 @@ public sealed class OpenAiBillStatementAiExtractorTests
         var responseJson =
             new JsonObject
             {
+                ["status"] =
+                    "completed",
+
                 ["output"] =
                     new JsonArray
                     {

@@ -138,6 +138,22 @@ public sealed class OpenAiBillStatementAiExtractor
                     cancellationToken:
                         linkedSource.Token);
 
+            if (responseJson.RootElement.ValueKind !=
+                    JsonValueKind.Object ||
+                !responseJson.RootElement.TryGetProperty(
+                    "status",
+                    out var status) ||
+                status.ValueKind !=
+                    JsonValueKind.String ||
+                !string.Equals(
+                    status.GetString(),
+                    "completed",
+                    StringComparison.Ordinal))
+            {
+                throw new BillStatementAiExtractionException(
+                    "OpenAI did not complete the structured statement response.");
+            }
+
             var outputText =
                 FindOutputText(
                     responseJson.RootElement);
@@ -184,6 +200,13 @@ public sealed class OpenAiBillStatementAiExtractor
         {
             ["model"] =
                 _options.Model,
+
+            /*
+             * Statements contain sensitive financial information.
+             * Do not retain provider responses for later retrieval.
+             */
+            ["store"] =
+                false,
 
             ["instructions"] =
                 $"{SystemInstructions}\nPrompt version: {_options.PromptVersion}",
@@ -264,7 +287,9 @@ public sealed class OpenAiBillStatementAiExtractor
 
         foreach (var item in output.EnumerateArray())
         {
-            if (!item.TryGetProperty(
+            if (item.ValueKind !=
+                    JsonValueKind.Object ||
+                !item.TryGetProperty(
                     "content",
                     out var content) ||
                 content.ValueKind != JsonValueKind.Array)
@@ -274,13 +299,19 @@ public sealed class OpenAiBillStatementAiExtractor
 
             foreach (var part in content.EnumerateArray())
             {
-                if (part.TryGetProperty(
+                if (part.ValueKind ==
+                        JsonValueKind.Object &&
+                    part.TryGetProperty(
                         "type",
                         out var type) &&
+                    type.ValueKind ==
+                        JsonValueKind.String &&
                     type.GetString() == "output_text" &&
                     part.TryGetProperty(
                         "text",
-                        out var text))
+                        out var text) &&
+                    text.ValueKind ==
+                        JsonValueKind.String)
                 {
                     return text.GetString();
                 }
@@ -407,24 +438,5 @@ public sealed class OpenAiBillStatementAiExtractor
                                     property.Key))
                         .ToArray<JsonNode?>())
         };
-    }
-}
-
-public sealed class BillStatementAiExtractionException
-    : Exception
-{
-    public BillStatementAiExtractionException(
-        string message)
-        : base(message)
-    {
-    }
-
-    public BillStatementAiExtractionException(
-        string message,
-        Exception innerException)
-        : base(
-            message,
-            innerException)
-    {
     }
 }

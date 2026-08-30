@@ -463,7 +463,9 @@ public sealed record BillStatementStructuredData(
     public bool IsReadyForPersistence =>
         TotalAmount.HasValue &&
         BillingPeriodStart.HasValue &&
-        BillingPeriodEnd.HasValue;
+        BillingPeriodEnd.HasValue &&
+        !string.IsNullOrWhiteSpace(
+            CurrencyCode);
 }
 
 public enum BillStatementStructuredDataConfidence

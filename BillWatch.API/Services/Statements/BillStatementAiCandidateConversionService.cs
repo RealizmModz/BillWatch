@@ -120,7 +120,7 @@ public sealed class BillStatementAiCandidateConversionService
         var missing =
             new List<string>(
                 capacity:
-                    3);
+                    4);
 
         if (!candidate.TotalDue.HasValue)
         {
@@ -141,6 +141,14 @@ public sealed class BillStatementAiCandidateConversionService
             missing.Add(
                 nameof(
                     BillStatementStructuredData.BillingPeriodEnd));
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                candidate.CurrencyCode))
+        {
+            missing.Add(
+                nameof(
+                    BillStatementStructuredData.CurrencyCode));
         }
 
         return missing.AsReadOnly();
@@ -340,7 +348,7 @@ public sealed class BillStatementAiCandidateConversionService
     {
         return string.IsNullOrWhiteSpace(
                 currencyCode)
-            ? "USD"
+            ? string.Empty
             : currencyCode
                 .Trim()
                 .ToUpperInvariant();

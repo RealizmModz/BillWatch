@@ -40,6 +40,15 @@ public sealed class BillWatchApiFactory
     protected override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
+        /*
+         * Program reads the connection string while constructing the app.
+         * Set this at the web-host layer as well as in app configuration so
+         * tests never depend on developer user secrets.
+         */
+        builder.UseSetting(
+            "ConnectionStrings:BillWatchDatabase",
+            "Host=localhost;Database=billwatch_tests;Username=test;Password=test");
+
         builder.UseEnvironment(
             "Development");
 

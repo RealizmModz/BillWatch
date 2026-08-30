@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace BillWatch.API.Services.Statements
@@ -38,6 +39,13 @@ namespace BillWatch.API.Services.Statements
 
         private const decimal MaxAbsoluteMoneyValue =
             1_000_000m;
+
+        private static readonly Regex MoneyValueRegex =
+            new(
+                @"(?<open>\()?\s*(?<signBefore>[+-])?\s*(?:(?:USD|CAD|EUR|GBP)\s*)?[$€£]?\s*(?<signAfter>[+-])?\s*(?<number>\d[\d,]*(?:\.\d+)?)\s*(?<close>\))?",
+                RegexOptions.Compiled |
+                RegexOptions.CultureInvariant |
+                RegexOptions.IgnoreCase);
 
         public BillStatementAiCandidateValidationResult Validate(
             string documentText,
@@ -247,9 +255,8 @@ namespace BillWatch.API.Services.Statements
                         $"Line item {index} has an excessively long description.");
                 }
 
-                if (Math.Abs(
-                        item.Amount) >
-                    MaxAbsoluteMoneyValue)
+                if (IsOutsideMoneyRange(
+                        item.Amount))
                 {
                     errors.Add(
                         $"Line item {index} has an invalid monetary amount.");
@@ -284,8 +291,8 @@ namespace BillWatch.API.Services.Statements
                 NormalizeEvidenceText(
                     documentText);
 
-            var evidenceKeys =
-                new HashSet<string>(
+            var evidenceByFact =
+                new Dictionary<string, List<string>>(
                     StringComparer.Ordinal);
 
             for (var index = 0;
@@ -359,86 +366,98 @@ namespace BillWatch.API.Services.Statements
                     continue;
                 }
 
-                evidenceKeys.Add(
-                    factKey);
+                if (!evidenceByFact.TryGetValue(
+                        factKey,
+                        out var excerpts))
+                {
+                    excerpts =
+                        [];
+
+                    evidenceByFact.Add(
+                        factKey,
+                        excerpts);
+                }
+
+                excerpts.Add(
+                    normalizedExcerpt);
             }
 
-            RequireEvidence(
+            RequireStringEvidence(
                 candidate.ProviderName,
                 BillStatementAiFactKeys.ProviderName,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireStringEvidence(
                 candidate.AccountIdentifierSuffix,
                 BillStatementAiFactKeys.AccountIdentifierSuffix,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireDateEvidence(
                 candidate.BillingPeriodStart,
                 BillStatementAiFactKeys.BillingPeriodStart,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireDateEvidence(
                 candidate.BillingPeriodEnd,
                 BillStatementAiFactKeys.BillingPeriodEnd,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireDateEvidence(
                 candidate.StatementDate,
                 BillStatementAiFactKeys.StatementDate,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireDateEvidence(
                 candidate.DueDate,
                 BillStatementAiFactKeys.DueDate,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireMoneyEvidence(
                 candidate.PreviousBalance,
                 BillStatementAiFactKeys.PreviousBalance,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireMoneyEvidence(
                 candidate.Payments,
                 BillStatementAiFactKeys.Payments,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireMoneyEvidence(
                 candidate.CurrentCharges,
                 BillStatementAiFactKeys.CurrentCharges,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireMoneyEvidence(
                 candidate.TotalDue,
                 BillStatementAiFactKeys.TotalDue,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireStringEvidence(
                 candidate.CurrencyCode,
                 BillStatementAiFactKeys.CurrencyCode,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireStringEvidence(
                 candidate.PlanOrService,
                 BillStatementAiFactKeys.PlanOrService,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
-            RequireEvidence(
+            RequireStringEvidence(
                 candidate.UsageSummary,
                 BillStatementAiFactKeys.UsageSummary,
-                evidenceKeys,
+                evidenceByFact,
                 errors);
 
             if (candidate.LineItems is
@@ -451,18 +470,28 @@ namespace BillWatch.API.Services.Statements
                  index < candidate.LineItems.Count;
                  index++)
             {
-                RequireEvidenceKey(
+                var lineItem =
+                    candidate.LineItems[index];
+
+                if (lineItem is null)
+                {
+                    continue;
+                }
+
+                RequireStringEvidence(
+                    lineItem.Description,
                     BillStatementAiFactKeys
                         .LineItemDescription(
                             index),
-                    evidenceKeys,
+                    evidenceByFact,
                     errors);
 
-                RequireEvidenceKey(
+                RequireMoneyEvidence(
+                    lineItem.Amount,
                     BillStatementAiFactKeys
                         .LineItemAmount(
                             index),
-                    evidenceKeys,
+                    evidenceByFact,
                     errors);
             }
         }
@@ -497,54 +526,218 @@ namespace BillWatch.API.Services.Statements
                 return;
             }
 
-            if (Math.Abs(
-                    value.Value) >
-                MaxAbsoluteMoneyValue)
+            if (IsOutsideMoneyRange(
+                    value.Value))
             {
                 errors.Add(
                     $"'{fieldName}' contains an invalid monetary value.");
             }
         }
 
-        private static void RequireEvidence<T>(
-            T? value,
+        private static void RequireStringEvidence(
+            string? value,
             string factKey,
-            IReadOnlySet<string> evidenceKeys,
+            IReadOnlyDictionary<string, List<string>> evidenceByFact,
             ICollection<string> errors)
         {
-            if (value is
-                null)
+            if (string.IsNullOrWhiteSpace(
+                    value))
             {
                 return;
             }
 
-            if (value is
-                    string text &&
-                string.IsNullOrWhiteSpace(
-                    text))
-            {
-                return;
-            }
-
-            RequireEvidenceKey(
+            RequireEvidenceValue(
                 factKey,
-                evidenceKeys,
+                evidenceByFact,
+                excerpt =>
+                    excerpt.Contains(
+                        NormalizeEvidenceText(
+                            value),
+                        StringComparison.OrdinalIgnoreCase),
                 errors);
         }
 
-        private static void RequireEvidenceKey(
+        private static bool IsOutsideMoneyRange(
+            decimal value)
+        {
+            /*
+             * Direct bounds avoid Math.Abs(decimal.MinValue), which throws
+             * before the candidate can be rejected safely.
+             */
+            return value >
+                    MaxAbsoluteMoneyValue ||
+                value <
+                    -MaxAbsoluteMoneyValue;
+        }
+
+        private static void RequireDateEvidence(
+            DateOnly? value,
             string factKey,
-            IReadOnlySet<string> evidenceKeys,
+            IReadOnlyDictionary<string, List<string>> evidenceByFact,
             ICollection<string> errors)
         {
-            if (evidenceKeys.Contains(
-                    factKey))
+            if (!value.HasValue)
+            {
+                return;
+            }
+
+            var supportedRepresentations =
+                new[]
+                {
+                    value.Value.ToString(
+                        "yyyy-MM-dd",
+                        CultureInfo.InvariantCulture),
+
+                    value.Value.ToString(
+                        "M/d/yyyy",
+                        CultureInfo.InvariantCulture),
+
+                    value.Value.ToString(
+                        "MM/dd/yyyy",
+                        CultureInfo.InvariantCulture),
+
+                    value.Value.ToString(
+                        "M-d-yyyy",
+                        CultureInfo.InvariantCulture),
+
+                    value.Value.ToString(
+                        "MM-dd-yyyy",
+                        CultureInfo.InvariantCulture),
+
+                    value.Value.ToString(
+                        "MMMM d, yyyy",
+                        CultureInfo.InvariantCulture),
+
+                    value.Value.ToString(
+                        "MMM d, yyyy",
+                        CultureInfo.InvariantCulture),
+
+                    value.Value.ToString(
+                        "d MMMM yyyy",
+                        CultureInfo.InvariantCulture),
+
+                    value.Value.ToString(
+                        "d MMM yyyy",
+                        CultureInfo.InvariantCulture)
+                };
+
+            RequireEvidenceValue(
+                factKey,
+                evidenceByFact,
+                excerpt =>
+                    supportedRepresentations.Any(
+                        representation =>
+                            excerpt.Contains(
+                                representation,
+                                StringComparison.OrdinalIgnoreCase)),
+                errors);
+        }
+
+        private static void RequireMoneyEvidence(
+            decimal? value,
+            string factKey,
+            IReadOnlyDictionary<string, List<string>> evidenceByFact,
+            ICollection<string> errors)
+        {
+            if (!value.HasValue)
+            {
+                return;
+            }
+
+            RequireEvidenceValue(
+                factKey,
+                evidenceByFact,
+                excerpt =>
+                    ExtractMoneyValues(
+                            excerpt)
+                        .Contains(
+                            value.Value),
+                errors);
+        }
+
+        private static void RequireMoneyEvidence(
+            decimal value,
+            string factKey,
+            IReadOnlyDictionary<string, List<string>> evidenceByFact,
+            ICollection<string> errors)
+        {
+            RequireMoneyEvidence(
+                (decimal?)value,
+                factKey,
+                evidenceByFact,
+                errors);
+        }
+
+        private static void RequireEvidenceValue(
+            string factKey,
+            IReadOnlyDictionary<string, List<string>> evidenceByFact,
+            Func<string, bool> supportsValue,
+            ICollection<string> errors)
+        {
+            if (!evidenceByFact.TryGetValue(
+                    factKey,
+                    out var excerpts) ||
+                excerpts.Count ==
+                    0)
+            {
+                errors.Add(
+                    $"The extracted fact '{factKey}' does not have verified source evidence.");
+
+                return;
+            }
+
+            if (excerpts.Any(
+                    supportsValue))
             {
                 return;
             }
 
             errors.Add(
-                $"The extracted fact '{factKey}' does not have verified source evidence.");
+                $"The verified evidence for '{factKey}' does not contain the extracted value.");
+        }
+
+        private static IReadOnlyList<decimal> ExtractMoneyValues(
+            string excerpt)
+        {
+            var values =
+                new List<decimal>();
+
+            foreach (Match match in
+                     MoneyValueRegex.Matches(
+                         excerpt))
+            {
+                var numericText =
+                    match.Groups["number"]
+                        .Value
+                        .Replace(
+                            ",",
+                            string.Empty,
+                            StringComparison.Ordinal);
+
+                if (!decimal.TryParse(
+                        numericText,
+                        NumberStyles.AllowDecimalPoint,
+                        CultureInfo.InvariantCulture,
+                        out var parsedValue))
+                {
+                    continue;
+                }
+
+                var isNegative =
+                    match.Groups["signBefore"].Value ==
+                        "-" ||
+                    match.Groups["signAfter"].Value ==
+                        "-" ||
+                    match.Groups["open"].Success &&
+                    match.Groups["close"].Success;
+
+                values.Add(
+                    isNegative
+                        ? -parsedValue
+                        : parsedValue);
+            }
+
+            return values;
         }
 
         private static string NormalizeEvidenceText(

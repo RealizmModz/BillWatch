@@ -121,7 +121,21 @@ The active runtime statement extractor is still deterministic. A first server-si
 
 The OpenAI provider configuration is validated at startup. When explicitly enabled with a server-side key, the adapter uses strict structured output, bounded document text, explicit prompt/schema versioning, timeout/cancellation, and sanitized failure behavior. Provider credentials and request configuration remain inside the API.
 
-The next AI-specific checkpoint should add the hybrid orchestration path with tests proving deterministic fallback, candidate validation, evidence enforcement, and cost-control behavior. Do not route AI output into persistence before those protections exist.
+AI candidate evidence validation now binds each claimed string, date, and monetary value to a verified excerpt from the supplied document text. A real excerpt cannot validate a different claimed amount. Extreme decimal values are rejected without arithmetic overflow, and missing AI currency is no longer silently treated as USD.
+
+`BillStatementAiShadowEvaluationService` now exercises deterministic-first orchestration without implementing `IBillStatementExtractionService` and without returning AI facts to persistence. It skips AI when deterministic extraction is complete, makes at most one provider attempt per evaluation, validates and converts candidates, rejects conflicts with deterministic facts, propagates caller cancellation, and exposes only shadow-review status plus the original deterministic result.
+
+The OpenAI provider sends `store: false`, accepts only completed Responses API results, and continues to sanitize provider failures. A host-level regression test proves runtime extraction still resolves to `DeterministicBillStatementExtractionService` and that shadow evaluation is not registered.
+
+Durable AI attempt accounting now has an ownership-scoped `BillStatementAiEvaluationEntity`, database mapping, and migration. The table stores metadata only, has a composite `(BillStatementUploadId, UserId)` ownership foreign key, and enforces one unique record per user/upload/provider/model/prompt version. It intentionally contains no document text, prompt, model output, evidence excerpt, account identifier, or provider error body.
+
+`BillStatementAiEvaluationLedger` claims that unique cost key before a future provider call, records one attempt, makes duplicate or restarted work return the existing evaluation, scopes completion by `UserId + evaluation ID`, and exposes cross-user uploads as not found. The database also constrains attempt count to zero or one.
+
+`BillStatementAiShadowEvaluationCoordinator` now composes the ledger with shadow evaluation. Deterministic extraction runs first; if incomplete, the ownership-scoped durable claim must succeed before the provider can be called. Duplicate, restarted, missing, or cross-user work suppresses the provider call. Terminal shadow status is recorded without storing provider details or extracted facts. If a caller cancels after acquiring the durable claim, the consumed attempt is recorded as `Canceled` before cancellation propagates, so it cannot become a later duplicate charge. The coordinator remains unregistered and disconnected from background processing.
+
+`BillStatementAiShadowReadinessEvaluator` now defines a fail-closed, offline accuracy gate over aggregate ground-truth metrics only. The conservative private-beta baseline requires at least 100 statements across 5 providers with at least 10 statements per provider, 99% fact precision, 95% fact recall, 85% ready-candidate coverage, no more than 1% false alerts, and no more than 5% provider failures. Passing this metric gate is explicitly not authorization to persist AI-derived facts, and the evaluator is not registered at runtime.
+
+The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
 

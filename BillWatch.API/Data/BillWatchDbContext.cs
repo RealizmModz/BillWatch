@@ -44,6 +44,9 @@ public sealed class BillWatchDbContext
     public DbSet<BillStatementUploadEntity> BillStatementUploads =>
         Set<BillStatementUploadEntity>();
 
+    public DbSet<BillStatementAiEvaluationEntity> BillStatementAiEvaluations =>
+        Set<BillStatementAiEvaluationEntity>();
+
     public DbSet<PlaidLinkSessionEntity> PlaidLinkSessions =>
         Set<PlaidLinkSessionEntity>();
 
@@ -62,6 +65,7 @@ public sealed class BillWatchDbContext
         ConfigureBillChange(builder);
         ConfigureBillAlert(builder);
         ConfigureBillStatementUpload(builder);
+        ConfigureBillStatementAiEvaluation(builder);
         ConfigurePlaidLinkSession(builder);
     }
 
@@ -862,6 +866,116 @@ public sealed class BillWatchDbContext
                     .WithMany()
                     .HasForeignKey(session => session.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+    }
+
+    private static void ConfigureBillStatementAiEvaluation(
+        ModelBuilder builder)
+    {
+        builder.Entity<BillStatementAiEvaluationEntity>(
+            entity =>
+            {
+                entity.ToTable(
+                    "BillStatementAiEvaluations",
+                    table =>
+                        table.HasCheckConstraint(
+                            "CK_BillStatementAiEvaluations_AttemptCount",
+                            "\"AttemptCount\" >= 0 AND \"AttemptCount\" <= 1"));
+
+                entity.HasKey(
+                    evaluation => evaluation.Id);
+
+                entity.HasAlternateKey(
+                    evaluation => new
+                    {
+                        evaluation.Id,
+                        evaluation.UserId
+                    });
+
+                entity.Property(
+                        evaluation => evaluation.Provider)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(
+                        evaluation => evaluation.Model)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(
+                        evaluation => evaluation.PromptVersion)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(
+                        evaluation => evaluation.Status)
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(
+                        evaluation => evaluation.AttemptCount)
+                    .IsRequired();
+
+                entity.Property(
+                        evaluation => evaluation.CandidateReadyForValidation)
+                    .IsRequired();
+
+                entity.Property(
+                        evaluation => evaluation.CreatedAtUtc)
+                    .IsRequired();
+
+                entity.Property(
+                        evaluation => evaluation.UpdatedAtUtc)
+                    .IsRequired();
+
+                entity.HasIndex(
+                    evaluation => evaluation.UserId);
+
+                entity.HasIndex(
+                    evaluation => new
+                    {
+                        evaluation.UserId,
+                        evaluation.Status,
+                        evaluation.CreatedAtUtc
+                    });
+
+                entity.HasIndex(
+                        evaluation => new
+                        {
+                            evaluation.UserId,
+                            evaluation.BillStatementUploadId,
+                            evaluation.Provider,
+                            evaluation.Model,
+                            evaluation.PromptVersion
+                        })
+                    .IsUnique();
+
+                entity.HasOne(
+                        evaluation => evaluation.User)
+                    .WithMany()
+                    .HasForeignKey(
+                        evaluation => evaluation.UserId)
+                    .OnDelete(
+                        DeleteBehavior.Cascade);
+
+                entity.HasOne(
+                        evaluation => evaluation.BillStatementUpload)
+                    .WithMany()
+                    .HasForeignKey(
+                        evaluation => new
+                        {
+                            evaluation.BillStatementUploadId,
+                            evaluation.UserId
+                        })
+                    .HasPrincipalKey(
+                        upload => new
+                        {
+                            upload.Id,
+                            upload.UserId
+                        })
+                    .OnDelete(
+                        DeleteBehavior.Cascade);
             });
     }
 }

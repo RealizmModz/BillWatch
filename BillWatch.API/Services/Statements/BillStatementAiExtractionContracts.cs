@@ -149,4 +149,29 @@
                 $"lineItems[{index}].amount";
         }
     }
+
+    /*
+     * Vendor-neutral provider failure.
+     *
+     * Orchestration may safely fall back on this exception without
+     * depending on an OpenAI-specific implementation type.
+     */
+    public sealed class BillStatementAiExtractionException
+        : Exception
+    {
+        public BillStatementAiExtractionException(
+            string message)
+            : base(message)
+        {
+        }
+
+        public BillStatementAiExtractionException(
+            string message,
+            Exception innerException)
+            : base(
+                message,
+                innerException)
+        {
+        }
+    }
 }

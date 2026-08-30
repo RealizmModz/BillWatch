@@ -270,6 +270,82 @@ public sealed class BillStatementAiCandidateConversionServiceTests
             nameof(
                 BillStatementStructuredData.BillingPeriodEnd),
             extraction.Statement.MissingRequiredFields);
+
+        Assert.Contains(
+            nameof(
+                BillStatementStructuredData.CurrencyCode),
+            extraction.Statement.MissingRequiredFields);
+    }
+
+    [Fact]
+    public void MissingCurrency_IsNotSilentlyDefaultedToUsd()
+    {
+        const string documentText =
+            """
+            Billing period August 1, 2026 through August 31, 2026
+            Total due $104.99
+            """;
+
+        var candidate =
+            EmptyCandidate() with
+            {
+                BillingPeriodStart =
+                    new DateOnly(
+                        2026,
+                        8,
+                        1),
+
+                BillingPeriodEnd =
+                    new DateOnly(
+                        2026,
+                        8,
+                        31),
+
+                TotalDue =
+                    104.99m,
+
+                Evidence =
+                    [
+                        Evidence(
+                            BillStatementAiFactKeys.BillingPeriodStart,
+                            "Billing period August 1, 2026 through August 31, 2026"),
+
+                        Evidence(
+                            BillStatementAiFactKeys.BillingPeriodEnd,
+                            "Billing period August 1, 2026 through August 31, 2026"),
+
+                        Evidence(
+                            BillStatementAiFactKeys.TotalDue,
+                            "Total due $104.99")
+                    ]
+            };
+
+        var result =
+            CreateService().Convert(
+                documentText,
+                candidate);
+
+        Assert.True(
+            result.IsAccepted,
+            string.Join(
+                Environment.NewLine,
+                result.Errors));
+
+        var extraction =
+            Assert.IsType<BillStatementExtractionResult>(
+                result.Extraction);
+
+        Assert.False(
+            extraction.IsReadyForValidation);
+
+        Assert.Equal(
+            string.Empty,
+            extraction.Statement.CurrencyCode);
+
+        Assert.Contains(
+            nameof(
+                BillStatementStructuredData.CurrencyCode),
+            extraction.Statement.MissingRequiredFields);
     }
 
     [Fact]
