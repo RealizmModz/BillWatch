@@ -58,5 +58,9 @@ public sealed class BillStatementExtractionRegistrationTests
         Assert.Null(
             scope.ServiceProvider.GetService<
                 BillStatementAiPrivateCorpusCoverageGate>());
+
+        Assert.Null(
+            scope.ServiceProvider.GetService<
+                BillStatementDeterministicPrivateCorpusEvaluator>());
     }
 }

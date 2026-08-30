@@ -122,7 +122,7 @@ public sealed class BillStatementAiGroundTruthScorer
             }
 
             var factCounts =
-                ScoreFacts(
+                ScoreExtractionFacts(
                     observation.ExpectedStatement,
                     observation.ExpectedLineItems,
                     observation.ActualExtraction);
@@ -162,11 +162,17 @@ public sealed class BillStatementAiGroundTruthScorer
                 falseAlertStatementCount);
     }
 
-    private static BillStatementAiFactScore ScoreFacts(
+    public static BillStatementAiFactScore ScoreExtractionFacts(
         BillStatementStructuredData expected,
         IReadOnlyList<BillStatementStructuredLineItem> expectedLineItems,
         BillStatementExtractionResult? actualExtraction)
     {
+        ArgumentNullException.ThrowIfNull(
+            expected);
+
+        ArgumentNullException.ThrowIfNull(
+            expectedLineItems);
+
         var score =
             new MutableFactScore();
 

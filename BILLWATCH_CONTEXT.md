@@ -147,6 +147,8 @@ The repository now ignores the only supported temporary in-repo private corpus l
 
 `BillStatementAiPrivateCorpusCoverageGate` now prevents an offline provider evaluation from beginning until the validated catalog satisfies the largest required measurement population, provider diversity, and minimum-per-provider sample. Its decision is aggregate-only and can never authorize runtime shadow mode or persistence. The gate remains unregistered.
 
+`BillStatementDeterministicPrivateCorpusEvaluator` now establishes a no-provider-call baseline over an explicit, unique private case list. It runs the existing deterministic extraction service, compares results with approved truth, and returns aggregate ready-statement, precision, recall, and fact counts only. It remains unregistered and cannot be mistaken for AI readiness approval.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates

@@ -39,3 +39,5 @@ The scorer compares cases in memory and produces aggregate metrics only. A passi
 Before any provider evaluation, the offline catalog inspector validates every case through the bounded loader and reports only total cases, distinct-provider count, and the smallest provider sample. It makes no AI calls and exposes no case identifiers, provider keys, statement text, truth values, or physical paths in its result.
 
 The no-spend coverage gate then requires the catalog to satisfy the largest configured measurement population, provider diversity, and minimum-per-provider sample before an offline provider evaluation may begin. Passing coverage never enables runtime shadow mode or statement persistence.
+
+The offline deterministic evaluator can establish BillWatch's current parser baseline over an explicit, unique case list before any AI evaluation. It returns only aggregate readiness, precision, recall, and fact counts, makes no provider calls, and does not treat its baseline as AI readiness approval.
