@@ -35,3 +35,5 @@ The bounded loader rejects missing files, links/reparse points, oversized conten
 Never put API keys, production connection strings, full account numbers, storage paths, or unredacted statements in Git, test fixtures, logs, issue trackers, or chat.
 
 The scorer compares cases in memory and produces aggregate metrics only. A passing readiness gate is not permission to route AI-derived facts into statement persistence.
+
+Before any provider evaluation, the offline catalog inspector validates every case through the bounded loader and reports only total cases, distinct-provider count, and the smallest provider sample. It makes no AI calls and exposes no case identifiers, provider keys, statement text, truth values, or physical paths in its result.

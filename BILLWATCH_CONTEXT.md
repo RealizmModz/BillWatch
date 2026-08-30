@@ -143,6 +143,8 @@ The repository now ignores the only supported temporary in-repo private corpus l
 
 `BillStatementAiPrivateCorpusLoader` now provides the offline, bounded read boundary for those fixed files. It rejects case-directory and file links/reparse points, missing or oversized content, invalid encoding, unknown JSON properties, invalid ground-truth values, money beyond cent precision, excessive line items, and cases with no scored facts. Filesystem and parser exceptions are replaced with sanitized failures that do not retain statement text, parser details, or physical paths. The loader retains content only in memory, is explicitly unregistered, and no real corpus data is included in the repository.
 
+`BillStatementAiPrivateCorpusCatalogInspector` now provides a no-provider-call preflight. It discovers at most 1,000 safe, non-linked case directories, validates every case through the bounded loader, and returns only aggregate case/provider coverage. The inspector exposes no case identifiers, provider keys, facts, statement text, or physical paths and remains unregistered.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
