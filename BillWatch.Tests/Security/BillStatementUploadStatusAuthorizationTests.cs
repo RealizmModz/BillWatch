@@ -196,6 +196,156 @@ public sealed class BillStatementUploadStatusAuthorizationTests
             response.StatusCode);
     }
 
+    [Fact]
+    public async Task
+        File_RequiresAuthentication()
+    {
+        using var client =
+            _factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                $"/api/bill-streams/{Guid.NewGuid()}/statement-uploads/{Guid.NewGuid()}/file");
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        File_ReturnsOwnedStatementWithSafeDownloadName()
+    {
+        using var client =
+            _factory.CreateHttpsClient();
+
+        var user =
+            await TestUserAuthentication.RegisterAndLoginAsync(
+                client);
+
+        TestUserAuthentication.Authorize(
+            client,
+            user);
+
+        var billStream =
+            await CreateBillStreamAsync(
+                client);
+
+        var upload =
+            await UploadStatementAsync(
+                client,
+                billStream.Id);
+
+        using var response =
+            await client.GetAsync(
+                $"/api/bill-streams/{billStream.Id}/statement-uploads/{upload.Id}/file");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        Assert.Equal(
+            "application/pdf",
+            response.Content.Headers.ContentType?.MediaType);
+
+        Assert.Equal(
+            $"billwatch-statement-{upload.Id:N}.pdf",
+            response.Content.Headers.ContentDisposition?
+                .FileName?
+                .Trim('"'));
+
+        Assert.Contains(
+            "no-store",
+            response.Headers.CacheControl?.ToString() ??
+            string.Empty,
+            StringComparison.OrdinalIgnoreCase);
+
+        var downloadedBytes =
+            await response.Content.ReadAsByteArrayAsync();
+
+        Assert.Equal(
+            CreatePdfBytes(),
+            downloadedBytes);
+    }
+
+    [Fact]
+    public async Task
+        File_CannotReadAnotherUsersStatement()
+    {
+        using var client =
+            _factory.CreateHttpsClient();
+
+        var owner =
+            await TestUserAuthentication.RegisterAndLoginAsync(
+                client);
+
+        var attacker =
+            await TestUserAuthentication.RegisterAndLoginAsync(
+                client);
+
+        TestUserAuthentication.Authorize(
+            client,
+            owner);
+
+        var billStream =
+            await CreateBillStreamAsync(
+                client);
+
+        var upload =
+            await UploadStatementAsync(
+                client,
+                billStream.Id);
+
+        TestUserAuthentication.Authorize(
+            client,
+            attacker);
+
+        using var response =
+            await client.GetAsync(
+                $"/api/bill-streams/{billStream.Id}/statement-uploads/{upload.Id}/file");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        File_ReturnsNotFoundWhenBillStreamDoesNotMatch()
+    {
+        using var client =
+            _factory.CreateHttpsClient();
+
+        var user =
+            await TestUserAuthentication.RegisterAndLoginAsync(
+                client);
+
+        TestUserAuthentication.Authorize(
+            client,
+            user);
+
+        var billStream =
+            await CreateBillStreamAsync(
+                client);
+
+        var otherBillStream =
+            await CreateBillStreamAsync(
+                client);
+
+        var upload =
+            await UploadStatementAsync(
+                client,
+                billStream.Id);
+
+        using var response =
+            await client.GetAsync(
+                $"/api/bill-streams/{otherBillStream.Id}/statement-uploads/{upload.Id}/file");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            response.StatusCode);
+    }
+
     private static async Task<BillStreamPayload>
         CreateBillStreamAsync(
             HttpClient client)

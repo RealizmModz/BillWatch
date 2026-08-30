@@ -375,9 +375,15 @@ public sealed class AccountDataExportTests
         Assert.Equal(
             alertId,
             Assert.Single(export.BillAlerts).Id);
+        var exportedUpload =
+            Assert.Single(export.StatementUploads);
+
         Assert.Equal(
             uploadId,
-            Assert.Single(export.StatementUploads).Id);
+            exportedUpload.Id);
+        Assert.Equal(
+            $"/api/bill-streams/{streamId}/statement-uploads/{uploadId}/file",
+            exportedUpload.DownloadPath);
         Assert.Equal(
             evaluationId,
             Assert.Single(export.AiEvaluations).Id);

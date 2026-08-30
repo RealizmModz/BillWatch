@@ -153,6 +153,8 @@ Account deletion now explicitly removes ownership-scoped `BillStatementAiEvaluat
 
 Authenticated users can now download a versioned JSON export from `GET /api/account/export`. The export is ownership-scoped across every BillWatch financial-data category and includes safe Plaid Link and AI-attempt metadata, but deliberately excludes protected Plaid/link tokens, synchronization cursors, Plaid internal record identifiers, password/security fields, and physical statement-storage keys. Security regression coverage seeds every exported category for two users and verifies both cross-user isolation and secret omission.
 
+Each statement-upload entry in that export now includes a safe API download path. `GET /api/bill-streams/{billStreamId}/statement-uploads/{uploadId}/file` streams the original stored document only after user + Bill Stream + upload ownership checks, returns 404 for mismatched or cross-user IDs, uses a generated download filename, disables range processing, and never exposes the physical path or storage key.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates

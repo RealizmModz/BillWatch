@@ -232,6 +232,7 @@ public static class AccountDataExportBuilder
                     upload.FileExtension,
                     upload.SizeBytes,
                     upload.Status.ToString(),
+                    $"/api/bill-streams/{upload.BillStreamId}/statement-uploads/{upload.Id}/file",
                     upload.CreatedAtUtc,
                     upload.UpdatedAtUtc))
                 .ToArray(),
@@ -392,6 +393,7 @@ public sealed record StatementUploadExport(
     string FileExtension,
     long SizeBytes,
     string Status,
+    string DownloadPath,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 
