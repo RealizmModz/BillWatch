@@ -165,20 +165,19 @@ Production reverse-proxy handling is opt-in and trusts only explicitly configure
 
 The production stack can apply EF Core migrations during startup for the documented single API instance. Readiness now fails unless the database is reachable, every migration is current, statement storage is writable, and the persistent Data Protection key directory is writable. It returns only ready/not-ready status and never exposes connection strings or physical paths.
 
-GitHub Actions now builds and tests the Windows backend and independently builds the Linux production container on pushes to `master` and pull requests. Local validation for this checkpoint passed the full Release solution build for Windows, Android, iOS, and Mac Catalyst with 0 warnings and 0 errors, plus all 207 tests.
+GitHub Actions now builds and tests the Windows backend and independently builds the Linux production container on pushes to `master` and pull requests. Run `87c100b` passed both jobs. CI now also starts the complete production Compose stack with disposable values and requires PostgreSQL startup, EF Core migration, API readiness, Caddy HTTPS termination, and the public readiness request to succeed before it tears the stack down. Local validation for this checkpoint passed the full Release solution build for Windows, Android, iOS, and Mac Catalyst with 0 warnings and 0 errors, plus all 207 tests.
 
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
 
-1. Confirm the new GitHub CI run, especially the Linux OCR container build.
-2. Select the production host and API hostname, then deploy the included HTTPS stack with real secret-manager or protected environment values.
-3. Configure encrypted off-host backups and prove a database + Data Protection key + statement-file restore.
-4. Supply the deployed HTTPS API origin through `BillWatchApiBaseUrl` and produce signed client release artifacts.
-5. Add external uptime/error monitoring and verify a forced readiness failure raises an alert.
-6. Validate real Plaid institutions and failure/reconnect behavior.
-7. Build a ground-truth provider statement corpus and measure false alerts/extraction accuracy.
-8. Run internal Beta 0 on real bills, then invite 3–5 trusted testers.
+1. Select the production host and API hostname, then deploy the included HTTPS stack with real secret-manager or protected environment values.
+2. Configure encrypted off-host backups and prove a database + Data Protection key + statement-file restore.
+3. Supply the deployed HTTPS API origin through `BillWatchApiBaseUrl` and produce signed client release artifacts.
+4. Add external uptime/error monitoring and verify a forced readiness failure raises an alert.
+5. Validate real Plaid institutions and failure/reconnect behavior.
+6. Build a ground-truth provider statement corpus and measure false alerts/extraction accuracy.
+7. Run internal Beta 0 on real bills, then invite 3–5 trusted testers.
 
 ## Development workflow
 

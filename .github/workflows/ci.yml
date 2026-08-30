@@ -41,6 +41,13 @@ jobs:
     name: Linux production container
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      ACME_EMAIL: ci@example.com
+      BILLWATCH_DATABASE_PASSWORD: ci-only-password
+      BILLWATCH_HOST: localhost
+      PLAID_CLIENT_ID: ci-client
+      PLAID_ENVIRONMENT: sandbox
+      PLAID_SECRET: ci-secret
 
     steps:
       - name: Check out repository
@@ -54,7 +61,18 @@ jobs:
         with:
           context: .
           file: Dockerfile
+          load: true
           push: false
-          tags: billwatch-api:ci
+          tags: billwatch-api:local
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Start production stack
+        run: docker compose --file compose.production.yml up --detach --no-build
+
+      - name: Verify HTTPS readiness
+        run: curl --fail --insecure --retry 30 --retry-all-errors --retry-delay 2 https://localhost/health/ready
+
+      - name: Stop production stack
+        if: always()
+        run: docker compose --file compose.production.yml down --volumes

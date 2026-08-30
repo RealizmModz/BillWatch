@@ -2,6 +2,7 @@ name: billwatch
 
 services:
   api:
+    image: billwatch-api:local
     build:
       context: .
       dockerfile: Dockerfile
