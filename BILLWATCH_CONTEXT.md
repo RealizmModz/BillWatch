@@ -141,6 +141,8 @@ Server configuration now has a separate fail-closed `StatementAi:Shadow` section
 
 The repository now ignores the only supported temporary in-repo private corpus location, `.private/BillWatch.AiShadowCorpus/`. `BillStatementAiPrivateCorpusPathPolicy` permits a future offline runner to resolve only `statement.txt` and `ground-truth.json` beneath an explicitly configured absolute corpus root and a safe case identifier; traversal and arbitrary file names are rejected before any file read. No corpus loader or corpus data is in the runtime application.
 
+`BillStatementAiPrivateCorpusLoader` now provides the offline, bounded read boundary for those fixed files. It rejects case-directory and file links/reparse points, missing or oversized content, invalid encoding, unknown JSON properties, invalid ground-truth values, money beyond cent precision, excessive line items, and cases with no scored facts. Filesystem and parser exceptions are replaced with sanitized failures that do not retain statement text, parser details, or physical paths. The loader retains content only in memory, is explicitly unregistered, and no real corpus data is included in the repository.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates

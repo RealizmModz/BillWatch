@@ -46,5 +46,9 @@ public sealed class BillStatementExtractionRegistrationTests
         Assert.Null(
             scope.ServiceProvider.GetService<
                 BillStatementAiShadowActivationPolicy>());
+
+        Assert.Null(
+            scope.ServiceProvider.GetService<
+                BillStatementAiPrivateCorpusLoader>());
     }
 }
