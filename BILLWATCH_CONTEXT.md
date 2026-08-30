@@ -151,6 +151,8 @@ The repository now ignores the only supported temporary in-repo private corpus l
 
 Account deletion now explicitly removes ownership-scoped `BillStatementAiEvaluationEntity` rows before statement uploads, rather than relying only on relational cascade behavior. End-to-end regression coverage proves deleting one account removes its identity, Bill Stream, statement upload, stored statement file, and AI attempt metadata while preserving another user's corresponding rows and file.
 
+Authenticated users can now download a versioned JSON export from `GET /api/account/export`. The export is ownership-scoped across every BillWatch financial-data category and includes safe Plaid Link and AI-attempt metadata, but deliberately excludes protected Plaid/link tokens, synchronization cursors, Plaid internal record identifiers, password/security fields, and physical statement-storage keys. Security regression coverage seeds every exported category for two users and verifies both cross-user isolation and secret omission.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates

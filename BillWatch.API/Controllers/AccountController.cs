@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
+using BillWatch.API.Services.Accounts;
 using BillWatch.API.Services.Plaid;
 using BillWatch.API.Services.Statements;
 using Microsoft.AspNetCore.Authorization;
@@ -52,6 +53,39 @@ public sealed class AccountController : ControllerBase
 
         _logger =
             logger;
+    }
+
+    [HttpGet("export")]
+    public async Task<ActionResult<AccountDataExportResult>>
+        ExportAccountData(
+            CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(
+                out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var user =
+            await _userManager.FindByIdAsync(
+                userId.ToString());
+
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        var export =
+            await AccountDataExportBuilder.CreateAsync(
+                _dbContext,
+                user,
+                cancellationToken);
+
+        Response.Headers.Append(
+            "Content-Disposition",
+            "attachment; filename=\"billwatch-data-export.json\"");
+
+        return Ok(export);
     }
 
     [HttpDelete]
