@@ -135,6 +135,8 @@ Durable AI attempt accounting now has an ownership-scoped `BillStatementAiEvalua
 
 `BillStatementAiShadowReadinessEvaluator` now defines a fail-closed, offline accuracy gate over aggregate ground-truth metrics only. The conservative private-beta baseline requires at least 100 statements and 100 provider attempts across 5 providers with at least 10 statements per provider, 99% fact precision, 95% fact recall, 85% ready-candidate coverage, no more than 1% false alerts across at least 100 separately alert-evaluated statements, and no more than 5% provider failures. Missing alert evaluation can never masquerade as zero false alerts. Passing this metric gate is explicitly not authorization to persist AI-derived facts, and the evaluator is not registered at runtime.
 
+`BillStatementAiGroundTruthScorer` now deterministically compares approved in-memory corpus truth with validated extraction results and emits only aggregate readiness counters. Incorrect values count as both a false prediction and a missed true fact, line items are compared as order-independent composite facts, and false alerts cannot be counted without an explicit alert evaluation. The scorer stores and logs nothing, has no corpus bundled with the repository, and remains unregistered.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
