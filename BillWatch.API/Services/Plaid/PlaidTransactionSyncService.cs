@@ -1,55 +1,158 @@
-﻿using BillWatch.API.Data;
+﻿using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
-using System.Text.Json;
 
 namespace BillWatch.API.Services.Plaid;
 
 public sealed class PlaidTransactionSyncService
 {
-    private readonly BillWatchDbContext _dbContext;
-    private readonly PlaidApiClient _plaidApiClient;
-    private readonly PlaidTokenProtector _tokenProtector;
+    private const int PlaidPageSize =
+        500;
+
+    private const int MaxPagesPerSync =
+        200;
+
+    private const int MaxTransactionsPerSync =
+        100_000;
+
+    private const int DatabaseLookupChunkSize =
+        500;
+
+    private const int MaxMutationRetries =
+        2;
+
+    private const int MaxCursorLength =
+        4 * 1024;
+
+    private const int MaxPlaidTransactionIdLength =
+        200;
+
+    private const int MaxPlaidAccountIdLength =
+        200;
+
+    private const int MaxTransactionNameLength =
+        300;
+
+    private const int MaxMerchantNameLength =
+        300;
+
+    private const int MaxCategoryPrimaryLength =
+        100;
+
+    private const int MaxCategoryDetailedLength =
+        200;
+
+    /*
+     * PostgreSQL mapping is precision 18, scale 2.
+     */
+    private const decimal MaxStoredAmount =
+        9999999999999999.99m;
+
+    private const string
+        MutationDuringPaginationErrorCode =
+            "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION";
+
+    private readonly BillWatchDbContext
+        _dbContext;
+
+    private readonly PlaidApiClient
+        _plaidApiClient;
+
+    private readonly PlaidTokenProtector
+        _tokenProtector;
 
     public PlaidTransactionSyncService(
         BillWatchDbContext dbContext,
         PlaidApiClient plaidApiClient,
         PlaidTokenProtector tokenProtector)
     {
-        _dbContext = dbContext;
-        _plaidApiClient = plaidApiClient;
-        _tokenProtector = tokenProtector;
+        ArgumentNullException.ThrowIfNull(
+            dbContext);
+
+        ArgumentNullException.ThrowIfNull(
+            plaidApiClient);
+
+        ArgumentNullException.ThrowIfNull(
+            tokenProtector);
+
+        _dbContext =
+            dbContext;
+
+        _plaidApiClient =
+            plaidApiClient;
+
+        _tokenProtector =
+            tokenProtector;
     }
 
-    public async Task<PlaidTransactionSyncSummary> SyncAllAsync(
-        Guid userId,
-        CancellationToken cancellationToken = default)
+    public async Task<PlaidTransactionSyncSummary>
+        SyncAllAsync(
+            Guid userId,
+            CancellationToken cancellationToken = default)
     {
+        if (userId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A valid user ID is required.",
+                nameof(userId));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
         var connectionIds =
             await _dbContext.BankConnections
-                .Where(connection =>
-                    connection.UserId == userId &&
-                    connection.Status == BankConnectionStatus.Active &&
-                    connection.ProtectedPlaidAccessToken != null)
-                .Select(connection => connection.Id)
-                .ToListAsync(cancellationToken);
+                .AsNoTracking()
+                .Where(
+                    connection =>
+                        connection.UserId ==
+                            userId &&
+                        connection.Status ==
+                            BankConnectionStatus.Active &&
+                        connection.ProtectedPlaidAccessToken !=
+                            null &&
+                        connection.ProtectedPlaidAccessToken !=
+                            string.Empty)
+                .OrderBy(
+                    connection =>
+                        connection.Id)
+                .Select(
+                    connection =>
+                        connection.Id)
+                .ToListAsync(
+                    cancellationToken);
 
-        var totalAdded = 0;
-        var totalModified = 0;
-        var totalRemoved = 0;
+        var totalAdded =
+            0;
 
-        foreach (var connectionId in connectionIds)
+        var totalModified =
+            0;
+
+        var totalRemoved =
+            0;
+
+        foreach (var connectionId in
+                 connectionIds)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var result =
                 await SyncConnectionAsync(
                     userId,
                     connectionId,
                     cancellationToken);
 
-            totalAdded += result.Added;
-            totalModified += result.Modified;
-            totalRemoved += result.Removed;
+            totalAdded +=
+                result.Added;
+
+            totalModified +=
+                result.Modified;
+
+            totalRemoved +=
+                result.Removed;
         }
 
         return new PlaidTransactionSyncSummary(
@@ -65,12 +168,35 @@ public sealed class PlaidTransactionSyncService
             Guid connectionId,
             CancellationToken cancellationToken = default)
     {
+        if (userId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A valid user ID is required.",
+                nameof(userId));
+        }
+
+        if (connectionId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A valid bank connection ID is required.",
+                nameof(connectionId));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        /*
+         * Ownership is enforced while resolving the connection.
+         */
         var connection =
             await _dbContext.BankConnections
                 .SingleOrDefaultAsync(
                     existing =>
-                        existing.Id == connectionId &&
-                        existing.UserId == userId,
+                        existing.Id ==
+                            connectionId &&
+                        existing.UserId ==
+                            userId,
                     cancellationToken);
 
         if (connection is null)
@@ -88,156 +214,151 @@ public sealed class PlaidTransactionSyncService
 
         var accounts =
             await _dbContext.BankAccounts
-                .Where(account =>
-                    account.UserId == userId &&
-                    account.BankConnectionId == connectionId)
-                .ToListAsync(cancellationToken);
+                .Where(
+                    account =>
+                        account.UserId ==
+                            userId &&
+                        account.BankConnectionId ==
+                            connectionId)
+                .ToListAsync(
+                    cancellationToken);
 
         var accountsByPlaidId =
             accounts.ToDictionary(
-                account => account.PlaidAccountId,
+                account =>
+                    account.PlaidAccountId,
                 StringComparer.Ordinal);
 
-        if (accountsByPlaidId.Count == 0)
+        if (accountsByPlaidId.Count ==
+            0)
         {
             throw new InvalidOperationException(
                 "Bank accounts must be synchronized before transactions.");
         }
+
+        var accountIds =
+            accounts
+                .Select(
+                    account =>
+                        account.Id)
+                .ToHashSet();
 
         var accessToken =
             _tokenProtector.Unprotect(
                 connection.ProtectedPlaidAccessToken);
 
         var originalCursor =
-            connection.TransactionsCursor;
+            ValidateStoredCursor(
+                connection.TransactionsCursor);
 
-        var cursor =
-            originalCursor;
+        var delta =
+            await FetchTransactionDeltaAsync(
+                accessToken,
+                originalCursor,
+                cancellationToken);
 
-        var added =
-            new List<PlaidTransactionData>();
-
-        var modified =
-            new List<PlaidTransactionData>();
-
-        var removedIds =
-            new List<string>();
-
-        var hasMore = true;
-
-        while (hasMore)
+        /*
+         * Validate every provider account reference before changing local
+         * transaction state.
+         */
+        foreach (var transaction in
+                 delta.Added)
         {
-            object payload =
-                string.IsNullOrWhiteSpace(cursor)
-                    ? new
-                    {
-                        access_token = accessToken,
-                        count = 500,
-                        options = new
-                        {
-                            personal_finance_category_version = "v2"
-                        }
-                    }
-                    : new
-                    {
-                        access_token = accessToken,
-                        cursor,
-                        count = 500,
-                        options = new
-                        {
-                            personal_finance_category_version = "v2"
-                        }
-                    };
-
-            using var response =
-                await _plaidApiClient.PostAsync(
-                    "/transactions/sync",
-                    payload,
-                    cancellationToken);
-
-            var root =
-                response.RootElement;
-
-            ReadTransactions(
-                root,
-                "added",
-                added);
-
-            ReadTransactions(
-                root,
-                "modified",
-                modified);
-
-            ReadRemovedTransactions(
-                root,
-                removedIds);
-
-            hasMore =
-                root.TryGetProperty(
-                    "has_more",
-                    out var hasMoreElement) &&
-                hasMoreElement.GetBoolean();
-
-            if (!root.TryGetProperty(
-                    "next_cursor",
-                    out var nextCursorElement))
+            if (!accountsByPlaidId.ContainsKey(
+                    transaction.PlaidAccountId))
             {
                 throw new InvalidOperationException(
-                    "Plaid did not return a transaction cursor.");
+                    "Plaid returned a transaction for an unknown bank account.");
             }
+        }
 
-            cursor =
-                nextCursorElement.GetString();
-
-            if (string.IsNullOrWhiteSpace(cursor))
+        foreach (var transaction in
+                 delta.Modified)
+        {
+            if (!accountsByPlaidId.ContainsKey(
+                    transaction.PlaidAccountId))
             {
                 throw new InvalidOperationException(
-                    "Plaid returned an empty transaction cursor.");
+                    "Plaid returned a transaction for an unknown bank account.");
+            }
+        }
+
+        var incomingTransactionIds =
+            delta.Added
+                .Concat(
+                    delta.Modified)
+                .Select(
+                    transaction =>
+                        transaction.PlaidTransactionId)
+                .Distinct(
+                    StringComparer.Ordinal)
+                .ToArray();
+
+        var existingTransactions =
+            await LoadExistingTransactionsAsync(
+                userId,
+                incomingTransactionIds,
+                cancellationToken);
+
+        foreach (var existingTransaction in
+                 existingTransactions.Values)
+        {
+            /*
+             * A provider transaction ID already attached to another bank
+             * connection must never be silently reassigned.
+             */
+            if (!accountIds.Contains(
+                    existingTransaction.BankAccountId))
+            {
+                throw new InvalidOperationException(
+                    "Plaid transaction identity conflicts with another bank connection.");
             }
         }
 
         var now =
             DateTimeOffset.UtcNow;
 
-        foreach (var plaidTransaction in added)
+        foreach (var plaidTransaction in
+                 delta.Added)
         {
-            await UpsertTransactionAsync(
+            UpsertTransaction(
                 userId,
                 accountsByPlaidId,
+                existingTransactions,
                 plaidTransaction,
-                now,
-                cancellationToken);
+                now);
         }
 
-        foreach (var plaidTransaction in modified)
+        foreach (var plaidTransaction in
+                 delta.Modified)
         {
-            await UpsertTransactionAsync(
+            UpsertTransaction(
                 userId,
                 accountsByPlaidId,
+                existingTransactions,
                 plaidTransaction,
-                now,
-                cancellationToken);
+                now);
         }
 
-        if (removedIds.Count > 0)
-        {
-            var transactionsToRemove =
-                await _dbContext.BankTransactions
-                    .Where(transaction =>
-                        transaction.UserId == userId &&
-                        removedIds.Contains(
-                            transaction.PlaidTransactionId))
-                    .ToListAsync(cancellationToken);
+        await ApplyRemovedTransactionsAsync(
+            userId,
+            accountIds,
+            delta.RemovedIds,
+            now,
+            cancellationToken);
 
-            foreach (var transaction in transactionsToRemove)
-            {
-                transaction.IsRemoved = true;
-                transaction.UpdatedAtUtc = now;
-            }
-        }
-
+        /*
+         * Advance the cursor only after every page has been validated and
+         * every local change is ready to commit.
+         *
+         * If SaveChanges fails, the previous cursor remains authoritative
+         * and the delta can safely be replayed.
+         */
         connection.TransactionsCursor =
-            cursor;
+            delta.NextCursor;
+
+        connection.Status =
+            BankConnectionStatus.Active;
 
         connection.LastSuccessfulSyncAtUtc =
             now;
@@ -250,48 +371,354 @@ public sealed class PlaidTransactionSyncService
 
         return new PlaidTransactionConnectionSyncResult(
             connection.Id,
-            added.Count,
-            modified.Count,
-            removedIds.Count);
+            delta.Added.Count,
+            delta.Modified.Count,
+            delta.RemovedIds.Count);
     }
 
-    private async Task UpsertTransactionAsync(
+    private async Task<PlaidTransactionDelta>
+        FetchTransactionDeltaAsync(
+            string accessToken,
+            string? originalCursor,
+            CancellationToken cancellationToken)
+    {
+        for (var attempt = 0;
+             attempt <= MaxMutationRetries;
+             attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                return await FetchTransactionDeltaOnceAsync(
+                    accessToken,
+                    originalCursor,
+                    cancellationToken);
+            }
+            catch (PlaidApiException exception)
+                when (
+                    attempt <
+                        MaxMutationRetries &&
+                    string.Equals(
+                        exception.ErrorCode,
+                        MutationDuringPaginationErrorCode,
+                        StringComparison.OrdinalIgnoreCase))
+            {
+                /*
+                 * Plaid requires a transactions/sync pagination sequence to
+                 * restart from the original cursor if the underlying set
+                 * mutates during pagination.
+                 */
+            }
+        }
+
+        throw new InvalidOperationException(
+            "Plaid transaction synchronization could not complete.");
+    }
+
+    private async Task<PlaidTransactionDelta>
+        FetchTransactionDeltaOnceAsync(
+            string accessToken,
+            string? originalCursor,
+            CancellationToken cancellationToken)
+    {
+        var cursor =
+            originalCursor;
+
+        var added =
+            new List<PlaidTransactionData>();
+
+        var modified =
+            new List<PlaidTransactionData>();
+
+        var removedIds =
+            new HashSet<string>(
+                StringComparer.Ordinal);
+
+        var eventTransactionIds =
+            new HashSet<string>(
+                StringComparer.Ordinal);
+
+        var seenCursors =
+            new HashSet<string>(
+                StringComparer.Ordinal);
+
+        if (cursor is not null)
+        {
+            seenCursors.Add(
+                cursor);
+        }
+
+        for (var pageNumber = 1;
+             pageNumber <= MaxPagesPerSync;
+             pageNumber++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            object payload =
+                cursor is null
+                    ? new
+                    {
+                        access_token =
+                            accessToken,
+
+                        count =
+                            PlaidPageSize,
+
+                        options =
+                            new
+                            {
+                                personal_finance_category_version =
+                                    "v2"
+                            }
+                    }
+                    : new
+                    {
+                        access_token =
+                            accessToken,
+
+                        cursor,
+
+                        count =
+                            PlaidPageSize,
+
+                        options =
+                            new
+                            {
+                                personal_finance_category_version =
+                                    "v2"
+                            }
+                    };
+
+            using var response =
+                await _plaidApiClient.PostAsync(
+                    "transactions/sync",
+                    payload,
+                    cancellationToken);
+
+            var root =
+                response.RootElement;
+
+            if (root.ValueKind !=
+                JsonValueKind.Object)
+            {
+                throw new InvalidOperationException(
+                    "Plaid returned an invalid transaction sync response.");
+            }
+
+            ReadTransactions(
+                root,
+                "added",
+                added,
+                eventTransactionIds,
+                removedIds);
+
+            ReadTransactions(
+                root,
+                "modified",
+                modified,
+                eventTransactionIds,
+                removedIds);
+
+            ReadRemovedTransactions(
+                root,
+                removedIds,
+                eventTransactionIds);
+
+            var totalEvents =
+                added.Count +
+                modified.Count +
+                removedIds.Count;
+
+            if (totalEvents >
+                MaxTransactionsPerSync)
+            {
+                throw new InvalidOperationException(
+                    "Plaid transaction synchronization exceeded the allowed event limit.");
+            }
+
+            var hasMore =
+                GetRequiredBoolean(
+                    root,
+                    "has_more");
+
+            var nextCursor =
+                GetRequiredOpaqueString(
+                    root,
+                    "next_cursor",
+                    MaxCursorLength);
+
+            if (hasMore &&
+                !seenCursors.Add(
+                    nextCursor))
+            {
+                throw new InvalidOperationException(
+                    "Plaid returned a repeated transaction cursor.");
+            }
+
+            cursor =
+                nextCursor;
+
+            if (!hasMore)
+            {
+                return new PlaidTransactionDelta(
+                    added,
+                    modified,
+                    removedIds.ToArray(),
+                    cursor);
+            }
+        }
+
+        throw new InvalidOperationException(
+            "Plaid transaction synchronization exceeded the allowed page limit.");
+    }
+
+    private async Task<Dictionary<string, BankTransactionEntity>>
+        LoadExistingTransactionsAsync(
+            Guid userId,
+            IReadOnlyList<string> transactionIds,
+            CancellationToken cancellationToken)
+    {
+        var result =
+            new Dictionary<string, BankTransactionEntity>(
+                StringComparer.Ordinal);
+
+        for (var offset = 0;
+             offset < transactionIds.Count;
+             offset += DatabaseLookupChunkSize)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var chunk =
+                transactionIds
+                    .Skip(
+                        offset)
+                    .Take(
+                        DatabaseLookupChunkSize)
+                    .ToArray();
+
+            var rows =
+                await _dbContext.BankTransactions
+                    .Where(
+                        transaction =>
+                            transaction.UserId ==
+                                userId &&
+                            chunk.Contains(
+                                transaction.PlaidTransactionId))
+                    .ToListAsync(
+                        cancellationToken);
+
+            foreach (var row in
+                     rows)
+            {
+                if (!result.TryAdd(
+                        row.PlaidTransactionId,
+                        row))
+                {
+                    throw new InvalidOperationException(
+                        "Duplicate Plaid transaction identity exists in local storage.");
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private async Task ApplyRemovedTransactionsAsync(
         Guid userId,
-        IReadOnlyDictionary<string, BankAccountEntity> accountsByPlaidId,
-        PlaidTransactionData plaidTransaction,
+        IReadOnlySet<Guid> accountIds,
+        IReadOnlyList<string> removedIds,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        if (!accountsByPlaidId.TryGetValue(
-                plaidTransaction.PlaidAccountId,
-                out var account))
+        if (removedIds.Count ==
+            0)
         {
-            throw new InvalidOperationException(
-                $"Plaid returned a transaction for unknown account '{plaidTransaction.PlaidAccountId}'.");
+            return;
         }
 
-        var transaction =
-            await _dbContext.BankTransactions
-                .SingleOrDefaultAsync(
-                    existing =>
-                        existing.UserId == userId &&
-                        existing.PlaidTransactionId ==
-                            plaidTransaction.PlaidTransactionId,
-                    cancellationToken);
+        var accountIdArray =
+            accountIds.ToArray();
 
-        if (transaction is null)
+        for (var offset = 0;
+             offset < removedIds.Count;
+             offset += DatabaseLookupChunkSize)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var chunk =
+                removedIds
+                    .Skip(
+                        offset)
+                    .Take(
+                        DatabaseLookupChunkSize)
+                    .ToArray();
+
+            /*
+             * Scope removal by both UserId and the current connection's
+             * owned account IDs.
+             */
+            var transactionsToRemove =
+                await _dbContext.BankTransactions
+                    .Where(
+                        transaction =>
+                            transaction.UserId ==
+                                userId &&
+                            accountIdArray.Contains(
+                                transaction.BankAccountId) &&
+                            chunk.Contains(
+                                transaction.PlaidTransactionId))
+                    .ToListAsync(
+                        cancellationToken);
+
+            foreach (var transaction in
+                     transactionsToRemove)
+            {
+                transaction.IsRemoved =
+                    true;
+
+                transaction.UpdatedAtUtc =
+                    now;
+            }
+        }
+    }
+
+    private void UpsertTransaction(
+        Guid userId,
+        IReadOnlyDictionary<string, BankAccountEntity> accountsByPlaidId,
+        IDictionary<string, BankTransactionEntity> existingTransactions,
+        PlaidTransactionData plaidTransaction,
+        DateTimeOffset now)
+    {
+        var account =
+            accountsByPlaidId[
+                plaidTransaction.PlaidAccountId];
+
+        if (!existingTransactions.TryGetValue(
+                plaidTransaction.PlaidTransactionId,
+                out var transaction))
         {
             transaction =
                 new BankTransactionEntity
                 {
-                    UserId = userId,
-                    BankAccountId = account.Id,
+                    UserId =
+                        userId,
+
+                    BankAccountId =
+                        account.Id,
+
                     PlaidTransactionId =
                         plaidTransaction.PlaidTransactionId,
-                    CreatedAtUtc = now
+
+                    CreatedAtUtc =
+                        now
                 };
 
             _dbContext.BankTransactions.Add(
+                transaction);
+
+            existingTransactions.Add(
+                plaidTransaction.PlaidTransactionId,
                 transaction);
         }
 
@@ -335,7 +762,9 @@ public sealed class PlaidTransactionSyncService
     private static void ReadTransactions(
         JsonElement root,
         string propertyName,
-        ICollection<PlaidTransactionData> destination)
+        ICollection<PlaidTransactionData> destination,
+        ISet<string> eventTransactionIds,
+        IReadOnlySet<string> removedIds)
     {
         if (!root.TryGetProperty(
                 propertyName,
@@ -343,21 +772,35 @@ public sealed class PlaidTransactionSyncService
             transactionsElement.ValueKind !=
                 JsonValueKind.Array)
         {
-            return;
+            throw new InvalidOperationException(
+                "Plaid returned an invalid transaction sync collection.");
         }
 
         foreach (var element in
                  transactionsElement.EnumerateArray())
         {
-            destination.Add(
+            var transaction =
                 ParseTransaction(
-                    element));
+                    element);
+
+            if (removedIds.Contains(
+                    transaction.PlaidTransactionId) ||
+                !eventTransactionIds.Add(
+                    transaction.PlaidTransactionId))
+            {
+                throw new InvalidOperationException(
+                    "Plaid returned conflicting transaction events.");
+            }
+
+            destination.Add(
+                transaction);
         }
     }
 
     private static void ReadRemovedTransactions(
         JsonElement root,
-        ICollection<string> destination)
+        ISet<string> destination,
+        IReadOnlySet<string> eventTransactionIds)
     {
         if (!root.TryGetProperty(
                 "removed",
@@ -365,129 +808,141 @@ public sealed class PlaidTransactionSyncService
             removedElement.ValueKind !=
                 JsonValueKind.Array)
         {
-            return;
+            throw new InvalidOperationException(
+                "Plaid returned an invalid removed-transaction collection.");
         }
 
         foreach (var element in
                  removedElement.EnumerateArray())
         {
-            var transactionId =
-                GetOptionalString(
-                    element,
-                    "transaction_id");
+            if (element.ValueKind !=
+                JsonValueKind.Object)
+            {
+                throw new InvalidOperationException(
+                    "Plaid returned an invalid removed-transaction record.");
+            }
 
-            if (!string.IsNullOrWhiteSpace(
+            var transactionId =
+                GetRequiredOpaqueString(
+                    element,
+                    "transaction_id",
+                    MaxPlaidTransactionIdLength);
+
+            if (eventTransactionIds.Contains(
                     transactionId))
             {
-                destination.Add(
-                    transactionId);
+                throw new InvalidOperationException(
+                    "Plaid returned conflicting transaction events.");
             }
+
+            destination.Add(
+                transactionId);
         }
     }
 
-    private static PlaidTransactionData ParseTransaction(
-        JsonElement element)
+    private static PlaidTransactionData
+        ParseTransaction(
+            JsonElement element)
     {
-        var categoryPrimary =
-            default(string);
+        if (element.ValueKind !=
+            JsonValueKind.Object)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid transaction record.");
+        }
 
-        var categoryDetailed =
-            default(string);
+        string?
+            categoryPrimary =
+                null;
+
+        string?
+            categoryDetailed =
+                null;
 
         if (element.TryGetProperty(
                 "personal_finance_category",
                 out var categoryElement) &&
-            categoryElement.ValueKind ==
-                JsonValueKind.Object)
+            categoryElement.ValueKind !=
+                JsonValueKind.Null)
         {
+            if (categoryElement.ValueKind !=
+                JsonValueKind.Object)
+            {
+                throw new InvalidOperationException(
+                    "Plaid returned an invalid transaction category.");
+            }
+
             categoryPrimary =
-                GetOptionalString(
+                GetOptionalDisplayString(
                     categoryElement,
-                    "primary");
+                    "primary",
+                    MaxCategoryPrimaryLength);
 
             categoryDetailed =
-                GetOptionalString(
+                GetOptionalDisplayString(
                     categoryElement,
-                    "detailed");
+                    "detailed",
+                    MaxCategoryDetailedLength);
         }
 
         return new PlaidTransactionData(
-            GetRequiredString(
-                element,
-                "transaction_id"),
+            PlaidTransactionId:
+                GetRequiredOpaqueString(
+                    element,
+                    "transaction_id",
+                    MaxPlaidTransactionIdLength),
 
-            GetRequiredString(
-                element,
-                "account_id"),
+            PlaidAccountId:
+                GetRequiredOpaqueString(
+                    element,
+                    "account_id",
+                    MaxPlaidAccountIdLength),
 
-            GetRequiredString(
-                element,
-                "name"),
+            Name:
+                GetRequiredDisplayString(
+                    element,
+                    "name",
+                    MaxTransactionNameLength),
 
-            GetOptionalString(
-                element,
-                "merchant_name"),
+            MerchantName:
+                GetOptionalDisplayString(
+                    element,
+                    "merchant_name",
+                    MaxMerchantNameLength),
 
-            GetRequiredDecimal(
-                element,
-                "amount"),
+            Amount:
+                GetRequiredAmount(
+                    element,
+                    "amount"),
 
-            GetOptionalString(
-                element,
-                "iso_currency_code"),
+            IsoCurrencyCode:
+                GetOptionalCurrencyCode(
+                    element,
+                    "iso_currency_code"),
 
-            GetRequiredDate(
-                element,
-                "date"),
+            PostedDate:
+                GetRequiredDate(
+                    element,
+                    "date"),
 
-            GetOptionalDate(
-                element,
-                "authorized_date"),
+            AuthorizedDate:
+                GetOptionalDate(
+                    element,
+                    "authorized_date"),
 
-            GetRequiredBoolean(
-                element,
-                "pending"),
+            IsPending:
+                GetRequiredBoolean(
+                    element,
+                    "pending"),
 
-            categoryPrimary,
-            categoryDetailed);
+            CategoryPrimary:
+                categoryPrimary,
+
+            CategoryDetailed:
+                categoryDetailed);
     }
 
-    private static string GetRequiredString(
-        JsonElement element,
-        string propertyName)
-    {
-        var value =
-            GetOptionalString(
-                element,
-                propertyName);
-
-        if (string.IsNullOrWhiteSpace(
-                value))
-        {
-            throw new InvalidOperationException(
-                $"Plaid transaction is missing required field '{propertyName}'.");
-        }
-
-        return value;
-    }
-
-    private static string? GetOptionalString(
-        JsonElement element,
-        string propertyName)
-    {
-        if (!element.TryGetProperty(
-                propertyName,
-                out var propertyElement) ||
-            propertyElement.ValueKind ==
-                JsonValueKind.Null)
-        {
-            return null;
-        }
-
-        return propertyElement.GetString();
-    }
-
-    private static decimal GetRequiredDecimal(
+    private static decimal GetRequiredAmount(
         JsonElement element,
         string propertyName)
     {
@@ -498,7 +953,30 @@ public sealed class PlaidTransactionSyncService
                 out var value))
         {
             throw new InvalidOperationException(
-                $"Plaid transaction is missing required field '{propertyName}'.");
+                "Plaid returned an invalid transaction amount.");
+        }
+
+        if (value <
+                -MaxStoredAmount ||
+            value >
+                MaxStoredAmount)
+        {
+            throw new InvalidOperationException(
+                "Plaid transaction amount exceeds the supported range.");
+        }
+
+        /*
+         * The database stores two decimal places. Reject values that would
+         * otherwise be silently rounded during persistence.
+         */
+        if (decimal.Round(
+                value,
+                2,
+                MidpointRounding.ToEven) !=
+            value)
+        {
+            throw new InvalidOperationException(
+                "Plaid transaction amount exceeds supported cent precision.");
         }
 
         return value;
@@ -516,7 +994,7 @@ public sealed class PlaidTransactionSyncService
                 JsonValueKind.False)
         {
             throw new InvalidOperationException(
-                $"Plaid transaction is missing required field '{propertyName}'.");
+                "Plaid returned an invalid transaction boolean field.");
         }
 
         return propertyElement.GetBoolean();
@@ -526,24 +1004,35 @@ public sealed class PlaidTransactionSyncService
         JsonElement element,
         string propertyName)
     {
-        var value =
-            GetOptionalDate(
-                element,
-                propertyName);
-
-        return value
-            ?? throw new InvalidOperationException(
-                $"Plaid transaction is missing required field '{propertyName}'.");
+        return GetOptionalDate(
+                   element,
+                   propertyName)
+               ?? throw new InvalidOperationException(
+                   "Plaid returned an invalid required transaction date.");
     }
 
     private static DateOnly? GetOptionalDate(
         JsonElement element,
         string propertyName)
     {
+        if (!element.TryGetProperty(
+                propertyName,
+                out var propertyElement) ||
+            propertyElement.ValueKind ==
+                JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (propertyElement.ValueKind !=
+            JsonValueKind.String)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid transaction date.");
+        }
+
         var value =
-            GetOptionalString(
-                element,
-                propertyName);
+            propertyElement.GetString();
 
         if (string.IsNullOrWhiteSpace(
                 value))
@@ -559,10 +1048,272 @@ public sealed class PlaidTransactionSyncService
                 out var date))
         {
             throw new InvalidOperationException(
-                $"Plaid returned an invalid date for '{propertyName}'.");
+                "Plaid returned an invalid transaction date.");
         }
 
         return date;
+    }
+
+    private static string?
+        GetOptionalCurrencyCode(
+            JsonElement element,
+            string propertyName)
+    {
+        if (!element.TryGetProperty(
+                propertyName,
+                out var propertyElement) ||
+            propertyElement.ValueKind ==
+                JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (propertyElement.ValueKind !=
+            JsonValueKind.String)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid currency code.");
+        }
+
+        var value =
+            propertyElement.GetString();
+
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return null;
+        }
+
+        var normalized =
+            value.Trim()
+                .ToUpperInvariant();
+
+        if (normalized.Length !=
+                3 ||
+            normalized.Any(
+                character =>
+                    !char.IsAsciiLetter(
+                        character)))
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid currency code.");
+        }
+
+        return normalized;
+    }
+
+    private static string GetRequiredOpaqueString(
+        JsonElement element,
+        string propertyName,
+        int maxLength)
+    {
+        var value =
+            GetOptionalOpaqueString(
+                element,
+                propertyName,
+                maxLength);
+
+        if (value is null)
+        {
+            throw new InvalidOperationException(
+                "Plaid transaction is missing a required identifier.");
+        }
+
+        return value;
+    }
+
+    private static string? GetOptionalOpaqueString(
+        JsonElement element,
+        string propertyName,
+        int maxLength)
+    {
+        if (!element.TryGetProperty(
+                propertyName,
+                out var propertyElement) ||
+            propertyElement.ValueKind ==
+                JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (propertyElement.ValueKind !=
+            JsonValueKind.String)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid transaction identifier.");
+        }
+
+        var value =
+            propertyElement.GetString();
+
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return null;
+        }
+
+        if (value.Length >
+                maxLength ||
+            value.Any(
+                char.IsControl))
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid transaction identifier.");
+        }
+
+        return value;
+    }
+
+    private static string GetRequiredDisplayString(
+        JsonElement element,
+        string propertyName,
+        int maxLength)
+    {
+        var value =
+            GetOptionalDisplayString(
+                element,
+                propertyName,
+                maxLength);
+
+        if (value is null)
+        {
+            throw new InvalidOperationException(
+                "Plaid transaction is missing a required display field.");
+        }
+
+        return value;
+    }
+
+    private static string? GetOptionalDisplayString(
+        JsonElement element,
+        string propertyName,
+        int maxLength)
+    {
+        if (!element.TryGetProperty(
+                propertyName,
+                out var propertyElement) ||
+            propertyElement.ValueKind ==
+                JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (propertyElement.ValueKind !=
+            JsonValueKind.String)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid transaction display field.");
+        }
+
+        return NormalizeDisplayText(
+            propertyElement.GetString(),
+            maxLength);
+    }
+
+    private static string? NormalizeDisplayText(
+        string? value,
+        int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return null;
+        }
+
+        var builder =
+            new StringBuilder(
+                Math.Min(
+                    value.Length,
+                    maxLength));
+
+        var previousWasWhitespace =
+            false;
+
+        foreach (var character in
+                 value.Trim())
+        {
+            if (char.IsControl(
+                    character) &&
+                !char.IsWhiteSpace(
+                    character))
+            {
+                continue;
+            }
+
+            if (char.IsWhiteSpace(
+                    character))
+            {
+                if (previousWasWhitespace ||
+                    builder.Length ==
+                        0)
+                {
+                    continue;
+                }
+
+                if (builder.Length >=
+                    maxLength)
+                {
+                    break;
+                }
+
+                builder.Append(
+                    ' ');
+
+                previousWasWhitespace =
+                    true;
+
+                continue;
+            }
+
+            if (builder.Length >=
+                maxLength)
+            {
+                break;
+            }
+
+            builder.Append(
+                character);
+
+            previousWasWhitespace =
+                false;
+        }
+
+        var normalized =
+            builder
+                .ToString()
+                .Trim();
+
+        return normalized.Length ==
+            0
+            ? null
+            : normalized;
+    }
+
+    private static string?
+        ValidateStoredCursor(
+            string? cursor)
+    {
+        if (cursor is null)
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                cursor))
+        {
+            return null;
+        }
+
+        if (cursor.Length >
+                MaxCursorLength ||
+            cursor.Any(
+                char.IsControl))
+        {
+            throw new InvalidOperationException(
+                "Stored Plaid transaction cursor is invalid.");
+        }
+
+        return cursor;
     }
 
     private sealed record PlaidTransactionData(
@@ -577,6 +1328,12 @@ public sealed class PlaidTransactionSyncService
         bool IsPending,
         string? CategoryPrimary,
         string? CategoryDetailed);
+
+    private sealed record PlaidTransactionDelta(
+        IReadOnlyList<PlaidTransactionData> Added,
+        IReadOnlyList<PlaidTransactionData> Modified,
+        IReadOnlyList<string> RemovedIds,
+        string NextCursor);
 }
 
 public sealed record PlaidTransactionConnectionSyncResult(

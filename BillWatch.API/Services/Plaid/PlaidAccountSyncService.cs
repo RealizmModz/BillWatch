@@ -1,43 +1,112 @@
-﻿using BillWatch.API.Data;
+﻿using System.Text;
+using System.Text.Json;
+using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace BillWatch.API.Services.Plaid;
 
 public sealed class PlaidAccountSyncService
 {
-    private readonly BillWatchDbContext _dbContext;
-    private readonly PlaidApiClient _plaidApiClient;
-    private readonly PlaidTokenProtector _tokenProtector;
+    private const int MaxAccountsPerResponse =
+        1_000;
+
+    private const int MaxPlaidAccountIdLength =
+        200;
+
+    private const int MaxAccountNameLength =
+        200;
+
+    private const int MaxOfficialNameLength =
+        300;
+
+    private const int MaxMaskLength =
+        10;
+
+    private const int MaxPlaidTypeLength =
+        50;
+
+    private const int MaxPlaidSubtypeLength =
+        100;
+
+    private readonly BillWatchDbContext
+        _dbContext;
+
+    private readonly PlaidApiClient
+        _plaidApiClient;
+
+    private readonly PlaidTokenProtector
+        _tokenProtector;
 
     public PlaidAccountSyncService(
         BillWatchDbContext dbContext,
         PlaidApiClient plaidApiClient,
         PlaidTokenProtector tokenProtector)
     {
-        _dbContext = dbContext;
-        _plaidApiClient = plaidApiClient;
-        _tokenProtector = tokenProtector;
+        ArgumentNullException.ThrowIfNull(
+            dbContext);
+
+        ArgumentNullException.ThrowIfNull(
+            plaidApiClient);
+
+        ArgumentNullException.ThrowIfNull(
+            tokenProtector);
+
+        _dbContext =
+            dbContext;
+
+        _plaidApiClient =
+            plaidApiClient;
+
+        _tokenProtector =
+            tokenProtector;
     }
 
-    public async Task<PlaidAccountSyncSummary> SyncAllAccountsAsync(
-        Guid userId,
-        CancellationToken cancellationToken = default)
+    public async Task<PlaidAccountSyncSummary>
+        SyncAllAccountsAsync(
+            Guid userId,
+            CancellationToken cancellationToken = default)
     {
+        if (userId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A valid user ID is required.",
+                nameof(userId));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
         var connectionIds =
             await _dbContext.BankConnections
-                .Where(connection =>
-                    connection.UserId == userId &&
-                    connection.Status == BankConnectionStatus.Active &&
-                    connection.ProtectedPlaidAccessToken != null)
-                .Select(connection => connection.Id)
-                .ToListAsync(cancellationToken);
+                .AsNoTracking()
+                .Where(
+                    connection =>
+                        connection.UserId ==
+                            userId &&
+                        connection.Status ==
+                            BankConnectionStatus.Active &&
+                        connection.ProtectedPlaidAccessToken !=
+                            null &&
+                        connection.ProtectedPlaidAccessToken !=
+                            string.Empty)
+                .OrderBy(
+                    connection =>
+                        connection.Id)
+                .Select(
+                    connection =>
+                        connection.Id)
+                .ToListAsync(
+                    cancellationToken);
 
-        var totalAccountsSynced = 0;
+        var totalAccountsSynced =
+            0;
 
-        foreach (var connectionId in connectionIds)
+        foreach (var connectionId in
+                 connectionIds)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             totalAccountsSynced +=
                 await SyncAccountsAsync(
                     userId,
@@ -55,12 +124,37 @@ public sealed class PlaidAccountSyncService
         Guid bankConnectionId,
         CancellationToken cancellationToken = default)
     {
+        if (userId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A valid user ID is required.",
+                nameof(userId));
+        }
+
+        if (bankConnectionId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A valid bank connection ID is required.",
+                nameof(bankConnectionId));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        /*
+         * UserId + resource ID is the ownership boundary. A connection
+         * belonging to another user is indistinguishable from one that
+         * does not exist.
+         */
         var connection =
             await _dbContext.BankConnections
                 .SingleOrDefaultAsync(
                     existing =>
-                        existing.Id == bankConnectionId &&
-                        existing.UserId == userId,
+                        existing.Id ==
+                            bankConnectionId &&
+                        existing.UserId ==
+                            userId,
                     cancellationToken);
 
         if (connection is null)
@@ -82,122 +176,146 @@ public sealed class PlaidAccountSyncService
 
         using var response =
             await _plaidApiClient.PostAsync(
-                "/accounts/get",
+                "accounts/get",
                 new
                 {
-                    access_token = accessToken
+                    access_token =
+                        accessToken
                 },
                 cancellationToken);
 
-        if (!response.RootElement.TryGetProperty(
-                "accounts",
-                out var accountsElement) ||
-            accountsElement.ValueKind !=
-                JsonValueKind.Array)
+        var plaidAccounts =
+            ParseAccounts(
+                response.RootElement);
+
+        var activePlaidAccountIds =
+            plaidAccounts
+                .Select(
+                    account =>
+                        account.PlaidAccountId)
+                .ToArray();
+
+        /*
+         * A provider account identifier must never silently migrate from
+         * one BillWatch BankConnection to another.
+         */
+        if (activePlaidAccountIds.Length >
+            0)
         {
-            throw new InvalidOperationException(
-                "Plaid did not return an accounts collection.");
+            var conflictingAccountExists =
+                await _dbContext.BankAccounts
+                    .AsNoTracking()
+                    .AnyAsync(
+                        account =>
+                            account.UserId ==
+                                userId &&
+                            account.BankConnectionId !=
+                                bankConnectionId &&
+                            activePlaidAccountIds.Contains(
+                                account.PlaidAccountId),
+                        cancellationToken);
+
+            if (conflictingAccountExists)
+            {
+                throw new InvalidOperationException(
+                    "Plaid account identity conflicts with another bank connection.");
+            }
         }
+
+        /*
+         * Load this connection's accounts once instead of issuing one
+         * database query for every provider account.
+         */
+        var existingConnectionAccounts =
+            await _dbContext.BankAccounts
+                .Where(
+                    account =>
+                        account.UserId ==
+                            userId &&
+                        account.BankConnectionId ==
+                            bankConnectionId)
+                .ToListAsync(
+                    cancellationToken);
+
+        var existingByPlaidId =
+            existingConnectionAccounts
+                .ToDictionary(
+                    account =>
+                        account.PlaidAccountId,
+                    StringComparer.Ordinal);
 
         var now =
             DateTimeOffset.UtcNow;
 
-        var activePlaidAccountIds =
+        var activeIdSet =
             new HashSet<string>(
+                activePlaidAccountIds,
                 StringComparer.Ordinal);
 
-        var syncedCount = 0;
-
         foreach (var plaidAccount in
-                 accountsElement.EnumerateArray())
+                 plaidAccounts)
         {
-            var plaidAccountId =
-                GetRequiredString(
-                    plaidAccount,
-                    "account_id");
-
-            activePlaidAccountIds.Add(
-                plaidAccountId);
-
-            var account =
-                await _dbContext.BankAccounts
-                    .SingleOrDefaultAsync(
-                        existing =>
-                            existing.UserId == userId &&
-                            existing.PlaidAccountId == plaidAccountId,
-                        cancellationToken);
-
-            if (account is null)
+            if (!existingByPlaidId.TryGetValue(
+                    plaidAccount.PlaidAccountId,
+                    out var account))
             {
                 account =
                     new BankAccountEntity
                     {
-                        UserId = userId,
-                        BankConnectionId = bankConnectionId,
-                        PlaidAccountId = plaidAccountId,
-                        CreatedAtUtc = now
+                        UserId =
+                            userId,
+
+                        BankConnectionId =
+                            bankConnectionId,
+
+                        PlaidAccountId =
+                            plaidAccount.PlaidAccountId,
+
+                        CreatedAtUtc =
+                            now
                     };
 
                 _dbContext.BankAccounts.Add(
                     account);
+
+                existingByPlaidId.Add(
+                    plaidAccount.PlaidAccountId,
+                    account);
             }
 
-            account.BankConnectionId =
-                bankConnectionId;
-
             account.Name =
-                GetRequiredString(
-                    plaidAccount,
-                    "name");
+                plaidAccount.Name;
 
             account.OfficialName =
-                GetOptionalString(
-                    plaidAccount,
-                    "official_name");
+                plaidAccount.OfficialName;
 
             account.Mask =
-                GetOptionalString(
-                    plaidAccount,
-                    "mask");
-
-            var plaidType =
-                GetRequiredString(
-                    plaidAccount,
-                    "type");
-
-            var plaidSubtype =
-                GetOptionalString(
-                    plaidAccount,
-                    "subtype");
+                plaidAccount.Mask;
 
             account.AccountType =
                 MapAccountType(
-                    plaidType,
-                    plaidSubtype);
+                    plaidAccount.PlaidType,
+                    plaidAccount.PlaidSubtype);
 
             account.AccountSubtype =
-                plaidSubtype;
+                plaidAccount.PlaidSubtype;
 
             account.IsActive =
                 true;
 
             account.UpdatedAtUtc =
                 now;
-
-            syncedCount++;
         }
 
-        var existingConnectionAccounts =
-            await _dbContext.BankAccounts
-                .Where(account =>
-                    account.UserId == userId &&
-                    account.BankConnectionId == bankConnectionId)
-                .ToListAsync(cancellationToken);
-
+        /*
+         * Accounts absent from the provider's current account collection
+         * become inactive. They are not deleted because historical
+         * transactions may still reference them.
+         */
         foreach (var account in
                  existingConnectionAccounts)
         {
-            if (!activePlaidAccountIds.Contains(
+            if (!activeIdSet.Contains(
                     account.PlaidAccountId))
             {
                 account.IsActive =
@@ -208,16 +326,125 @@ public sealed class PlaidAccountSyncService
             }
         }
 
+        connection.Status =
+            BankConnectionStatus.Active;
+
         connection.LastSuccessfulSyncAtUtc =
             now;
 
         connection.UpdatedAtUtc =
             now;
 
+        /*
+         * All local account mutations and the successful-sync timestamp are
+         * committed together.
+         */
         await _dbContext.SaveChangesAsync(
             cancellationToken);
 
-        return syncedCount;
+        return plaidAccounts.Count;
+    }
+
+    private static IReadOnlyList<PlaidAccountData>
+        ParseAccounts(
+            JsonElement root)
+    {
+        if (root.ValueKind !=
+            JsonValueKind.Object)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid accounts response.");
+        }
+
+        if (!root.TryGetProperty(
+                "accounts",
+                out var accountsElement) ||
+            accountsElement.ValueKind !=
+                JsonValueKind.Array)
+        {
+            throw new InvalidOperationException(
+                "Plaid did not return a valid accounts collection.");
+        }
+
+        if (accountsElement.GetArrayLength() >
+            MaxAccountsPerResponse)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned too many accounts in one response.");
+        }
+
+        var accounts =
+            new List<PlaidAccountData>(
+                accountsElement.GetArrayLength());
+
+        var seenAccountIds =
+            new HashSet<string>(
+                StringComparer.Ordinal);
+
+        foreach (var element in
+                 accountsElement.EnumerateArray())
+        {
+            if (element.ValueKind !=
+                JsonValueKind.Object)
+            {
+                throw new InvalidOperationException(
+                    "Plaid returned an invalid account record.");
+            }
+
+            var plaidAccountId =
+                GetRequiredOpaqueString(
+                    element,
+                    "account_id",
+                    MaxPlaidAccountIdLength);
+
+            if (!seenAccountIds.Add(
+                    plaidAccountId))
+            {
+                throw new InvalidOperationException(
+                    "Plaid returned a duplicate account identifier.");
+            }
+
+            var name =
+                GetRequiredDisplayString(
+                    element,
+                    "name",
+                    MaxAccountNameLength);
+
+            var officialName =
+                GetOptionalDisplayString(
+                    element,
+                    "official_name",
+                    MaxOfficialNameLength);
+
+            var mask =
+                GetOptionalOpaqueString(
+                    element,
+                    "mask",
+                    MaxMaskLength);
+
+            var plaidType =
+                GetRequiredOpaqueString(
+                    element,
+                    "type",
+                    MaxPlaidTypeLength);
+
+            var plaidSubtype =
+                GetOptionalOpaqueString(
+                    element,
+                    "subtype",
+                    MaxPlaidSubtypeLength);
+
+            accounts.Add(
+                new PlaidAccountData(
+                    plaidAccountId,
+                    name,
+                    officialName,
+                    mask,
+                    plaidType,
+                    plaidSubtype));
+        }
+
+        return accounts;
     }
 
     private static BankAccountType MapAccountType(
@@ -255,20 +482,23 @@ public sealed class PlaidAccountSyncService
             "other"
                 => BankAccountType.Other,
 
-            _ => BankAccountType.Unknown
+            _ =>
+                BankAccountType.Unknown
         };
     }
 
-    private static string GetRequiredString(
+    private static string GetRequiredOpaqueString(
         JsonElement element,
-        string propertyName)
+        string propertyName,
+        int maxLength)
     {
         var value =
-            GetOptionalString(
+            GetOptionalOpaqueString(
                 element,
-                propertyName);
+                propertyName,
+                maxLength);
 
-        if (string.IsNullOrWhiteSpace(value))
+        if (value is null)
         {
             throw new InvalidOperationException(
                 $"Plaid account is missing required field '{propertyName}'.");
@@ -277,9 +507,10 @@ public sealed class PlaidAccountSyncService
         return value;
     }
 
-    private static string? GetOptionalString(
+    private static string? GetOptionalOpaqueString(
         JsonElement element,
-        string propertyName)
+        string propertyName,
+        int maxLength)
     {
         if (!element.TryGetProperty(
                 propertyName,
@@ -290,8 +521,169 @@ public sealed class PlaidAccountSyncService
             return null;
         }
 
-        return propertyElement.GetString();
+        if (propertyElement.ValueKind !=
+            JsonValueKind.String)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid account field.");
+        }
+
+        var value =
+            propertyElement.GetString();
+
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return null;
+        }
+
+        if (value.Length >
+                maxLength ||
+            value.Any(
+                char.IsControl))
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid account field.");
+        }
+
+        /*
+         * Opaque provider identifiers are preserved exactly.
+         */
+        return value;
     }
+
+    private static string GetRequiredDisplayString(
+        JsonElement element,
+        string propertyName,
+        int maxLength)
+    {
+        var value =
+            GetOptionalDisplayString(
+                element,
+                propertyName,
+                maxLength);
+
+        if (value is null)
+        {
+            throw new InvalidOperationException(
+                $"Plaid account is missing required field '{propertyName}'.");
+        }
+
+        return value;
+    }
+
+    private static string? GetOptionalDisplayString(
+        JsonElement element,
+        string propertyName,
+        int maxLength)
+    {
+        if (!element.TryGetProperty(
+                propertyName,
+                out var propertyElement) ||
+            propertyElement.ValueKind ==
+                JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        if (propertyElement.ValueKind !=
+            JsonValueKind.String)
+        {
+            throw new InvalidOperationException(
+                "Plaid returned an invalid account display field.");
+        }
+
+        return NormalizeDisplayText(
+            propertyElement.GetString(),
+            maxLength);
+    }
+
+    private static string? NormalizeDisplayText(
+        string? value,
+        int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return null;
+        }
+
+        var builder =
+            new StringBuilder(
+                Math.Min(
+                    value.Length,
+                    maxLength));
+
+        var previousWasWhitespace =
+            false;
+
+        foreach (var character in
+                 value.Trim())
+        {
+            if (char.IsControl(
+                    character) &&
+                !char.IsWhiteSpace(
+                    character))
+            {
+                continue;
+            }
+
+            if (char.IsWhiteSpace(
+                    character))
+            {
+                if (previousWasWhitespace ||
+                    builder.Length ==
+                        0)
+                {
+                    continue;
+                }
+
+                if (builder.Length >=
+                    maxLength)
+                {
+                    break;
+                }
+
+                builder.Append(
+                    ' ');
+
+                previousWasWhitespace =
+                    true;
+
+                continue;
+            }
+
+            if (builder.Length >=
+                maxLength)
+            {
+                break;
+            }
+
+            builder.Append(
+                character);
+
+            previousWasWhitespace =
+                false;
+        }
+
+        var normalized =
+            builder
+                .ToString()
+                .Trim();
+
+        return normalized.Length ==
+            0
+            ? null
+            : normalized;
+    }
+
+    private sealed record PlaidAccountData(
+        string PlaidAccountId,
+        string Name,
+        string? OfficialName,
+        string? Mask,
+        string PlaidType,
+        string? PlaidSubtype);
 }
 
 public sealed record PlaidAccountSyncSummary(

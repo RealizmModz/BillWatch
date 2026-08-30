@@ -6,6 +6,9 @@ namespace BillWatch.API.Services.Plaid;
 
 public sealed class PlaidConnectionDisconnectService
 {
+    private const string ItemNotFoundErrorCode =
+        "ITEM_NOT_FOUND";
+
     private readonly BillWatchDbContext
         _dbContext;
 
@@ -20,6 +23,15 @@ public sealed class PlaidConnectionDisconnectService
         PlaidApiClient plaidApiClient,
         PlaidTokenProtector tokenProtector)
     {
+        ArgumentNullException.ThrowIfNull(
+            dbContext);
+
+        ArgumentNullException.ThrowIfNull(
+            plaidApiClient);
+
+        ArgumentNullException.ThrowIfNull(
+            tokenProtector);
+
         _dbContext =
             dbContext;
 
@@ -35,12 +47,38 @@ public sealed class PlaidConnectionDisconnectService
         Guid connectionId,
         CancellationToken cancellationToken = default)
     {
+        if (userId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A valid user ID is required.",
+                nameof(userId));
+        }
+
+        if (connectionId ==
+            Guid.Empty)
+        {
+            throw new ArgumentException(
+                "A valid bank connection ID is required.",
+                nameof(connectionId));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        /*
+         * Resolve the resource using both UserId and connection ID.
+         *
+         * Cross-user manipulation therefore returns the same result as an
+         * unknown connection.
+         */
         var connection =
             await _dbContext.BankConnections
                 .SingleOrDefaultAsync(
                     item =>
-                        item.Id == connectionId &&
-                        item.UserId == userId,
+                        item.Id ==
+                            connectionId &&
+                        item.UserId ==
+                            userId,
                     cancellationToken);
 
         if (connection is null)
@@ -48,12 +86,12 @@ public sealed class PlaidConnectionDisconnectService
             return false;
         }
 
-        if (connection.Status ==
-            BankConnectionStatus.Disconnected)
-        {
-            return true;
-        }
-
+        /*
+         * If any protected provider credential remains, attempt provider
+         * revocation even if local state already says Disconnected.
+         *
+         * This repairs a possible partially completed previous operation.
+         */
         if (!string.IsNullOrWhiteSpace(
                 connection.ProtectedPlaidAccessToken))
         {
@@ -65,7 +103,7 @@ public sealed class PlaidConnectionDisconnectService
             {
                 using var response =
                     await _plaidApiClient.PostAsync(
-                        "/item/remove",
+                        "item/remove",
                         new
                         {
                             access_token =
@@ -76,16 +114,25 @@ public sealed class PlaidConnectionDisconnectService
             catch (PlaidApiException exception)
                 when (string.Equals(
                     exception.ErrorCode,
-                    "ITEM_NOT_FOUND",
+                    ItemNotFoundErrorCode,
                     StringComparison.OrdinalIgnoreCase))
             {
-                // Plaid already removed the item.
+                /*
+                 * Provider state is already equivalent to the requested
+                 * result. Continue with local credential removal.
+                 */
             }
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var now =
             DateTimeOffset.UtcNow;
 
+        /*
+         * Once provider revocation succeeds, remove the local credential
+         * and synchronization cursor before reporting success.
+         */
         connection.ProtectedPlaidAccessToken =
             null;
 
@@ -100,13 +147,22 @@ public sealed class PlaidConnectionDisconnectService
 
         var accounts =
             await _dbContext.BankAccounts
-                .Where(account =>
-                    account.UserId == userId &&
-                    account.BankConnectionId == connectionId)
+                .Where(
+                    account =>
+                        account.UserId ==
+                            userId &&
+                        account.BankConnectionId ==
+                            connectionId)
                 .ToListAsync(
                     cancellationToken);
 
-        foreach (var account in accounts)
+        /*
+         * Historical accounts and transactions remain available for
+         * BillWatch history, but disconnected accounts cannot be treated as
+         * currently active bank sources.
+         */
+        foreach (var account in
+                 accounts)
         {
             account.IsActive =
                 false;
@@ -115,6 +171,14 @@ public sealed class PlaidConnectionDisconnectService
                 now;
         }
 
+        /*
+         * The credential removal, disconnected status, and account
+         * deactivation are one local database commit.
+         *
+         * If cancellation or a database failure occurs after Plaid has
+         * already removed the Item, retrying is safe: ITEM_NOT_FOUND is
+         * treated as successful provider revocation.
+         */
         await _dbContext.SaveChangesAsync(
             cancellationToken);
 

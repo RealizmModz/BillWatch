@@ -62,5 +62,9 @@ public sealed class BillStatementExtractionRegistrationTests
         Assert.Null(
             scope.ServiceProvider.GetService<
                 BillStatementDeterministicPrivateCorpusEvaluator>());
+
+        Assert.Null(
+            scope.ServiceProvider.GetService<
+                BillStatementAiPrivateCorpusProviderEvaluator>());
     }
 }

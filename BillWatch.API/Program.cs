@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
@@ -11,9 +13,31 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
+const string AuthenticationRateLimitPolicy =
+    "authentication";
+
+const string StatementUploadRateLimitPolicy =
+    "statement-upload";
+
+const string AccountExportRateLimitPolicy =
+    "account-export";
+
+const string StatementDownloadRateLimitPolicy =
+    "statement-download";
+
 var builder =
     WebApplication.CreateBuilder(
         args);
+
+/*
+ * Do not advertise the web server implementation.
+ */
+builder.WebHost.ConfigureKestrel(
+    options =>
+    {
+        options.AddServerHeader =
+            false;
+    });
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -21,9 +45,14 @@ builder.Services.AddProblemDetails();
 
 var connectionString =
     builder.Configuration.GetConnectionString(
-        "BillWatchDatabase")
-    ?? throw new InvalidOperationException(
+        "BillWatchDatabase");
+
+if (string.IsNullOrWhiteSpace(
+        connectionString))
+{
+    throw new InvalidOperationException(
         "Connection string 'BillWatchDatabase' was not found.");
+}
 
 builder.Services.AddDbContext<BillWatchDbContext>(
     options =>
@@ -71,166 +100,136 @@ builder.Services.Configure<IdentityOptions>(
 
 builder.Services.AddAuthorization();
 
+/*
+ * Rate limiting is intentionally fail-closed.
+ *
+ * Authenticated requests use ownership-scoped user identifiers where
+ * possible. Anonymous traffic falls back to the remote IP.
+ *
+ * Prefixing partition keys prevents a user identifier from ever colliding
+ * with an IP address that happens to have the same textual representation.
+ */
 builder.Services.AddRateLimiter(
     options =>
     {
         options.RejectionStatusCode =
             StatusCodes.Status429TooManyRequests;
 
+        options.OnRejected =
+            static (
+                context,
+                _) =>
+            {
+                if (context.Lease.TryGetMetadata(
+                        MetadataName.RetryAfter,
+                        out var retryAfter))
+                {
+                    var seconds =
+                        Math.Max(
+                            1d,
+                            Math.Ceiling(
+                                retryAfter.TotalSeconds));
+
+                    context.HttpContext.Response.Headers[
+                        "Retry-After"] =
+                        seconds.ToString(
+                            CultureInfo.InvariantCulture);
+                }
+
+                return ValueTask.CompletedTask;
+            };
+
         options.GlobalLimiter =
             PartitionedRateLimiter.Create<
                 HttpContext,
                 string>(
                 httpContext =>
-                    RateLimitPartition.GetFixedWindowLimiter(
-                        partitionKey:
-                            httpContext.Connection
-                                .RemoteIpAddress?
-                                .ToString()
-                            ?? "unknown",
+                    CreateFixedWindowPartition(
+                        GetRateLimitPartitionKey(
+                            httpContext,
+                            preferAuthenticatedUser:
+                                true),
+                        permitLimit:
+                            300,
+                        window:
+                            TimeSpan.FromMinutes(
+                                1)));
 
-                        factory:
-                            _ =>
-                                new FixedWindowRateLimiterOptions
-                                {
-                                    PermitLimit =
-                                        300,
-
-                                    Window =
-                                        TimeSpan.FromMinutes(
-                                            1),
-
-                                    QueueLimit =
-                                        0,
-
-                                    AutoReplenishment =
-                                        true
-                                }));
+        /*
+         * Authentication endpoints remain IP-partitioned.
+         *
+         * Requests are anonymous before a successful sign-in, so using a
+         * claimed or supplied account identifier here would let a caller
+         * choose their own limiter partition.
+         */
+        options.AddPolicy(
+            AuthenticationRateLimitPolicy,
+            httpContext =>
+                CreateFixedWindowPartition(
+                    GetRateLimitPartitionKey(
+                        httpContext,
+                        preferAuthenticatedUser:
+                            false),
+                    permitLimit:
+                        20,
+                    window:
+                        TimeSpan.FromMinutes(
+                            1)));
 
         options.AddPolicy(
-            "authentication",
+            StatementUploadRateLimitPolicy,
             httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey:
-                        httpContext.Connection
-                            .RemoteIpAddress?
-                            .ToString()
-                        ?? "unknown",
-
-                    factory:
-                        _ =>
-                            new FixedWindowRateLimiterOptions
-                            {
-                                PermitLimit =
-                                    20,
-
-                                Window =
-                                    TimeSpan.FromMinutes(
-                                        1),
-
-                                QueueLimit =
-                                    0,
-
-                                AutoReplenishment =
-                                    true
-                            }));
+                CreateFixedWindowPartition(
+                    GetRateLimitPartitionKey(
+                        httpContext,
+                        preferAuthenticatedUser:
+                            true),
+                    permitLimit:
+                        12,
+                    window:
+                        TimeSpan.FromMinutes(
+                            10)));
 
         options.AddPolicy(
-            "statement-upload",
+            AccountExportRateLimitPolicy,
             httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey:
-                        httpContext.User.FindFirst(
-                            System.Security.Claims.ClaimTypes.NameIdentifier)?
-                            .Value
-                        ?? httpContext.Connection
-                            .RemoteIpAddress?
-                            .ToString()
-                        ?? "unknown",
-
-                    factory:
-                        _ =>
-                            new FixedWindowRateLimiterOptions
-                            {
-                                PermitLimit =
-                                    12,
-
-                                Window =
-                                    TimeSpan.FromMinutes(
-                                        10),
-
-                                QueueLimit =
-                                    0,
-
-                                AutoReplenishment =
-                                    true
-                            }));
+                CreateFixedWindowPartition(
+                    GetRateLimitPartitionKey(
+                        httpContext,
+                        preferAuthenticatedUser:
+                            true),
+                    permitLimit:
+                        5,
+                    window:
+                        TimeSpan.FromHours(
+                            1)));
 
         options.AddPolicy(
-            "account-export",
+            StatementDownloadRateLimitPolicy,
             httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey:
-                        httpContext.User.FindFirst(
-                            System.Security.Claims.ClaimTypes.NameIdentifier)?
-                            .Value
-                        ?? httpContext.Connection
-                            .RemoteIpAddress?
-                            .ToString()
-                        ?? "unknown",
-
-                    factory:
-                        _ =>
-                            new FixedWindowRateLimiterOptions
-                            {
-                                PermitLimit =
-                                    5,
-
-                                Window =
-                                    TimeSpan.FromHours(
-                                        1),
-
-                                QueueLimit =
-                                    0,
-
-                                AutoReplenishment =
-                                    true
-                            }));
-
-        options.AddPolicy(
-            "statement-download",
-            httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey:
-                        httpContext.User.FindFirst(
-                            System.Security.Claims.ClaimTypes.NameIdentifier)?
-                            .Value
-                        ?? httpContext.Connection
-                            .RemoteIpAddress?
-                            .ToString()
-                        ?? "unknown",
-
-                    factory:
-                        _ =>
-                            new FixedWindowRateLimiterOptions
-                            {
-                                PermitLimit =
-                                    30,
-
-                                Window =
-                                    TimeSpan.FromMinutes(
-                                        10),
-
-                                QueueLimit =
-                                    0,
-
-                                AutoReplenishment =
-                                    true
-                            }));
+                CreateFixedWindowPartition(
+                    GetRateLimitPartitionKey(
+                        httpContext,
+                        preferAuthenticatedUser:
+                            true),
+                    permitLimit:
+                        30,
+                    window:
+                        TimeSpan.FromMinutes(
+                            10)));
     });
 
+/*
+ * Use the same application discriminator in every environment.
+ *
+ * Production additionally requires a persistent key location so encrypted
+ * Plaid credentials and Identity/Data Protection material survive restarts.
+ */
 var dataProtectionBuilder =
-    builder.Services.AddDataProtection();
+    builder.Services
+        .AddDataProtection()
+        .SetApplicationName(
+            "BillWatch");
 
 var configuredDataProtectionPath =
     builder.Configuration[
@@ -239,6 +238,14 @@ var configuredDataProtectionPath =
 if (!string.IsNullOrWhiteSpace(
         configuredDataProtectionPath))
 {
+    if (!builder.Environment.IsDevelopment() &&
+        !Path.IsPathFullyQualified(
+            configuredDataProtectionPath))
+    {
+        throw new InvalidOperationException(
+            "DataProtection:KeysPath must be an absolute path outside development.");
+    }
+
     var dataProtectionKeysPath =
         Path.GetFullPath(
             configuredDataProtectionPath);
@@ -247,8 +254,6 @@ if (!string.IsNullOrWhiteSpace(
         dataProtectionKeysPath);
 
     dataProtectionBuilder
-        .SetApplicationName(
-            "BillWatch")
         .PersistKeysToFileSystem(
             new DirectoryInfo(
                 dataProtectionKeysPath));
@@ -263,14 +268,27 @@ var configuredStatementStoragePath =
     builder.Configuration[
         $"{BillStatementStorageOptions.SectionName}:RootPath"];
 
-if (!builder.Environment.IsDevelopment() &&
-    string.IsNullOrWhiteSpace(
-        configuredStatementStoragePath))
+if (!builder.Environment.IsDevelopment())
 {
-    throw new InvalidOperationException(
-        "BillStatementStorage:RootPath must be configured outside development.");
+    if (string.IsNullOrWhiteSpace(
+            configuredStatementStoragePath))
+    {
+        throw new InvalidOperationException(
+            "BillStatementStorage:RootPath must be configured outside development.");
+    }
+
+    if (!Path.IsPathFullyQualified(
+            configuredStatementStoragePath))
+    {
+        throw new InvalidOperationException(
+            "BillStatementStorage:RootPath must be an absolute path outside development.");
+    }
 }
 
+/*
+ * Validate production-sensitive configuration before the host begins
+ * accepting traffic.
+ */
 if (!builder.Environment.IsDevelopment())
 {
     var plaidClientId =
@@ -306,9 +324,30 @@ if (!builder.Environment.IsDevelopment())
     }
 }
 
-builder.Services.Configure<PlaidOptions>(
-    builder.Configuration.GetSection(
-        PlaidOptions.SectionName));
+/*
+ * Plaid options are validated on startup even during development.
+ *
+ * Missing local credentials remain allowed so developers can work on
+ * non-Plaid areas, but an invalid environment value must never silently
+ * fall back to another Plaid environment.
+ */
+builder.Services
+    .AddOptions<PlaidOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            PlaidOptions.SectionName))
+    .Validate(
+        options =>
+            string.Equals(
+                options.Environment,
+                "sandbox",
+                StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(
+                options.Environment,
+                "production",
+                StringComparison.OrdinalIgnoreCase),
+        "Plaid:Environment must be either 'sandbox' or 'production'.")
+    .ValidateOnStart();
 
 builder.Services.AddHttpClient<PlaidApiClient>();
 
@@ -375,11 +414,11 @@ builder.Services.AddScoped<
     BillStatementDocumentTextReader>();
 
 /*
- * Deterministic extraction remains the active implementation today.
+ * Deterministic extraction remains the only runtime extraction strategy
+ * allowed to influence persistence.
  *
- * Statement processing depends only on the extraction interface, so a
- * future AI-assisted/provider/hybrid implementation can replace or
- * supplement this without changing controllers or the MAUI client.
+ * AI infrastructure exists for explicitly controlled evaluation, but it is
+ * not registered as IBillStatementExtractionService.
  */
 builder.Services.AddSingleton<
     DeterministicBillStatementParser>();
@@ -419,8 +458,21 @@ builder.Services.AddSingleton<
     IValidateOptions<BillStatementAiShadowOptions>,
     BillStatementAiShadowOptionsValidator>();
 
+/*
+ * OpenAiBillStatementAiExtractor owns its request timeout with a linked
+ * cancellation token.
+ *
+ * Disable HttpClient's independent 100-second timeout so two unrelated
+ * timeout mechanisms cannot race each other and produce an unsanitized
+ * cancellation path.
+ */
 builder.Services.AddHttpClient<
-    OpenAiBillStatementAiExtractor>();
+    OpenAiBillStatementAiExtractor>(
+    client =>
+    {
+        client.Timeout =
+            Timeout.InfiniteTimeSpan;
+    });
 
 builder.Services.AddTransient<
     IBillStatementAiExtractor>(
@@ -460,50 +512,97 @@ var app =
 
 if (app.Environment.IsDevelopment())
 {
+    /*
+     * OpenAPI is deliberately unavailable outside development.
+     */
     app.MapOpenApi();
 }
 else
 {
+    /*
+     * Production exception responses are generated through Problem Details
+     * rather than exposing exception details to callers.
+     */
     app.UseExceptionHandler();
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 
+/*
+ * Security and privacy headers are applied at response-start time so later
+ * middleware or endpoints cannot accidentally replace BillWatch's required
+ * values.
+ */
 app.Use(
-    async (context, next) =>
+    async (
+        context,
+        next) =>
     {
-        context.Response.Headers[
-            "X-Content-Type-Options"] =
-            "nosniff";
+        context.Response.OnStarting(
+            () =>
+            {
+                context.Response.Headers[
+                    "X-Content-Type-Options"] =
+                    "nosniff";
 
-        context.Response.Headers[
-            "X-Frame-Options"] =
-            "DENY";
+                context.Response.Headers[
+                    "X-Frame-Options"] =
+                    "DENY";
 
-        context.Response.Headers[
-            "Referrer-Policy"] =
-            "no-referrer";
+                context.Response.Headers[
+                    "Referrer-Policy"] =
+                    "no-referrer";
 
-        context.Response.Headers[
-            "Permissions-Policy"] =
-            "camera=(), microphone=(), geolocation=()";
+                context.Response.Headers[
+                    "Permissions-Policy"] =
+                    "camera=(), microphone=(), geolocation=()";
 
-        if (context.Request.Path.StartsWithSegments(
-                "/api"))
-        {
-            context.Response.Headers[
-                "Cache-Control"] =
-                "no-store, max-age=0";
+                context.Response.Headers[
+                    "Content-Security-Policy"] =
+                    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 
-            context.Response.Headers[
-                "Pragma"] =
-                "no-cache";
-        }
+                context.Response.Headers[
+                    "X-Permitted-Cross-Domain-Policies"] =
+                    "none";
+
+                /*
+                 * Financial and authentication API responses must never be
+                 * stored by browsers or intermediary caches.
+                 *
+                 * Health responses are also marked no-store so an
+                 * orchestrator cannot receive a stale readiness result.
+                 */
+                if (context.Request.Path.StartsWithSegments(
+                        "/api") ||
+                    context.Request.Path.StartsWithSegments(
+                        "/health"))
+                {
+                    context.Response.Headers[
+                        "Cache-Control"] =
+                        "no-store, no-cache, max-age=0, must-revalidate";
+
+                    context.Response.Headers[
+                        "Pragma"] =
+                        "no-cache";
+
+                    context.Response.Headers[
+                        "Expires"] =
+                        "0";
+                }
+
+                return Task.CompletedTask;
+            });
 
         await next();
     });
 
+/*
+ * Authentication intentionally precedes named rate-limit policies because
+ * sensitive BillWatch endpoints are partitioned by authenticated UserId.
+ *
+ * Anonymous callers still fall back to an IP-scoped partition.
+ */
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
@@ -525,19 +624,40 @@ app.MapGet(
             BillWatchDbContext dbContext,
             CancellationToken cancellationToken) =>
         {
-            var canConnect =
-                await dbContext.Database.CanConnectAsync(
+            /*
+             * Readiness must fail quickly rather than leave an orchestrator
+             * waiting on a stalled database connection.
+             */
+            using var readinessTimeout =
+                CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken);
 
-            return canConnect
-                ? Results.Ok(
-                    new
-                    {
-                        status =
-                            "ready"
-                    })
-                : Results.StatusCode(
+            readinessTimeout.CancelAfter(
+                TimeSpan.FromSeconds(
+                    5));
+
+            try
+            {
+                var canConnect =
+                    await dbContext.Database.CanConnectAsync(
+                        readinessTimeout.Token);
+
+                return canConnect
+                    ? Results.Ok(
+                        new
+                        {
+                            status =
+                                "ready"
+                        })
+                    : Results.StatusCode(
+                        StatusCodes.Status503ServiceUnavailable);
+            }
+            catch (OperationCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return Results.StatusCode(
                     StatusCodes.Status503ServiceUnavailable);
+            }
         })
     .AllowAnonymous();
 
@@ -547,9 +667,94 @@ var authenticationGroup =
     app.MapGroup(
             "/api/auth")
         .RequireRateLimiting(
-            "authentication");
+            AuthenticationRateLimitPolicy);
 
 authenticationGroup
     .MapIdentityApi<ApplicationUser>();
 
 app.Run();
+
+static string GetRateLimitPartitionKey(
+    HttpContext httpContext,
+    bool preferAuthenticatedUser)
+{
+    ArgumentNullException.ThrowIfNull(
+        httpContext);
+
+    if (preferAuthenticatedUser &&
+        httpContext.User.Identity?.IsAuthenticated ==
+            true)
+    {
+        var userId =
+            httpContext.User.FindFirst(
+                    ClaimTypes.NameIdentifier)?
+                .Value;
+
+        if (!string.IsNullOrWhiteSpace(
+                userId))
+        {
+            return
+                $"user:{userId}";
+        }
+    }
+
+    var remoteIpAddress =
+        httpContext.Connection
+            .RemoteIpAddress?
+            .ToString();
+
+    /*
+     * Use one shared fallback instead of a connection-specific value.
+     * A per-connection fallback would let an abusive caller bypass the
+     * limiter simply by opening new connections.
+     */
+    return string.IsNullOrWhiteSpace(
+            remoteIpAddress)
+        ? "ip:unknown"
+        : $"ip:{remoteIpAddress}";
+}
+
+static RateLimitPartition<string>
+    CreateFixedWindowPartition(
+        string partitionKey,
+        int permitLimit,
+        TimeSpan window)
+{
+    ArgumentException.ThrowIfNullOrWhiteSpace(
+        partitionKey);
+
+    if (permitLimit <=
+        0)
+    {
+        throw new ArgumentOutOfRangeException(
+            nameof(permitLimit));
+    }
+
+    if (window <=
+        TimeSpan.Zero)
+    {
+        throw new ArgumentOutOfRangeException(
+            nameof(window));
+    }
+
+    return RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey:
+            partitionKey,
+
+        factory:
+            _ =>
+                new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit =
+                        permitLimit,
+
+                    Window =
+                        window,
+
+                    QueueLimit =
+                        0,
+
+                    AutoReplenishment =
+                        true
+                });
+}
