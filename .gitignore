@@ -10,6 +10,11 @@
 *.userosscache
 *.sln.docstates
 
+# Private financial statement corpus: never commit raw statement text,
+# OCR output, reviewer truth, or provider/model results.
+.private/BillWatch.AiShadowCorpus/
+BillWatch.AiShadowCorpus/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

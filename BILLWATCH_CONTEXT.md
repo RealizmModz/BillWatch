@@ -139,6 +139,8 @@ Durable AI attempt accounting now has an ownership-scoped `BillStatementAiEvalua
 
 Server configuration now has a separate fail-closed `StatementAi:Shadow` section. A future provider attempt requires shadow mode, shadow provider calls, and the provider itself to be explicitly enabled; the coordinator checks this policy before acquiring a durable cost claim. The activation decision can never authorize AI-derived persistence. Shadow orchestration remains unregistered and the default configuration disables both shadow switches.
 
+The repository now ignores the only supported temporary in-repo private corpus location, `.private/BillWatch.AiShadowCorpus/`. `BillStatementAiPrivateCorpusPathPolicy` permits a future offline runner to resolve only `statement.txt` and `ground-truth.json` beneath an explicitly configured absolute corpus root and a safe case identifier; traversal and arbitrary file names are rejected before any file read. No corpus loader or corpus data is in the runtime application.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
