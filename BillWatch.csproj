@@ -11,6 +11,7 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<BillWatchApiBaseUrl Condition="'$(BillWatchApiBaseUrl)' == '' and '$(Configuration)' == 'Debug'">https://localhost:7243</BillWatchApiBaseUrl>
 
 		<MauiXamlInflator>SourceGen</MauiXamlInflator>
 
@@ -35,6 +36,22 @@
 			BillWatch.Tests\**\*
 		</DefaultItemExcludes>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>BillWatchApiBaseUrl</_Parameter1>
+			<_Parameter2>$(BillWatchApiBaseUrl)</_Parameter2>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<Target Name="ValidateBillWatchApiBaseUrl"
+			BeforeTargets="BeforeBuild"
+			Condition="'$(Configuration)' == 'Release'">
+		<Error Condition="'$(BillWatchApiBaseUrl)' == ''"
+			   Text="Release builds require -p:BillWatchApiBaseUrl=https://your-api-host/." />
+		<Error Condition="!$([System.String]::Copy('$(BillWatchApiBaseUrl)').StartsWith('https://'))"
+			   Text="Release builds require an HTTPS BillWatchApiBaseUrl." />
+	</Target>
 
 	<ItemGroup>
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />

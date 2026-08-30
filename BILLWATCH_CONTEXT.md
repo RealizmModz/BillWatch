@@ -1,6 +1,6 @@
 # BillWatch Current Context
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 ## Product promise
 
@@ -157,6 +157,8 @@ Each statement-upload entry in that export now includes a safe API download path
 
 Authentication now runs before the rate-limiter partition decision, so protected endpoint policies can actually partition by authenticated user while unauthenticated traffic remains globally IP-limited. Account exports are limited to 5 per user per hour, and original statement downloads to 30 per user per 10 minutes. End-to-end tests verify enforcement and that one user's export limit does not consume another user's allowance.
 
+The MAUI client API origin is now supplied through the `BillWatchApiBaseUrl` build property instead of a runtime hard-coded address. Debug builds default to the existing local HTTPS endpoint. Release builds fail at build time without an explicit HTTPS value, and runtime validation rejects credentials, paths, queries, fragments, loopback/local hosts, and numeric hosts in release mode. Once hosting is selected, build with `-p:BillWatchApiBaseUrl=https://the-deployed-host/`; no API key or other secret belongs in this property.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
@@ -164,7 +166,7 @@ The next activation checkpoint requires a ground-truth statement corpus, measure
 1. Clean Visual Studio build and full test suite.
 2. Finish any account lifecycle failures exposed by tests.
 3. Complete security/privacy audit and verify data deletion/export end to end.
-4. Replace local-only client API configuration with the deployed API endpoint once hosting is selected.
+4. Supply the deployed HTTPS API origin through `BillWatchApiBaseUrl` once hosting is selected.
 5. Deploy API + PostgreSQL with HTTPS, secret storage, persistent Data Protection keys, private durable statement storage, backups, and monitoring.
 6. Validate real Plaid institutions and failure/reconnect behavior.
 7. Build a ground-truth provider statement corpus and measure false alerts/extraction accuracy.
