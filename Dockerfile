@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM debian:bookworm-slim AS native-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS native-build
 
 ARG LEPTONICA_VERSION=1.85.0
 
@@ -31,7 +31,7 @@ RUN curl --fail --location --silent --show-error \
     && make --jobs="$(nproc)" \
     && make install DESTDIR=/native-root
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0-bookworm-slim AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
@@ -48,17 +48,13 @@ RUN dotnet publish BillWatch.API/BillWatch.API.csproj \
     --output /app/publish \
     /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-bookworm-slim AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         ca-certificates \
         curl \
-        libjpeg62-turbo \
-        libpng16-16 \
-        libtesseract5 \
-        libtiff6 \
-        zlib1g \
+        libtesseract-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=native-build /native-root/usr/local/ /usr/local/
@@ -69,7 +65,7 @@ COPY --from=build /app/publish/ ./
 RUN ldconfig \
     && mkdir --parents /app/x64 /var/lib/billwatch/keys /var/lib/billwatch/statements \
     && ln --symbolic /usr/local/lib/libleptonica.so /app/x64/libleptonica-1.85.0.dll.so \
-    && ln --symbolic /usr/lib/x86_64-linux-gnu/libtesseract.so.5 /app/x64/libtesseract55.dll.so \
+    && ln --symbolic "$(find /usr/lib -type f -name 'libtesseract.so.*' -print -quit)" /app/x64/libtesseract55.dll.so \
     && chown --recursive "$APP_UID:$APP_UID" /var/lib/billwatch
 
 ENV ASPNETCORE_HTTP_PORTS=8080 \
