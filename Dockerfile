@@ -11,7 +11,7 @@ RUN apt-get update \
         ca-certificates \
         curl \
         g++ \
-        libjpeg62-turbo-dev \
+        libjpeg-turbo8-dev \
         libpng-dev \
         libtiff-dev \
         libtool \

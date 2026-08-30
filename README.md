@@ -40,7 +40,7 @@ The included production stack runs four security boundaries on one Linux Docker 
 
 Requirements:
 
-- An x86-64 Linux server with Docker Engine and the Docker Compose plugin.
+- A Linux server with Docker Engine and the Docker Compose plugin.
 - Ports 80 and 443 open to the internet.
 - A DNS record for the API hostname pointing to the server.
 - Plaid credentials. Use `sandbox` until production access has been approved and verified.
