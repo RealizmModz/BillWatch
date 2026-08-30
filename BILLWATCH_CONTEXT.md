@@ -1,6 +1,6 @@
 # BillWatch Current Context
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 ## Product promise
 
@@ -157,18 +157,27 @@ Each statement-upload entry in that export now includes a safe API download path
 
 Authentication now runs before the rate-limiter partition decision, so protected endpoint policies can actually partition by authenticated user while unauthenticated traffic remains globally IP-limited. Account exports are limited to 5 per user per hour, and original statement downloads to 30 per user per 10 minutes. End-to-end tests verify enforcement and that one user's export limit does not consume another user's allowance.
 
+The MAUI client API origin is now supplied through the `BillWatchApiBaseUrl` build property instead of a runtime hard-coded address. Debug builds default to the existing local HTTPS endpoint. Release builds fail at build time without an explicit HTTPS value, and runtime validation rejects credentials, paths, queries, fragments, loopback/local hosts, and numeric hosts in release mode. Once hosting is selected, build with `-p:BillWatchApiBaseUrl=https://the-deployed-host/`; no API key or other secret belongs in this property.
+
+The repository now contains a single-host production deployment candidate. A multi-stage Linux container publishes the API as a non-root user and supplies the native Tesseract/Leptonica OCR dependencies. The Compose stack exposes only Caddy on ports 80/443, keeps the API and PostgreSQL on a fixed private network, automatically provisions TLS, and gives PostgreSQL, statement files, Data Protection keys, and Caddy state separate persistent volumes. All credentials remain required environment values; `.env.production` is ignored and only a placeholder example is committed. AI remains explicitly disabled.
+
+Production reverse-proxy handling is opt-in and trusts only explicitly configured proxy IP addresses. The included stack pins Caddy to one private IP and configures that address. Forwarded headers run before HTTPS/HSTS processing, preserving correct public scheme and client-IP behavior without accepting spoofed forwarding headers from arbitrary peers.
+
+The production stack can apply EF Core migrations during startup for the documented single API instance. Readiness now fails unless the database is reachable, every migration is current, statement storage is writable, and the persistent Data Protection key directory is writable. It returns only ready/not-ready status and never exposes connection strings or physical paths.
+
+GitHub Actions now builds and tests the Windows backend and independently builds the Linux production container on pushes to `master` and pull requests. Run `87c100b` passed both jobs. CI now also starts the complete production Compose stack with disposable values and requires PostgreSQL startup, EF Core migration, API readiness, Caddy HTTPS termination, and the public readiness request to succeed before it tears the stack down. Local validation for this checkpoint passed the full Release solution build for Windows, Android, iOS, and Mac Catalyst with 0 warnings and 0 errors, plus all 207 tests.
+
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
 
-1. Clean Visual Studio build and full test suite.
-2. Finish any account lifecycle failures exposed by tests.
-3. Complete security/privacy audit and verify data deletion/export end to end.
-4. Replace local-only client API configuration with the deployed API endpoint once hosting is selected.
-5. Deploy API + PostgreSQL with HTTPS, secret storage, persistent Data Protection keys, private durable statement storage, backups, and monitoring.
-6. Validate real Plaid institutions and failure/reconnect behavior.
-7. Build a ground-truth provider statement corpus and measure false alerts/extraction accuracy.
-8. Run internal Beta 0 on real bills, then invite 3–5 trusted testers.
+1. Select the production host and API hostname, then deploy the included HTTPS stack with real secret-manager or protected environment values.
+2. Configure encrypted off-host backups and prove a database + Data Protection key + statement-file restore.
+3. Supply the deployed HTTPS API origin through `BillWatchApiBaseUrl` and produce signed client release artifacts.
+4. Add external uptime/error monitoring and verify a forced readiness failure raises an alert.
+5. Validate real Plaid institutions and failure/reconnect behavior.
+6. Build a ground-truth provider statement corpus and measure false alerts/extraction accuracy.
+7. Run internal Beta 0 on real bills, then invite 3–5 trusted testers.
 
 ## Development workflow
 

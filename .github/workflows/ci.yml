@@ -1,0 +1,78 @@
+name: BillWatch CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: billwatch-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend build and tests
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore tests and dependencies
+        run: dotnet restore BillWatch.Tests/BillWatch.Tests.csproj
+
+      - name: Build backend
+        run: dotnet build BillWatch.Tests/BillWatch.Tests.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test BillWatch.Tests/BillWatch.Tests.csproj --configuration Release --no-build --no-restore
+
+  container:
+    name: Linux production container
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ACME_EMAIL: ci@example.com
+      BILLWATCH_DATABASE_PASSWORD: ci-only-password
+      BILLWATCH_HOST: localhost
+      PLAID_CLIENT_ID: ci-client
+      PLAID_ENVIRONMENT: sandbox
+      PLAID_SECRET: ci-secret
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Configure container builder
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build production image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          load: true
+          push: false
+          tags: billwatch-api:local
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start production stack
+        run: docker compose --file compose.production.yml up --detach --no-build
+
+      - name: Verify HTTPS readiness
+        run: curl --fail --insecure --retry 30 --retry-all-errors --retry-delay 2 https://localhost/health/ready
+
+      - name: Stop production stack
+        if: always()
+        run: docker compose --file compose.production.yml down --volumes

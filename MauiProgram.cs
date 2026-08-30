@@ -1,3 +1,5 @@
+using System.Reflection;
+using BillWatch.Core.Configuration;
 using BillWatch.Services;
 using BillWatch.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -6,6 +8,9 @@ namespace BillWatch;
 
 public static class MauiProgram
 {
+    private const string ApiBaseUrlMetadataName =
+        "BillWatchApiBaseUrl";
+
     public static MauiApp CreateMauiApp()
     {
         var builder =
@@ -29,8 +34,7 @@ public static class MauiProgram
             new HttpClient
             {
                 BaseAddress =
-                    new Uri(
-                        "https://localhost:7243")
+                    GetApiBaseAddress()
             });
 
         builder.Services.AddSingleton<BillWatchApiClient>();
@@ -65,5 +69,32 @@ public static class MauiProgram
 #endif
 
         return builder.Build();
+    }
+
+    private static Uri GetApiBaseAddress()
+    {
+        var configuredValue =
+            typeof(MauiProgram).Assembly
+                .GetCustomAttributes<
+                    AssemblyMetadataAttribute>()
+                .FirstOrDefault(
+                    attribute =>
+                        string.Equals(
+                            attribute.Key,
+                            ApiBaseUrlMetadataName,
+                            StringComparison.Ordinal))?
+                .Value;
+
+#if DEBUG
+        const bool allowLocalDevelopmentEndpoint =
+            true;
+#else
+        const bool allowLocalDevelopmentEndpoint =
+            false;
+#endif
+
+        return BillWatchApiEndpoint.Parse(
+            configuredValue,
+            allowLocalDevelopmentEndpoint);
     }
 }

@@ -15,6 +15,11 @@
 .private/BillWatch.AiShadowCorpus/
 BillWatch.AiShadowCorpus/
 
+# Production environment files contain database and provider credentials.
+.env
+.env.*
+!.env.production.example
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
