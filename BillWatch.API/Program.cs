@@ -165,6 +165,68 @@ builder.Services.AddRateLimiter(
                                 AutoReplenishment =
                                     true
                             }));
+
+        options.AddPolicy(
+            "account-export",
+            httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey:
+                        httpContext.User.FindFirst(
+                            System.Security.Claims.ClaimTypes.NameIdentifier)?
+                            .Value
+                        ?? httpContext.Connection
+                            .RemoteIpAddress?
+                            .ToString()
+                        ?? "unknown",
+
+                    factory:
+                        _ =>
+                            new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit =
+                                    5,
+
+                                Window =
+                                    TimeSpan.FromHours(
+                                        1),
+
+                                QueueLimit =
+                                    0,
+
+                                AutoReplenishment =
+                                    true
+                            }));
+
+        options.AddPolicy(
+            "statement-download",
+            httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey:
+                        httpContext.User.FindFirst(
+                            System.Security.Claims.ClaimTypes.NameIdentifier)?
+                            .Value
+                        ?? httpContext.Connection
+                            .RemoteIpAddress?
+                            .ToString()
+                        ?? "unknown",
+
+                    factory:
+                        _ =>
+                            new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit =
+                                    30,
+
+                                Window =
+                                    TimeSpan.FromMinutes(
+                                        10),
+
+                                QueueLimit =
+                                    0,
+
+                                AutoReplenishment =
+                                    true
+                            }));
     });
 
 var dataProtectionBuilder =
@@ -442,6 +504,7 @@ app.Use(
         await next();
     });
 
+app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 

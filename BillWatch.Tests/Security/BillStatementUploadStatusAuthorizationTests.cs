@@ -346,6 +346,55 @@ public sealed class BillStatementUploadStatusAuthorizationTests
             response.StatusCode);
     }
 
+    [Fact]
+    public async Task
+        File_IsRateLimitedPerUser()
+    {
+        using var client =
+            _factory.CreateHttpsClient();
+
+        var user =
+            await TestUserAuthentication.RegisterAndLoginAsync(
+                client);
+
+        TestUserAuthentication.Authorize(
+            client,
+            user);
+
+        var billStream =
+            await CreateBillStreamAsync(
+                client);
+
+        var upload =
+            await UploadStatementAsync(
+                client,
+                billStream.Id);
+
+        var downloadPath =
+            $"/api/bill-streams/{billStream.Id}/statement-uploads/{upload.Id}/file";
+
+        for (var attempt = 0;
+             attempt < 30;
+             attempt++)
+        {
+            using var allowedResponse =
+                await client.GetAsync(
+                    downloadPath);
+
+            Assert.Equal(
+                HttpStatusCode.OK,
+                allowedResponse.StatusCode);
+        }
+
+        using var rejectedResponse =
+            await client.GetAsync(
+                downloadPath);
+
+        Assert.Equal(
+            HttpStatusCode.TooManyRequests,
+            rejectedResponse.StatusCode);
+    }
+
     private static async Task<BillStreamPayload>
         CreateBillStreamAsync(
             HttpClient client)

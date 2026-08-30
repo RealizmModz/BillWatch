@@ -107,7 +107,7 @@ Implemented or in progress:
 - anonymous access regression tests
 - health endpoints
 - production exception handling/security headers
-- per-user/IP statement upload rate limiting
+- per-user/IP rate limiting for statement uploads, account exports, and statement downloads
 
 ## Current active checkpoint
 
@@ -154,6 +154,8 @@ Account deletion now explicitly removes ownership-scoped `BillStatementAiEvaluat
 Authenticated users can now download a versioned JSON export from `GET /api/account/export`. The export is ownership-scoped across every BillWatch financial-data category and includes safe Plaid Link and AI-attempt metadata, but deliberately excludes protected Plaid/link tokens, synchronization cursors, Plaid internal record identifiers, password/security fields, and physical statement-storage keys. Security regression coverage seeds every exported category for two users and verifies both cross-user isolation and secret omission.
 
 Each statement-upload entry in that export now includes a safe API download path. `GET /api/bill-streams/{billStreamId}/statement-uploads/{uploadId}/file` streams the original stored document only after user + Bill Stream + upload ownership checks, returns 404 for mismatched or cross-user IDs, uses a generated download filename, disables range processing, and never exposes the physical path or storage key.
+
+Authentication now runs before the rate-limiter partition decision, so protected endpoint policies can actually partition by authenticated user while unauthenticated traffic remains globally IP-limited. Account exports are limited to 5 per user per hour, and original statement downloads to 30 per user per 10 minutes. End-to-end tests verify enforcement and that one user's export limit does not consume another user's allowance.
 
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 

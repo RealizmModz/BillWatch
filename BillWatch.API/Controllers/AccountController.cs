@@ -7,6 +7,7 @@ using BillWatch.API.Services.Statements;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -56,6 +57,7 @@ public sealed class AccountController : ControllerBase
     }
 
     [HttpGet("export")]
+    [EnableRateLimiting("account-export")]
     public async Task<ActionResult<AccountDataExportResult>>
         ExportAccountData(
             CancellationToken cancellationToken)

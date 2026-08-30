@@ -4,6 +4,7 @@ using BillWatch.API.Services.Statements;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace BillWatch.API.Controllers;
@@ -87,6 +88,7 @@ public sealed class BillStatementUploadStatusController
     }
 
     [HttpGet("file")]
+    [EnableRateLimiting("statement-download")]
     public async Task<IActionResult> DownloadFile(
         Guid billStreamId,
         Guid uploadId,

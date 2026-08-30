@@ -64,6 +64,61 @@ public sealed class AccountDataExportTests
     }
 
     [Fact]
+    public async Task ExportAccountData_IsRateLimitedPerUser()
+    {
+        using var limitedClient =
+            _factory.CreateHttpsClient();
+
+        using var otherClient =
+            _factory.CreateHttpsClient();
+
+        var limitedSession =
+            await TestUserAuthentication.RegisterAndLoginAsync(
+                limitedClient);
+
+        var otherSession =
+            await TestUserAuthentication.RegisterAndLoginAsync(
+                otherClient);
+
+        TestUserAuthentication.Authorize(
+            limitedClient,
+            limitedSession);
+
+        TestUserAuthentication.Authorize(
+            otherClient,
+            otherSession);
+
+        for (var attempt = 0;
+             attempt < 5;
+             attempt++)
+        {
+            using var allowedResponse =
+                await limitedClient.GetAsync(
+                    "/api/account/export");
+
+            Assert.Equal(
+                HttpStatusCode.OK,
+                allowedResponse.StatusCode);
+        }
+
+        using var rejectedResponse =
+            await limitedClient.GetAsync(
+                "/api/account/export");
+
+        Assert.Equal(
+            HttpStatusCode.TooManyRequests,
+            rejectedResponse.StatusCode);
+
+        using var otherUserResponse =
+            await otherClient.GetAsync(
+                "/api/account/export");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            otherUserResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task ExportAccountData_ReturnsOnlyOwnedSafeData()
     {
         using var exportingClient =
