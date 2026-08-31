@@ -122,6 +122,23 @@ public sealed class PlaidOwnershipBoundaryTests
             result.ConnectionId);
     }
 
+    [Fact]
+    public async Task OtherUsersConnection_CannotCreateUpdateModeLinkSession()
+    {
+        var result =
+            await ExerciseOtherUsersConnectionAsync(
+                connectionId =>
+                    $"/api/plaid/connections/{connectionId}/update-link-token");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            result.StatusCode);
+
+        await AssertConnectionStillOwnedAndActiveAsync(
+            result.OwnerUserId,
+            result.ConnectionId);
+    }
+
     private async Task<ConnectionAttackResult>
         ExerciseOtherUsersConnectionAsync(
             Func<Guid, string> routeFactory)

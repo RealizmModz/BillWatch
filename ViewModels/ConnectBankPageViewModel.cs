@@ -165,7 +165,8 @@ public sealed class ConnectBankPageViewModel :
         }
     }
 
-    public async Task ConnectBankAsync()
+    public async Task ConnectBankAsync(
+        BankConnectionItemViewModel? connection = null)
     {
         if (IsBusy)
         {
@@ -185,11 +186,17 @@ public sealed class ConnectBankPageViewModel :
                 string.Empty;
 
             StatusMessage =
-                "Preparing secure bank connection...";
+                connection is null
+                    ? "Preparing secure bank connection..."
+                    : $"Preparing to reconnect {connection.InstitutionName}...";
 
             var session =
-                await _plaidConnectionService
-                    .CreateLinkSessionAsync();
+                connection is null
+                    ? await _plaidConnectionService
+                        .CreateLinkSessionAsync()
+                    : await _plaidConnectionService
+                        .CreateUpdateLinkSessionAsync(
+                            connection.Id);
 
             StatusMessage =
                 "Opening Plaid...";
@@ -252,7 +259,9 @@ public sealed class ConnectBankPageViewModel :
                         ?? "Connected bank";
 
                     StatusMessage =
-                        $"{ConnectedInstitution} is now securely connected to BillWatch.";
+                        connection is null
+                            ? $"{ConnectedInstitution} is now securely connected to BillWatch."
+                            : $"{ConnectedInstitution} was securely reconnected.";
 
                     await RefreshConnectionsCoreAsync(
                         updateStatusMessage:
@@ -500,7 +509,7 @@ public sealed class BankConnectionItemViewModel
 
     public bool CanReconnect =>
         Status ==
-        BankConnectionStatus.Disconnected;
+        BankConnectionStatus.RequiresAttention;
 
     public string StatusText =>
         Status switch

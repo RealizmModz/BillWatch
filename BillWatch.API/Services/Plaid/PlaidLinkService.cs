@@ -2,6 +2,7 @@
 using System.Text.Json;
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace BillWatch.API.Services.Plaid;
 
@@ -54,6 +55,7 @@ public sealed class PlaidLinkService
     public async Task<PlaidHostedLinkSession>
         CreateLinkSessionAsync(
             Guid userId,
+            Guid? bankConnectionId = null,
             CancellationToken cancellationToken = default)
     {
         if (userId ==
@@ -66,10 +68,47 @@ public sealed class PlaidLinkService
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var response =
-            await _plaidApiClient.PostAsync(
-                "link/token/create",
-                new
+        string?
+            accessToken =
+                null;
+
+        if (bankConnectionId is Guid connectionId)
+        {
+            if (connectionId == Guid.Empty)
+            {
+                throw new ArgumentException(
+                    "A valid bank connection ID is required.",
+                    nameof(bankConnectionId));
+            }
+
+            var connection =
+                await _dbContext.BankConnections
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(
+                        candidate =>
+                            candidate.UserId == userId &&
+                            candidate.Id == connectionId,
+                        cancellationToken)
+                ?? throw new KeyNotFoundException(
+                    "Bank connection was not found.");
+
+            if (connection.Status ==
+                    BankConnectionStatus.Disconnected ||
+                string.IsNullOrWhiteSpace(
+                    connection.ProtectedPlaidAccessToken))
+            {
+                throw new InvalidOperationException(
+                    "Disconnected bank connections cannot enter Plaid update mode.");
+            }
+
+            accessToken =
+                _tokenProtector.Unprotect(
+                    connection.ProtectedPlaidAccessToken);
+        }
+
+        object request =
+            accessToken is null
+                ? new
                 {
                     client_name =
                         "BillWatch",
@@ -102,7 +141,43 @@ public sealed class PlaidLinkService
                         new
                         {
                         }
-                },
+                }
+                : new
+                {
+                    client_name =
+                        "BillWatch",
+
+                    user =
+                        new
+                        {
+                            client_user_id =
+                                userId.ToString(
+                                    "D",
+                                    CultureInfo.InvariantCulture)
+                        },
+
+                    access_token =
+                        accessToken,
+
+                    country_codes =
+                        new[]
+                        {
+                            "US"
+                        },
+
+                    language =
+                        "en",
+
+                    hosted_link =
+                        new
+                        {
+                        }
+                };
+
+        using var response =
+            await _plaidApiClient.PostAsync(
+                "link/token/create",
+                request,
                 cancellationToken);
 
         var root =
@@ -159,6 +234,9 @@ public sealed class PlaidLinkService
             {
                 UserId =
                     userId,
+
+                BankConnectionId =
+                    bankConnectionId,
 
                 ProtectedLinkToken =
                     protectedLinkToken,

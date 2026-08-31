@@ -248,6 +248,131 @@ public sealed class PlaidHostedLinkCompletionServiceTests
             dbContext.BankConnections);
     }
 
+    [Fact]
+    public async Task CompletedUpdateMode_ReactivatesOwnedConnectionWithoutExchangingToken()
+    {
+        await using var dbContext =
+            CreateDbContext();
+
+        var userId =
+            Guid.NewGuid();
+
+        var tokenProtector =
+            new PlaidTokenProtector(
+                new EphemeralDataProtectionProvider());
+
+        var connection =
+            new BankConnectionEntity
+            {
+                UserId =
+                    userId,
+
+                InstitutionName =
+                    "Update Bank",
+
+                PlaidItemId =
+                    "item-update-1",
+
+                ProtectedPlaidAccessToken =
+                    tokenProtector.Protect(
+                        "access-update-1"),
+
+                Status =
+                    BankConnectionStatus.RequiresAttention
+            };
+
+        dbContext.BankConnections.Add(
+            connection);
+
+        var session =
+            new PlaidLinkSessionEntity
+            {
+                UserId =
+                    userId,
+
+                BankConnectionId =
+                    connection.Id,
+
+                ProtectedLinkToken =
+                    tokenProtector.ProtectLinkToken(
+                        "link-sandbox-update"),
+
+                Status =
+                    PlaidLinkSessionStatus.Pending,
+
+                ExpiresAtUtc =
+                    DateTimeOffset.UtcNow.AddMinutes(
+                        30)
+            };
+
+        dbContext.PlaidLinkSessions.Add(
+            session);
+
+        await dbContext.SaveChangesAsync();
+
+        using var handler =
+            new ScriptedHttpMessageHandler(
+                JsonResponse(
+                    HttpStatusCode.OK,
+                    """
+                    {
+                      "link_sessions": [
+                        {
+                          "finished_at": "2026-08-30T18:00:00Z",
+                          "results": {}
+                        }
+                      ]
+                    }
+                    """));
+
+        using var httpClient =
+            new HttpClient(
+                handler);
+
+        var plaidApiClient =
+            CreateApiClient(
+                httpClient);
+
+        var service =
+            new PlaidHostedLinkCompletionService(
+                dbContext,
+                plaidApiClient,
+                tokenProtector,
+                new PlaidConnectionExchangeService(
+                    plaidApiClient,
+                    tokenProtector,
+                    dbContext));
+
+        var result =
+            await service.CheckAndCompleteAsync(
+                userId,
+                session.Id);
+
+        Assert.Equal(
+            "Completed",
+            result.Status);
+
+        Assert.Equal(
+            "Active",
+            result.Connection?.Status);
+
+        Assert.Equal(
+            BankConnectionStatus.Active,
+            connection.Status);
+
+        Assert.Equal(
+            string.Empty,
+            session.ProtectedLinkToken);
+
+        Assert.Single(
+            handler.Requests);
+
+        Assert.Equal(
+            "access-update-1",
+            tokenProtector.Unprotect(
+                connection.ProtectedPlaidAccessToken!));
+    }
+
     private static PlaidApiClient CreateApiClient(
         HttpClient httpClient)
     {

@@ -15,6 +15,8 @@ public sealed class PlaidLinkSessionEntity
 
     public Guid UserId { get; set; }
 
+    public Guid? BankConnectionId { get; set; }
+
     public string ProtectedLinkToken { get; set; } = string.Empty;
 
     public PlaidLinkSessionStatus Status { get; set; } =
@@ -31,4 +33,6 @@ public sealed class PlaidLinkSessionEntity
     public DateTimeOffset? CompletedAtUtc { get; set; }
 
     public ApplicationUser User { get; set; } = null!;
+
+    public BankConnectionEntity? BankConnection { get; set; }
 }

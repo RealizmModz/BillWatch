@@ -69,6 +69,29 @@ public sealed class PlaidConnectionService
                 cancellationToken);
     }
 
+    public async Task<PlaidHostedLinkResult>
+        CreateUpdateLinkSessionAsync(
+            Guid connectionId,
+            CancellationToken cancellationToken = default)
+    {
+        if (connectionId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Bank connection ID is required.",
+                nameof(connectionId));
+        }
+
+        var accessToken =
+            await GetRequiredAccessTokenAsync(
+                cancellationToken);
+
+        return await _apiClient
+            .CreatePlaidUpdateLinkSessionAsync(
+                accessToken,
+                connectionId,
+                cancellationToken);
+    }
+
     public async Task<PlaidHostedLinkCompletionResult>
         CompleteLinkSessionAsync(
             Guid sessionId,

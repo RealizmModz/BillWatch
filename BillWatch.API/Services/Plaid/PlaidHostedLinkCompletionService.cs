@@ -152,6 +152,34 @@ public sealed class PlaidHostedLinkCompletionService
             ReadPlaidSessionState(
                 response.RootElement);
 
+        if (session.BankConnectionId is Guid)
+        {
+            if (!plaidState.HasLinkSessions ||
+                plaidState.HasUnfinishedSession)
+            {
+                return CreateResult(
+                    session);
+            }
+
+            if (plaidState.HasExitedSession)
+            {
+                return await SetTerminalStatusAsync(
+                    session,
+                    PlaidLinkSessionStatus.Exited,
+                    cancellationToken);
+            }
+
+            if (plaidState.HasFinishedSession)
+            {
+                return await CompleteUpdateModeAsync(
+                    session,
+                    cancellationToken);
+            }
+
+            return CreateResult(
+                session);
+        }
+
         if (plaidState.PublicToken is not null)
         {
             /*
@@ -225,6 +253,67 @@ public sealed class PlaidHostedLinkCompletionService
 
         return CreateResult(
             session);
+    }
+
+    private async Task<PlaidHostedLinkCompletionResult>
+        CompleteUpdateModeAsync(
+            PlaidLinkSessionEntity session,
+            CancellationToken cancellationToken)
+    {
+        if (session.BankConnectionId is not Guid connectionId)
+        {
+            throw new InvalidOperationException(
+                "Plaid update session is missing its bank connection.");
+        }
+
+        var connection =
+            await _dbContext.BankConnections
+                .SingleOrDefaultAsync(
+                    candidate =>
+                        candidate.UserId == session.UserId &&
+                        candidate.Id == connectionId,
+                    cancellationToken)
+            ?? throw new KeyNotFoundException(
+                "Bank connection was not found.");
+
+        if (connection.Status ==
+            BankConnectionStatus.Disconnected)
+        {
+            throw new InvalidOperationException(
+                "Disconnected bank connection cannot complete Plaid update mode.");
+        }
+
+        var completedAt =
+            DateTimeOffset.UtcNow;
+
+        connection.Status =
+            BankConnectionStatus.Active;
+
+        connection.UpdatedAtUtc =
+            completedAt;
+
+        session.Status =
+            PlaidLinkSessionStatus.Completed;
+
+        session.CompletedAtUtc =
+            completedAt;
+
+        session.UpdatedAtUtc =
+            completedAt;
+
+        session.ProtectedLinkToken =
+            string.Empty;
+
+        await _dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        return new PlaidHostedLinkCompletionResult(
+            session.Id,
+            session.Status.ToString(),
+            new PlaidConnectionResult(
+                connection.Id,
+                connection.InstitutionName,
+                connection.Status.ToString()));
     }
 
     private static PlaidSessionState

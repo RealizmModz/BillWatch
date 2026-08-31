@@ -46,13 +46,54 @@ public sealed class PlaidController : ControllerBase
         var session =
             await _plaidLinkService.CreateLinkSessionAsync(
                 userId,
-                cancellationToken);
+                cancellationToken:
+                    cancellationToken);
 
         return Ok(new
         {
             session.SessionId,
             session.HostedLinkUrl
         });
+    }
+
+    [HttpPost("connections/{connectionId:guid}/update-link-token")]
+    public async Task<IActionResult> CreateUpdateLinkSession(
+        Guid connectionId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var session =
+                await _plaidLinkService.CreateLinkSessionAsync(
+                    userId,
+                    connectionId,
+                    cancellationToken);
+
+            return Ok(new
+            {
+                session.SessionId,
+                session.HostedLinkUrl
+            });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new
+            {
+                message = "Bank connection was not found."
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            return Conflict(new
+            {
+                message = "Bank connection cannot be updated."
+            });
+        }
     }
 
     [HttpPost("link-session/{sessionId:guid}/complete")]

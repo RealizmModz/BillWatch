@@ -25,6 +25,9 @@ public sealed class AnonymousFinancialEndpointAuthorizationTests
         var uploadId =
             Guid.NewGuid();
 
+        var connectionId =
+            Guid.NewGuid();
+
         yield return
         [
             "GET",
@@ -83,6 +86,12 @@ public sealed class AnonymousFinancialEndpointAuthorizationTests
         [
             "POST",
             "/api/plaid/link-token"
+        ];
+
+        yield return
+        [
+            "POST",
+            $"/api/plaid/connections/{connectionId}/update-link-token"
         ];
 
         yield return

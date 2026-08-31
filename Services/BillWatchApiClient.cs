@@ -390,6 +390,54 @@ public sealed class BillWatchApiClient
         return result;
     }
 
+    public async Task<PlaidHostedLinkResult>
+        CreatePlaidUpdateLinkSessionAsync(
+            string accessToken,
+            Guid connectionId,
+            CancellationToken cancellationToken = default)
+    {
+        if (connectionId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Bank connection ID is required.",
+                nameof(connectionId));
+        }
+
+        using var request =
+            CreateAuthorizedRequest(
+                HttpMethod.Post,
+                $"/api/plaid/connections/{connectionId}/update-link-token",
+                accessToken);
+
+        request.Content =
+            JsonContent.Create(
+                new { });
+
+        using var response =
+            await _httpClient.SendAsync(
+                request,
+                cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        var result =
+            await response.Content
+                .ReadFromJsonAsync<PlaidHostedLinkResult>(
+                    cancellationToken:
+                        cancellationToken);
+
+        if (result is null ||
+            result.SessionId == Guid.Empty ||
+            string.IsNullOrWhiteSpace(
+                result.HostedLinkUrl))
+        {
+            throw new InvalidOperationException(
+                "BillWatch did not receive a valid Plaid update session.");
+        }
+
+        return result;
+    }
+
     public async Task<PlaidHostedLinkCompletionResult>
         CompletePlaidLinkSessionAsync(
             string accessToken,

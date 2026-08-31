@@ -866,6 +866,20 @@ public sealed class BillWatchDbContext
                     .WithMany()
                     .HasForeignKey(session => session.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(session => session.BankConnection)
+                    .WithMany()
+                    .HasForeignKey(session => new
+                    {
+                        session.BankConnectionId,
+                        session.UserId
+                    })
+                    .HasPrincipalKey(connection => new
+                    {
+                        connection.Id,
+                        connection.UserId
+                    })
+                    .OnDelete(DeleteBehavior.Cascade);
             });
     }
 

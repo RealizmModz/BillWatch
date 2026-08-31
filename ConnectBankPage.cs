@@ -636,12 +636,14 @@ public sealed class ConnectBankPage : ContentPage
     {
         if (sender is not Button button ||
             button.BindingContext
-                is not BankConnectionItemViewModel)
+                is not BankConnectionItemViewModel
+                    connection)
         {
             return;
         }
 
         await _viewModel
-            .ConnectBankAsync();
+            .ConnectBankAsync(
+                connection);
     }
 }
