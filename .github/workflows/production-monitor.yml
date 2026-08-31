@@ -1,0 +1,29 @@
+name: BillWatch Production Readiness
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: billwatch-production-readiness
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    name: External readiness probe
+    if: ${{ vars.BILLWATCH_PRODUCTION_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Probe production from outside the deployment host
+        env:
+          BILLWATCH_PRODUCTION_URL: ${{ vars.BILLWATCH_PRODUCTION_URL }}
+        run: sh deploy/monitor-readiness.sh

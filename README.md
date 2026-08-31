@@ -50,6 +50,13 @@ Deploy:
 
 1. Copy `.env.production.example` to `.env.production` on the server.
 2. Replace every placeholder, set `BILLWATCH_RELEASE_ID` to the exact deployed commit, and run `chmod 600 .env.production`. The backup wrapper refuses an environment file owned by another account or readable by group/other users.
+3. Run the production preflight before Docker receives any configuration:
+
+```sh
+sh deploy/validate-production-env.sh .env.production
+```
+
+The preflight rejects linked or over-permissioned environment files, placeholders, weak database/backup passwords, local backup destinations, invalid Plaid environments, non-public hostnames, and release identifiers that are not exact lowercase 40-character Git commits. It never prints secret values.
 3. Configure `RESTIC_REPOSITORY` as a private off-host destination and use a separate, randomly generated `RESTIC_PASSWORD`. Losing that password makes every backup unrecoverable.
 4. Keep all AI flags disabled. No OpenAI key is required for the current runtime.
 5. Initialize the encrypted repository once:
@@ -136,3 +143,22 @@ Keep the Restic password and backend recovery credentials in a separate password
 A restored snapshot represents the state at its recovery timestamp. Before reopening traffic, reconcile account and statement deletions that occurred after that timestamp against an external deletion/audit record so recovery does not unintentionally resurrect data a user asked BillWatch to remove.
 
 Production credentials, `.env.production`, raw statements, extracted statement text, database dumps, and AI evaluation corpora must never be committed.
+
+## External readiness monitoring
+
+The `BillWatch Production Readiness` GitHub Actions workflow probes production from outside the deployment host every 15 minutes. It remains skipped until the repository variable `BILLWATCH_PRODUCTION_URL` is set to the hostname-only HTTPS origin, for example `https://api.billwatch.com`.
+
+The probe rejects credentials, ports, paths, redirects, local/internal hostnames, and DNS results in private, loopback, or link-local address ranges. It performs three bounded HTTPS attempts and accepts only BillWatch's exact readiness response. No application credential or API key is sent.
+
+After the hostname is configured:
+
+1. Set the repository Actions variable `BILLWATCH_PRODUCTION_URL`.
+2. Run `BillWatch Production Readiness` manually and confirm it passes.
+3. Temporarily stop the API or make readiness fail, run the workflow again, and confirm GitHub records a failed run and the operations account receives its configured Actions notification.
+4. Restore the API and confirm the next manual probe passes.
+
+The same probe can be run from any separate monitoring host:
+
+```sh
+BILLWATCH_PRODUCTION_URL=https://api.billwatch.com sh deploy/monitor-readiness.sh
+```
