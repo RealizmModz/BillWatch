@@ -12,6 +12,7 @@ COPY backup.sh /usr/local/bin/billwatch-backup
 RUN chmod 0555 /usr/local/bin/billwatch-backup
 
 ENV HOME=/work \
+    TMPDIR=/work \
     RESTIC_CACHE_DIR=/cache
 
 USER 1654:1654
