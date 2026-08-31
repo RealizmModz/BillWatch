@@ -66,13 +66,15 @@ docker compose --env-file .env.production --file compose.production.yml --profil
 docker compose --env-file .env.production --file compose.production.yml --profile operations run --rm backup init
 ```
 
-6. Start the stack:
+6. Deploy from a clean checkout whose `HEAD` exactly matches `BILLWATCH_RELEASE_ID`:
 
 ```bash
-docker compose --env-file .env.production --file compose.production.yml up --detach --build
+sh deploy/deploy-production.sh .env.production
 ```
 
-7. Confirm both health endpoints over the public HTTPS hostname.
+The deployment command re-runs the fail-closed configuration preflight, rejects a dirty or mismatched checkout, prevents overlapping deploys, validates Compose, builds immutable release-tagged API and recovery images, and creates a verified encrypted recovery point before replacing an already-running API. It waits for every production service and requires the exact external HTTPS readiness response before atomically recording the deployed release. It never performs an automatic database rollback.
+
+7. Confirm both health endpoints over the public HTTPS hostname. If deployment fails after service replacement begins, inspect the bounded sanitized logs printed by the command before retrying; the last verified release marker remains unchanged.
 8. Build the MAUI release with the exact deployed origin:
 
 ```powershell

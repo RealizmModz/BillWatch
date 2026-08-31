@@ -175,6 +175,8 @@ The deployment network is split so the public Caddy edge cannot reach PostgreSQL
 
 Production configuration now has an executable fail-closed preflight before deployment. It rejects unsafe environment-file ownership/permissions, placeholders, weak database and Restic passwords, non-public hostnames, non-commit release IDs, invalid Plaid environments, and local backup repositories without printing secrets. CI exercises both accepted and rejected configurations.
 
+Production deployment is now a guarded one-command operation. It requires a clean Git checkout whose exact commit matches the validated release ID, prevents concurrent deploys with an atomic host lock, validates Compose, builds immutable API and recovery images, creates a verified encrypted recovery point before replacing an existing API, waits for the database/API/edge services, and records the release only after the external HTTPS readiness probe returns BillWatch's exact ready response. It deliberately does not attempt an unsafe automatic database rollback after migrations.
+
 An external readiness workflow now probes the deployed HTTPS origin from GitHub Actions every 15 minutes after `BILLWATCH_PRODUCTION_URL` is configured. The bounded probe rejects local/private targets, redirects, credentials, ports, and paths and accepts only the minimal ready response. The hostname still must be selected and a forced-failure notification drill must pass before this launch gate is closed.
 
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.

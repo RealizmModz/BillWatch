@@ -6,6 +6,12 @@ root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 temp_dir=$(mktemp -d)
 trap 'rm -rf "$temp_dir"' EXIT HUP INT TERM
 
+fail()
+{
+    printf '%s\n' "Production operation test failed: $1" >&2
+    exit 1
+}
+
 valid_env="$temp_dir/valid.env"
 
 write_valid_env()
@@ -79,5 +85,64 @@ EOF
 
 chmod 755 "$fake_bin/getent" "$fake_bin/curl"
 PATH="$fake_bin:$PATH" "$root_dir/deploy/monitor-readiness.sh" 'https://api.billwatch.test' >/dev/null
+
+deployment_root="$temp_dir/deployment"
+mkdir -p "$deployment_root/deploy"
+cp "$root_dir/compose.production.yml" "$deployment_root/compose.production.yml"
+cp "$root_dir/.env.production.example" "$deployment_root/.env.production.example"
+cp "$root_dir/deploy/validate-production-env.sh" "$deployment_root/deploy/validate-production-env.sh"
+cp "$root_dir/deploy/monitor-readiness.sh" "$deployment_root/deploy/monitor-readiness.sh"
+cp "$root_dir/deploy/run-backup.sh" "$deployment_root/deploy/run-backup.sh"
+cp "$root_dir/deploy/deploy-production.sh" "$deployment_root/deploy/deploy-production.sh"
+chmod 755 "$deployment_root/deploy/"*.sh
+write_valid_env "$deployment_root/.env.production"
+
+command_log="$temp_dir/deployment-commands.log"
+
+cat > "$fake_bin/git" <<'EOF'
+#!/bin/sh
+case "$*" in
+    *'rev-parse HEAD'*) printf '%s\n' '0123456789abcdef0123456789abcdef01234567' ;;
+    *'status --porcelain --untracked-files=normal'*) : ;;
+    *) exit 1 ;;
+esac
+EOF
+
+cat > "$fake_bin/docker" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$*" >> "$BILLWATCH_TEST_COMMAND_LOG"
+case "$*" in
+    *'ps --status running --services'*) exit 0 ;;
+    *'up --detach --wait --wait-timeout 180 --no-build database api edge'*)
+        [ "${BILLWATCH_TEST_FAIL_UP:-false}" != true ] || exit 1
+        ;;
+esac
+EOF
+
+chmod 755 "$fake_bin/git" "$fake_bin/docker"
+
+PATH="$fake_bin:$PATH" \
+    BILLWATCH_TEST_COMMAND_LOG="$command_log" \
+    "$deployment_root/deploy/deploy-production.sh" "$deployment_root/.env.production" >/dev/null
+
+[ "$(cat "$deployment_root/.billwatch-release")" = '0123456789abcdef0123456789abcdef01234567' ] ||
+    fail "deployment did not record the verified release."
+[ ! -d "$deployment_root/.billwatch-deploy.lock" ] ||
+    fail "deployment lock was not removed after success."
+grep -q 'config --quiet' "$command_log" || fail "deployment did not validate Compose configuration."
+grep -q -- '--profile operations build api backup' "$command_log" || fail "deployment did not build both release images."
+grep -q 'up --detach --wait --wait-timeout 180 --no-build database api edge' "$command_log" || fail "deployment did not wait for the production services."
+
+rm -f "$deployment_root/.billwatch-release"
+if PATH="$fake_bin:$PATH" \
+    BILLWATCH_TEST_COMMAND_LOG="$command_log" \
+    BILLWATCH_TEST_FAIL_UP=true \
+    "$deployment_root/deploy/deploy-production.sh" "$deployment_root/.env.production" >/dev/null 2>&1; then
+    fail "deployment unexpectedly succeeded after the production stack failed to start."
+fi
+[ ! -e "$deployment_root/.billwatch-release" ] ||
+    fail "failed deployment recorded a successful release."
+[ ! -d "$deployment_root/.billwatch-deploy.lock" ] ||
+    fail "deployment lock was not removed after failure."
 
 printf '%s\n' 'Production operation script tests passed.'

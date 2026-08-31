@@ -378,3 +378,8 @@ FodyWeavers.xsd
 
 # Atomic host-side operations lock; stale locks require operator review.
 .billwatch-backup.lock/
+
+# Atomic production deployment state is host-local operations metadata.
+.billwatch-deploy.lock/
+.billwatch-release
+.billwatch-release.tmp.*
