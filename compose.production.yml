@@ -1,12 +1,20 @@
 name: billwatch
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-file: "5"
+    max-size: 10m
+
 services:
   api:
-    image: billwatch-api:local
+    image: billwatch-api:${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    stop_grace_period: 30s
+    logging: *default-logging
     depends_on:
       database:
         condition: service_healthy
@@ -29,11 +37,14 @@ services:
       - data_protection_keys:/var/lib/billwatch/keys
       - statement_files:/var/lib/billwatch/statements
     networks:
-      - private
+      - data
+      - public_edge
 
   database:
     image: postgres:17-bookworm
     restart: unless-stopped
+    stop_grace_period: 60s
+    logging: *default-logging
     environment:
       POSTGRES_DB: billwatch
       POSTGRES_USER: billwatch
@@ -46,11 +57,73 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - private
+      - data
+
+  backup:
+    profiles:
+      - operations
+    image: billwatch-backup:${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
+    build:
+      context: ./deploy/backup
+      dockerfile: Dockerfile
+    restart: "no"
+    read_only: true
+    user: "1654:1654"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${BILLWATCH_DATABASE_PASSWORD:?Set BILLWATCH_DATABASE_PASSWORD}
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:?Set RESTIC_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-}
+      BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY: ${BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY:-false}
+      BILLWATCH_RELEASE_ID: ${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
+      BILLWATCH_REQUIRE_RECOVERY_FIXTURE: ${BILLWATCH_REQUIRE_RECOVERY_FIXTURE:-false}
+      RESTORE_DATABASE_HOST: restore-database
+    tmpfs:
+      - /work:rw,noexec,nosuid,nodev,size=${BILLWATCH_BACKUP_WORK_SIZE:-8g},uid=1654,gid=1654,mode=0700
+    volumes:
+      - backup_cache:/cache
+      - backup_repository:/repository
+      - data_protection_keys:/source/data-protection:ro
+      - statement_files:/source/statements:ro
+    networks:
+      - data
+    logging: *default-logging
+
+  restore-database:
+    profiles:
+      - operations
+    image: postgres:17-alpine
+    restart: "no"
+    stop_grace_period: 30s
+    environment:
+      POSTGRES_DB: restore_host
+      POSTGRES_USER: billwatch
+      POSTGRES_PASSWORD: ${BILLWATCH_DATABASE_PASSWORD:?Set BILLWATCH_DATABASE_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql/data:rw,nosuid,nodev,size=${BILLWATCH_BACKUP_WORK_SIZE:-8g}
+    networks:
+      - data
+    logging: *default-logging
 
   edge:
     image: caddy:2.10-alpine
     restart: unless-stopped
+    stop_grace_period: 30s
+    logging: *default-logging
     depends_on:
       api:
         condition: service_healthy
@@ -66,16 +139,19 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     networks:
-      private:
+      public_edge:
         ipv4_address: 172.28.0.10
 
 networks:
-  private:
+  data:
+  public_edge:
     ipam:
       config:
         - subnet: 172.28.0.0/24
 
 volumes:
+  backup_cache:
+  backup_repository:
   caddy_config:
   caddy_data:
   data_protection_keys:

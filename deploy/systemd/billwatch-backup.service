@@ -1,0 +1,15 @@
+[Unit]
+Description=Create a consistent encrypted BillWatch production backup
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/billwatch/.env.production
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/billwatch
+ExecStart=/bin/sh /opt/billwatch/deploy/run-backup.sh /opt/billwatch
+TimeoutStartSec=2h
+UMask=0077
+Nice=10
+IOSchedulingClass=idle

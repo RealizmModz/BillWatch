@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the BillWatch encrypted backup every day
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=billwatch-backup.service
+
+[Install]
+WantedBy=timers.target

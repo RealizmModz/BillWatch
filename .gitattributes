@@ -3,6 +3,13 @@
 ###############################################################################
 * text=auto
 
+# Linux deployment scripts and container files must retain LF endings.
+*.sh text eol=lf
+*.service text eol=lf
+*.timer text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

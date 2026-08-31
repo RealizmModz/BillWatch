@@ -44,27 +44,37 @@ Requirements:
 - Ports 80 and 443 open to the internet.
 - A DNS record for the API hostname pointing to the server.
 - Plaid credentials. Use `sandbox` until production access has been approved and verified.
-- Encrypted off-host backups or provider-managed volume snapshots.
+- A private off-host Restic repository and backup-only credentials.
 
 Deploy:
 
 1. Copy `.env.production.example` to `.env.production` on the server.
-2. Replace every placeholder and restrict the file so only the deployment account can read it.
-3. Keep all AI flags disabled. No OpenAI key is required for the current runtime.
-4. Start the stack:
+2. Replace every placeholder, set `BILLWATCH_RELEASE_ID` to the exact deployed commit, and run `chmod 600 .env.production`. The backup wrapper refuses an environment file owned by another account or readable by group/other users.
+3. Configure `RESTIC_REPOSITORY` as a private off-host destination and use a separate, randomly generated `RESTIC_PASSWORD`. Losing that password makes every backup unrecoverable.
+4. Keep all AI flags disabled. No OpenAI key is required for the current runtime.
+5. Initialize the encrypted repository once:
+
+```bash
+docker compose --env-file .env.production --file compose.production.yml --profile operations build backup
+docker compose --env-file .env.production --file compose.production.yml --profile operations run --rm backup init
+```
+
+6. Start the stack:
 
 ```bash
 docker compose --env-file .env.production --file compose.production.yml up --detach --build
 ```
 
-5. Confirm both health endpoints over the public HTTPS hostname.
-6. Build the MAUI release with the exact deployed origin:
+7. Confirm both health endpoints over the public HTTPS hostname.
+8. Build the MAUI release with the exact deployed origin:
 
 ```powershell
 dotnet build BillWatch.csproj --configuration Release -p:BillWatchApiBaseUrl=https://api.example.com/
 ```
 
 The API applies EF Core migrations during startup in this single-instance deployment. Do not scale the API above one instance while startup migration is enabled; a multi-instance platform should run migrations as a separate one-time release job.
+
+The API and recovery images are tagged with `BILLWATCH_RELEASE_ID`, and every encrypted backup records that same release. Keep that image and source revision available until the next backup and recovery verification pass so rollback does not depend on rebuilding a floating tag.
 
 ## Required production configuration
 
@@ -85,7 +95,44 @@ When TLS terminates at a reverse proxy, configure only its trusted address under
 - `/health/live` proves the process is running.
 - `/health/ready` proves the database is reachable, migrations are current, and both sensitive persistent directories are writable. It never returns connection strings or physical paths.
 - Monitor both endpoints externally and alert on repeated readiness failure.
-- Snapshot or export the PostgreSQL, statement, Data Protection, and Caddy volumes off-host. Database data without the matching Data Protection key volume cannot decrypt protected Plaid credentials.
-- Test restore procedures before inviting beta users.
+- Docker logs are size- and count-limited so a runaway process cannot consume the host disk indefinitely.
+- Caddy cannot reach PostgreSQL: edge traffic and database traffic use separate container networks.
+- Never run `docker compose down --volumes` against production. It deletes the database, statements, Data Protection keys, local backup-test repository, and TLS state.
+
+### Encrypted backups
+
+`deploy/run-backup.sh` briefly stops the API, creates a PostgreSQL custom-format dump, and sends that dump plus the matching statement files and Data Protection key ring to Restic in one encrypted snapshot. A restart trap brings the API back even when backup fails. The backup container receives the sensitive volumes read-only and drops every Linux capability.
+
+Create a manual backup:
+
+```bash
+sh deploy/run-backup.sh /opt/billwatch
+```
+
+Prove the latest encrypted snapshot can be read and restored:
+
+```bash
+docker compose --env-file .env.production --file compose.production.yml --profile operations up --detach --wait restore-database
+docker compose --env-file .env.production --file compose.production.yml --profile operations run --rm backup verify
+docker compose --env-file .env.production --file compose.production.yml --profile operations stop restore-database
+```
+
+Verification selects only a snapshot that completed repository integrity checking, validates SHA-256 manifests, restores into disposable storage, loads the dump into a separate temporary PostgreSQL server, checks EF migration history, and reconciles every database statement record with its restored file and size. It never connects to the live database server for restore work and never overwrites live files.
+
+For a standard `/opt/billwatch` installation, install and enable the supplied daily systemd timer:
+
+```bash
+sudo cp deploy/systemd/billwatch-backup.service deploy/systemd/billwatch-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now billwatch-backup.timer
+sudo systemctl start billwatch-backup.service
+sudo systemctl status billwatch-backup.service
+```
+
+The first real-host recovery drill must still be performed before beta invitations. Restore to a separate clean host, keep public traffic disabled, use the matching application release, verify protected Plaid data can be decrypted and statement files can be downloaded, and only then treat the backup gate as closed. Never restore directly over a running production stack.
+
+Keep the Restic password and backend recovery credentials in a separate password vault or recovery escrow, not only in `.env.production` on the server. Configure immutable or append-only retention at the off-host storage provider and retain at least 7 daily, 5 weekly, and 12 monthly recovery points. Use separate backup-write and retention-delete credentials where the provider supports them, so compromise of the application host cannot erase every recovery point.
+
+A restored snapshot represents the state at its recovery timestamp. Before reopening traffic, reconcile account and statement deletions that occurred after that timestamp against an external deletion/audit record so recovery does not unintentionally resurrect data a user asked BillWatch to remove.
 
 Production credentials, `.env.production`, raw statements, extracted statement text, database dumps, and AI evaluation corpora must never be committed.

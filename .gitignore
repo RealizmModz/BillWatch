@@ -371,3 +371,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# The production recovery implementation is source, not a generated backup.
+!deploy/backup/
+!deploy/backup/**
+
+# Atomic host-side operations lock; stale locks require operator review.
+.billwatch-backup.lock/

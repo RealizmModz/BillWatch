@@ -43,11 +43,17 @@ jobs:
     timeout-minutes: 30
     env:
       ACME_EMAIL: ci@example.com
+      BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY: "true"
+      BILLWATCH_BACKUP_WORK_SIZE: 1g
       BILLWATCH_DATABASE_PASSWORD: ci-only-password
       BILLWATCH_HOST: localhost
+      BILLWATCH_RELEASE_ID: ci
+      BILLWATCH_REQUIRE_RECOVERY_FIXTURE: "true"
       PLAID_CLIENT_ID: ci-client
       PLAID_ENVIRONMENT: sandbox
       PLAID_SECRET: ci-secret
+      RESTIC_PASSWORD: ci-restic-password-32-characters
+      RESTIC_REPOSITORY: /repository
 
     steps:
       - name: Check out repository
@@ -63,7 +69,7 @@ jobs:
           file: Dockerfile
           load: true
           push: false
-          tags: billwatch-api:local
+          tags: billwatch-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -73,6 +79,61 @@ jobs:
       - name: Verify HTTPS readiness
         run: curl --fail --insecure --retry 30 --retry-all-errors --retry-delay 2 https://localhost/health/ready
 
+      - name: Seed protected recovery fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          email="ci-recovery-${GITHUB_RUN_ID}@billwatch.local"
+          password='BillWatch!CiRecovery123'
+          curl --fail --silent --show-error --insecure \
+            --request POST https://localhost/api/auth/register \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"${email}\",\"password\":\"${password}\"}" \
+            >/dev/null
+          login_json="$(curl --fail --silent --show-error --insecure \
+            --request POST https://localhost/api/auth/login \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"${email}\",\"password\":\"${password}\"}")"
+          access_token="$(jq --exit-status --raw-output '.accessToken' <<<"${login_json}")"
+          stream_json="$(curl --fail --silent --show-error --insecure \
+            --request POST https://localhost/api/bill-streams \
+            --header "Authorization: Bearer ${access_token}" \
+            --header 'Content-Type: application/json' \
+            --data '{"providerName":"CI Recovery Provider","category":"Utilities"}')"
+          stream_id="$(jq --exit-status --raw-output '.id' <<<"${stream_json}")"
+          printf '%%PDF-1.4\n%% CI recovery fixture\n%%%%EOF\n' > /tmp/billwatch-recovery-fixture.pdf
+          curl --fail --silent --show-error --insecure \
+            --request POST "https://localhost/api/bill-streams/${stream_id}/statement-uploads" \
+            --header "Authorization: Bearer ${access_token}" \
+            --form 'file=@/tmp/billwatch-recovery-fixture.pdf;type=application/pdf' \
+            >/dev/null
+          docker compose --file compose.production.yml exec --no-TTY api sh -c \
+            'test -n "$(find /var/lib/billwatch/keys -type f -name "key-*.xml" -size +0c -print -quit)"'
+          docker compose --file compose.production.yml exec --no-TTY api sh -c \
+            'test -n "$(find /var/lib/billwatch/statements -type f -size +0c -print -quit)"'
+
+      - name: Build recovery image
+        run: docker compose --profile operations --file compose.production.yml build backup
+
+      - name: Initialize encrypted backup repository
+        run: docker compose --profile operations --file compose.production.yml run --rm backup init
+
+      - name: Create consistent encrypted backup
+        run: sh deploy/run-backup.sh "$PWD"
+
+      - name: Prove isolated database and file restore
+        run: |
+          docker compose --profile operations --file compose.production.yml up --detach --wait restore-database
+          docker compose --profile operations --file compose.production.yml run --rm backup verify
+          docker compose --profile operations --file compose.production.yml stop restore-database
+
+      - name: Verify API recovery after backup
+        run: curl --fail --insecure --retry 30 --retry-all-errors --retry-delay 2 https://localhost/health/ready
+
+      - name: Print sanitized container logs on failure
+        if: failure()
+        run: docker compose --profile operations --file compose.production.yml logs --no-color --tail 200
+
       - name: Stop production stack
         if: always()
-        run: docker compose --file compose.production.yml down --volumes
+        run: docker compose --profile operations --file compose.production.yml down --volumes

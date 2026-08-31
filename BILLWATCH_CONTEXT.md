@@ -165,14 +165,18 @@ Production reverse-proxy handling is opt-in and trusts only explicitly configure
 
 The production stack can apply EF Core migrations during startup for the documented single API instance. Readiness now fails unless the database is reachable, every migration is current, statement storage is writable, and the persistent Data Protection key directory is writable. It returns only ready/not-ready status and never exposes connection strings or physical paths.
 
-GitHub Actions now builds and tests the Windows backend and independently builds the Linux production container on pushes to `master` and pull requests. Run `87c100b` passed both jobs. CI now also starts the complete production Compose stack with disposable values and requires PostgreSQL startup, EF Core migration, API readiness, Caddy HTTPS termination, and the public readiness request to succeed before it tears the stack down. Local validation for this checkpoint passed the full Release solution build for Windows, Android, iOS, and Mac Catalyst with 0 warnings and 0 errors, plus all 207 tests.
+GitHub Actions builds and tests the Windows backend and independently builds the Linux production container on pushes to `master` and pull requests. The latest local backend validation passes all 223 tests. Dedicated Plaid regression coverage now exercises credential/header isolation, SSRF rejection, bounded and sanitized provider responses, cryptographic purpose separation and tamper rejection, Hosted Link completion/exit behavior, transaction persistence, and the required pagination restart after Plaid reports a mutation.
+
+Production recovery is executable rather than advisory. A capability-dropped, read-only Restic operations container creates a checksum-manifested encrypted recovery point containing a custom-format PostgreSQL dump, the matching Data Protection key ring, and statement files. The host wrapper uses an atomic lock, pauses the single API writer, and guarantees restart through a failure trap. Only snapshots that pass Restic integrity checking receive the completed tag. Restore verification uses a separate disposable PostgreSQL server, validates bundle checksums and migration history, and reconciles every restored statement database row with its restored file and size. CI creates a real authenticated user, Data Protection key, Bill Stream, and statement upload before proving the encrypted round trip.
+
+The deployment network is split so the public Caddy edge cannot reach PostgreSQL, and every container has bounded local JSON logs plus an explicit shutdown grace period. The production backup repository, password, and provider credentials are required but remain outside source control. The password and recovery credentials must also be escrowed outside the host, with immutable provider retention and post-restore deletion reconciliation. A real off-host clean-host recovery drill remains required because CI cannot prove those operator controls or decrypt real protected Plaid data.
 
 The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
 
 ## Remaining private-beta launch gates
 
 1. Select the production host and API hostname, then deploy the included HTTPS stack with real secret-manager or protected environment values.
-2. Configure encrypted off-host backups and prove a database + Data Protection key + statement-file restore.
+2. Configure the real encrypted off-host Restic destination, enable the daily timer, and perform a clean-host recovery drill with real protected data.
 3. Supply the deployed HTTPS API origin through `BillWatchApiBaseUrl` and produce signed client release artifacts.
 4. Add external uptime/error monitoring and verify a forced readiness failure raises an alert.
 5. Validate real Plaid institutions and failure/reconnect behavior.
