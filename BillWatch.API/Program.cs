@@ -692,11 +692,11 @@ app.MapGet(
             BillWatchReadinessService readinessService,
             CancellationToken cancellationToken) =>
         {
-            var canConnect =
-                await dbContext.Database.CanConnectAsync(
+            var isReady =
+                await readinessService.IsReadyAsync(
                     cancellationToken);
 
-            return canConnect
+            return isReady
                 ? Results.Ok(
                     new
                     {
