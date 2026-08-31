@@ -99,7 +99,7 @@ jobs:
             --request POST https://localhost/api/bill-streams \
             --header "Authorization: Bearer ${access_token}" \
             --header 'Content-Type: application/json' \
-            --data '{"providerName":"CI Recovery Provider","category":"Utilities"}')"
+            --data '{"providerName":"CI Recovery Provider","category":"Utility"}')"
           stream_id="$(jq --exit-status --raw-output '.id' <<<"${stream_json}")"
           printf '%%PDF-1.4\n%% CI recovery fixture\n%%%%EOF\n' > /tmp/billwatch-recovery-fixture.pdf
           curl --fail --silent --show-error --insecure \
