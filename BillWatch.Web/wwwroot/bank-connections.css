@@ -186,8 +186,21 @@
     }
 
     .connection-row.disconnected {
-        opacity: 0.68;
+        margin: 5px -8px;
+        padding: 13px 8px;
+        border: 1px solid rgba(100, 120, 170, 0.12);
+        border-radius: 13px;
+        background: rgba(100, 120, 170, 0.035);
     }
+
+        .connection-row.disconnected .connection-logo {
+            background: rgba(100, 120, 170, 0.08);
+            color: var(--bw-text-muted);
+        }
+
+        .connection-row.disconnected .connection-copy strong {
+            color: var(--bw-text-secondary);
+        }
 
 .connection-actions {
     display: flex;
@@ -270,7 +283,7 @@
     }
 
 .connection-disconnected-note {
-    color: var(--bw-text-subtle);
+    color: var(--bw-text-muted);
 }
 
 
