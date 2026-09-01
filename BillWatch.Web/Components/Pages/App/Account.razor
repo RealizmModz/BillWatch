@@ -306,11 +306,8 @@
                                     </strong>
 
                                     <span>
-                                        Added
-                                        @connection.CreatedAtUtc
-                                        .LocalDateTime
-                                        .ToString(
-                                        "MMM d, yyyy")
+                                        Added @FormatConnectionDate(
+                                            connection.CreatedAtUtc)
                                     </span>
                                 </div>
 
@@ -365,8 +362,8 @@
                                 else if (connection.Status == 2)
                                 {
                                     <div class="connection-disconnected-note">
-                                        This connection is disconnected
-                                        and BillWatch will not synchronize it.
+                                        No longer syncing. Connect again above
+                                        whenever you want to resume monitoring.
                                     </div>
                                 }
                             </article>
@@ -845,7 +842,7 @@
         {
             0 => "Connected",
             1 => "Needs attention",
-            2 => "Disconnected",
+            2 => "Connection ended",
             _ => "Unknown"
         };
     }
@@ -868,6 +865,13 @@
             _ =>
                 "connection-pill unknown"
         };
+    }
+
+    private static string FormatConnectionDate(
+        DateTimeOffset createdAt)
+    {
+        return createdAt.LocalDateTime.ToString(
+            "MMM d, yyyy");
     }
 
     private static string GetSyncText(
