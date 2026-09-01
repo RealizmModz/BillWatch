@@ -1,0 +1,80 @@
+﻿<section class="alert-summary">
+    <article>
+        <span>
+            Recent activity
+        </span>
+
+        <strong>
+            @Total
+        </strong>
+
+        <small>
+            Latest BillWatch alerts
+        </small>
+    </article>
+
+    <article class="@GetUnreadClass()">
+        <span>
+            Unread
+        </span>
+
+        <strong>
+            @Unread
+        </strong>
+
+        <small>
+            Waiting for review
+        </small>
+    </article>
+
+    <article class="@GetAttentionClass()">
+        <span>
+            Needs attention
+        </span>
+
+        <strong>
+            @NeedsAttention
+        </strong>
+
+        <small>
+            Warning or critical alerts
+        </small>
+    </article>
+</section>
+
+@code {
+    [Parameter]
+    public int Total
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public int Unread
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public int NeedsAttention
+    {
+        get;
+        set;
+    }
+
+    private string GetUnreadClass()
+    {
+        return Unread > 0
+            ? "has-unread"
+            : string.Empty;
+    }
+
+    private string GetAttentionClass()
+    {
+        return NeedsAttention > 0
+            ? "has-attention"
+            : string.Empty;
+    }
+}

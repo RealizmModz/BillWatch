@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+WORKDIR /src
+
+COPY BillWatch.Core/BillWatch.Core.csproj BillWatch.Core/
+COPY BillWatch.Web/BillWatch.Web.csproj BillWatch.Web/
+RUN dotnet restore BillWatch.Web/BillWatch.Web.csproj
+
+COPY BillWatch.Core/ BillWatch.Core/
+COPY BillWatch.Web/ BillWatch.Web/
+
+RUN dotnet publish BillWatch.Web/BillWatch.Web.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/publish \
+    /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=build /app/publish/ ./
+
+RUN mkdir --parents /var/lib/billwatch-web/keys \
+    && chown --recursive "$APP_UID:$APP_UID" /var/lib/billwatch-web
+
+ENV ASPNETCORE_HTTP_PORTS=8080 \
+    DOTNET_EnableDiagnostics=0
+
+EXPOSE 8080
+
+USER $APP_UID
+
+HEALTHCHECK --interval=30s --timeout=8s --start-period=30s --retries=3 \
+    CMD curl --fail --silent --header "Host: $AllowedHosts" http://localhost:8080/health/ready || exit 1
+
+ENTRYPOINT ["dotnet", "BillWatch.Web.dll"]

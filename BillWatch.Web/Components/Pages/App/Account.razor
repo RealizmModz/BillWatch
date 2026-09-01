@@ -1,0 +1,1048 @@
+﻿@page "/app/account"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@layout AppLayout
+
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
+<PageTitle>Account — BillWatch</PageTitle>
+
+<link rel="stylesheet"
+      href="/account-activity.css" />
+
+<link rel="stylesheet"
+      href="/bank-connections.css" />
+
+<div class="app-page">
+    <header class="page-heading">
+        <div>
+            <span class="page-kicker">
+                BillWatch account
+            </span>
+
+            <h1>
+                Account
+            </h1>
+
+            <p>
+                Connections, financial data, privacy,
+                and your BillWatch account.
+            </p>
+        </div>
+    </header>
+
+    <section class="account-identity-card">
+        <div class="identity-avatar">
+            <AuthorizeView>
+                <Authorized Context="auth">
+                    @GetInitial(
+                        auth.User.Identity?.Name)
+                </Authorized>
+            </AuthorizeView>
+        </div>
+
+        <div class="identity-copy">
+            <span>
+                Signed in as
+            </span>
+
+            <AuthorizeView>
+                <Authorized Context="auth">
+                    <strong>
+                        @GetDisplayName(
+                            auth.User.Identity?.Name)
+                    </strong>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+
+        <div class="identity-security">
+            <span class="security-dot"></span>
+            Authenticated session
+        </div>
+    </section>
+
+    <section class="account-tools-grid">
+        <a class="account-tool-card"
+           href="/app/account/transactions">
+
+            <div class="account-tool-icon">
+                ↕
+            </div>
+
+            <div>
+                <span class="panel-kicker">
+                    Transaction data
+                </span>
+
+                <h2>
+                    Transactions
+                </h2>
+
+                <p>
+                    Review the bank transactions BillWatch uses
+                    to discover recurring bills.
+                </p>
+            </div>
+
+            <span class="account-tool-arrow">
+                →
+            </span>
+        </a>
+
+        <a class="account-tool-card"
+           href="/app/account/privacy">
+
+            <div class="account-tool-icon">
+                ⛨
+            </div>
+
+            <div>
+                <span class="panel-kicker">
+                    Ownership & privacy
+                </span>
+
+                <h2>
+                    Data & privacy
+                </h2>
+
+                <p>
+                    Export your BillWatch data or permanently
+                    delete your account.
+                </p>
+            </div>
+
+            <span class="account-tool-arrow">
+                →
+            </span>
+        </a>
+    </section>
+
+    <section class="connect-bank-card">
+        <div class="connect-bank-icon">
+            <svg viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.7"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 aria-hidden="true">
+
+                <path d="M3 10h18" />
+                <path d="M5 10v8" />
+                <path d="M9 10v8" />
+                <path d="M15 10v8" />
+                <path d="M19 10v8" />
+                <path d="M2 21h20" />
+                <path d="M12 3L2 8h20z" />
+            </svg>
+        </div>
+
+        <div class="connect-bank-copy">
+            <span class="panel-kicker">
+                Secure connection
+            </span>
+
+            <h2>
+                Connect a bank
+            </h2>
+
+            <p>
+                BillWatch uses Plaid to connect financial
+                accounts and retrieve the transaction history
+                needed to discover recurring bills.
+            </p>
+
+            <div class="plaid-security-note">
+                <span>✓</span>
+
+                Your bank username and password are handled
+                by Plaid, not BillWatch.
+            </div>
+        </div>
+
+        <div class="connect-bank-actions">
+            <button id="connect-bank-button"
+                    class="connect-bank-button"
+                    type="button">
+
+                Connect bank
+
+                <span aria-hidden="true">
+                    →
+                </span>
+            </button>
+
+            <div id="connect-bank-status"
+                 class="connect-bank-status"
+                 aria-live="polite">
+
+                Secure connection powered by Plaid
+            </div>
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(
+        _actionMessage))
+    {
+        <div class="@GetActionMessageClass()">
+            @_actionMessage
+        </div>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="account-grid">
+            <div class="account-panel account-skeleton"></div>
+            <div class="account-panel account-skeleton"></div>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(
+        _errorMessage))
+    {
+        <div class="app-error-state">
+            <div class="state-symbol">
+                !
+            </div>
+
+            <div>
+                <h2>
+                    We couldn't load your account
+                </h2>
+
+                <p>
+                    @_errorMessage
+                </p>
+            </div>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="ReloadAsync">
+                Try again
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="account-grid">
+            <section class="account-panel">
+                <div class="account-panel-heading">
+                    <div>
+                        <span class="panel-kicker">
+                            Connections
+                        </span>
+
+                        <h2>
+                            Connected banks
+                        </h2>
+                    </div>
+
+                    <span class="account-count">
+                        @_connections.Count
+                    </span>
+                </div>
+
+                @if (AttentionCount > 0)
+                {
+                    <div class="connection-attention-summary">
+                        <div class="attention-summary-icon">
+                            !
+                        </div>
+
+                        <div>
+                            <strong>
+                                @GetAttentionHeading()
+                            </strong>
+
+                            <span>
+                                Reauthorize the affected connection
+                                through Plaid so BillWatch can resume
+                                reliable automatic monitoring.
+                            </span>
+                        </div>
+                    </div>
+                }
+
+                @if (_connections.Count == 0)
+                {
+                    <div class="account-empty">
+                        <strong>
+                            No banks connected
+                        </strong>
+
+                        <span>
+                            Connect a financial institution above
+                            to begin importing transaction history.
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="connection-list">
+                        @foreach (var connection
+                            in _connections
+                                .OrderBy(
+                                    item =>
+                                        GetStatusSortOrder(
+                                            item.Status))
+                                .ThenBy(
+                                    item =>
+                                        item.InstitutionName))
+                        {
+                            <article class="@GetConnectionRowClass(
+                                                                                connection.Status)">
+
+                                <div class="connection-logo">
+                                    @GetInitial(
+                                        connection.InstitutionName)
+                                </div>
+
+                                <div class="connection-copy">
+                                    <strong>
+                                        @connection.InstitutionName
+                                    </strong>
+
+                                    <span>
+                                        Added
+                                        @connection.CreatedAtUtc
+                                        .LocalDateTime
+                                        .ToString(
+                                        "MMM d, yyyy")
+                                    </span>
+                                </div>
+
+                                <div class="connection-status">
+                                    <span class="@GetConnectionStatusClass(
+                                                                                              connection.Status)">
+                                        @GetConnectionStatusText(
+                                            connection.Status)
+                                    </span>
+
+                                    <small>
+                                        @GetSyncText(
+                                            connection.LastSuccessfulSyncAtUtc)
+                                    </small>
+                                </div>
+
+                                <div class="connection-actions">
+                                    @if (connection.Status == 1)
+                                    {
+                                        <button id="@GetReconnectButtonId(
+                                                                                                    connection.Id)"
+                                                type="button"
+                                                class="reconnect-button">
+
+                                            Reconnect
+                                        </button>
+                                    }
+
+                                    @if (connection.Status != 2)
+                                    {
+                                        <button type="button"
+                                                class="disconnect-button"
+                                                disabled="@_isMutating"
+                                                @onclick="() => DisconnectAsync(connection)">
+
+                                            Disconnect
+                                        </button>
+                                    }
+                                </div>
+
+                                @if (connection.Status == 1)
+                                {
+                                    <div id="@GetReconnectStatusId(
+                                                                                            connection.Id)"
+                                         class="connection-reconnect-status"
+                                         aria-live="polite">
+
+                                        This connection cannot currently
+                                        be relied on for automatic monitoring.
+                                    </div>
+                                }
+                                else if (connection.Status == 2)
+                                {
+                                    <div class="connection-disconnected-note">
+                                        This connection is disconnected
+                                        and BillWatch will not synchronize it.
+                                    </div>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="account-panel">
+                <div class="account-panel-heading">
+                    <div>
+                        <span class="panel-kicker">
+                            Financial accounts
+                        </span>
+
+                        <h2>
+                            Available accounts
+                        </h2>
+                    </div>
+
+                    <span class="account-count">
+                        @_accounts.Count
+                    </span>
+                </div>
+
+                @if (_accounts.Count == 0)
+                {
+                    <div class="account-empty">
+                        <strong>
+                            No accounts available
+                        </strong>
+
+                        <span>
+                            Accounts appear here after a
+                            connected institution supplies them
+                            to BillWatch.
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="financial-account-list">
+                        @foreach (var account
+                            in _accounts
+                                .OrderBy(
+                                    item =>
+                                        item.InstitutionName)
+                                .ThenBy(
+                                    item =>
+                                        item.Name))
+                        {
+                            <article class="financial-account-row">
+                                <div class="financial-icon">
+                                    @GetAccountIconText(
+                                        account.AccountType)
+                                </div>
+
+                                <div class="financial-account-copy">
+                                    <strong>
+                                        @GetAccountDisplayName(
+                                            account)
+                                    </strong>
+
+                                    <span>
+                                        @account.InstitutionName
+                                    </span>
+                                </div>
+
+                                <div class="financial-account-meta">
+                                    <strong>
+                                        @FormatAccountType(
+                                            account.AccountType,
+                                            account.AccountSubtype)
+                                    </strong>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        account.Mask))
+                                    {
+                                        <span>
+                                            •••• @account.Mask
+                                        </span>
+                                    }
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+
+        <section class="privacy-panel">
+            <div class="privacy-icon">
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.7"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     aria-hidden="true">
+
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="M9 12l2 2 4-4" />
+                </svg>
+            </div>
+
+            <div class="privacy-copy">
+                <span class="panel-kicker">
+                    Security model
+                </span>
+
+                <h2>
+                    Financial visibility without financial control.
+                </h2>
+
+                <p>
+                    BillWatch uses connected-account data to
+                    identify recurring bills and changes.
+                    It does not provide bill payment, transfers,
+                    or money movement.
+                </p>
+            </div>
+
+            <div class="privacy-points">
+                <div>
+                    <span>✓</span>
+                    User-scoped records
+                </div>
+
+                <div>
+                    <span>✓</span>
+                    Masked account display
+                </div>
+
+                <div>
+                    <span>✓</span>
+                    API tokens stay server-side
+                </div>
+            </div>
+        </section>
+    }
+</div>
+
+@code {
+    private IJSObjectReference?
+        _bffModule;
+
+    private List<BankConnectionViewModel>
+        _connections = [];
+
+    private List<BankAccountViewModel>
+        _accounts = [];
+
+    private bool _isLoading =
+        true;
+
+    private bool _isMutating;
+
+    private bool _actionSucceeded;
+
+    private string? _errorMessage;
+
+    private string? _actionMessage;
+
+    private int AttentionCount =>
+        _connections.Count(
+            connection =>
+                connection.Status == 1);
+
+    protected override async Task
+        OnAfterRenderAsync(
+            bool firstRender)
+    {
+        try
+        {
+            var module =
+                await GetBffModuleAsync();
+
+            await module.InvokeVoidAsync(
+                "wirePlaidConnectButton",
+                "connect-bank-button",
+                "connect-bank-status");
+
+            if (firstRender)
+            {
+                await LoadAsync();
+
+                StateHasChanged();
+
+                return;
+            }
+
+            if (!_isLoading &&
+                string.IsNullOrWhiteSpace(
+                    _errorMessage))
+            {
+                await WireReconnectButtonsAsync(
+                    module);
+            }
+        }
+        catch (JSException)
+        {
+            if (firstRender)
+            {
+                _isLoading =
+                    false;
+
+                _errorMessage =
+                    "BillWatch could not initialize the secure account connection tools.";
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            if (firstRender)
+            {
+                _isLoading =
+                    false;
+
+                _errorMessage =
+                    "Something went wrong while opening your BillWatch account.";
+
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task<IJSObjectReference>
+        GetBffModuleAsync()
+    {
+        _bffModule ??=
+            await JS.InvokeAsync<
+                IJSObjectReference>(
+                "import",
+                "./js/bff.js");
+
+        return _bffModule;
+    }
+
+    private async Task
+        WireReconnectButtonsAsync(
+            IJSObjectReference module)
+    {
+        foreach (var connection
+            in _connections.Where(
+                item =>
+                    item.Status == 1))
+        {
+            await module.InvokeVoidAsync(
+                "wirePlaidReconnectButton",
+                GetReconnectButtonId(
+                    connection.Id),
+                GetReconnectStatusId(
+                    connection.Id),
+                connection.Id.ToString(
+                    "D"),
+                connection.InstitutionName);
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        await LoadAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading =
+            true;
+
+        _errorMessage =
+            null;
+
+        try
+        {
+            var module =
+                await GetBffModuleAsync();
+
+            var connectionResult =
+                await module
+                    .InvokeAsync<
+                        BankConnectionViewModel[]>(
+                        "getBankConnections");
+
+            var accountResult =
+                await module
+                    .InvokeAsync<
+                        BankAccountViewModel[]>(
+                        "getBankAccounts");
+
+            _connections =
+                connectionResult?
+                    .ToList()
+                ?? [];
+
+            _accounts =
+                accountResult?
+                    .Where(
+                        account =>
+                            account.IsActive)
+                    .ToList()
+                ?? [];
+        }
+        catch (JSException)
+        {
+            _errorMessage =
+                "BillWatch could not reach the secure API.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "Something went wrong while loading your account information.";
+        }
+        finally
+        {
+            _isLoading =
+                false;
+        }
+    }
+
+    private async Task DisconnectAsync(
+        BankConnectionViewModel connection)
+    {
+        if (_isMutating ||
+            connection.Id ==
+                Guid.Empty ||
+            connection.Status ==
+                2)
+        {
+            return;
+        }
+
+        var confirmed =
+            await JS.InvokeAsync<bool>(
+                "confirm",
+                $"Disconnect {connection.InstitutionName}? BillWatch will stop syncing this bank connection.");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        _isMutating =
+            true;
+
+        _actionMessage =
+            $"Disconnecting {connection.InstitutionName}…";
+
+        _actionSucceeded =
+            false;
+
+        try
+        {
+            var module =
+                await GetBffModuleAsync();
+
+            await module.InvokeAsync<object?>(
+                "disconnectBankConnection",
+                connection.Id.ToString(
+                    "D"));
+
+            _actionMessage =
+                $"{connection.InstitutionName} was disconnected.";
+
+            _actionSucceeded =
+                true;
+
+            await LoadAsync();
+        }
+        catch
+        {
+            _actionMessage =
+                $"BillWatch could not disconnect {connection.InstitutionName}.";
+
+            _actionSucceeded =
+                false;
+        }
+        finally
+        {
+            _isMutating =
+                false;
+
+            StateHasChanged();
+        }
+    }
+
+    private string GetActionMessageClass()
+    {
+        return _actionSucceeded
+            ? "account-action-message success"
+            : "account-action-message";
+    }
+
+    private string GetAttentionHeading()
+    {
+        return AttentionCount == 1
+            ? "1 bank connection needs attention"
+            : $"{AttentionCount} bank connections need attention";
+    }
+
+    private static int GetStatusSortOrder(
+        int status)
+    {
+        return status switch
+        {
+            1 => 0,
+            0 => 1,
+            2 => 2,
+            _ => 3
+        };
+    }
+
+    private static string
+        GetConnectionRowClass(
+            int status)
+    {
+        return status switch
+        {
+            1 =>
+                "connection-row requires-attention",
+
+            2 =>
+                "connection-row disconnected",
+
+            _ =>
+                "connection-row"
+        };
+    }
+
+    private static string
+        GetReconnectButtonId(
+            Guid connectionId)
+    {
+        return
+            $"reconnect-bank-{connectionId:N}";
+    }
+
+    private static string
+        GetReconnectStatusId(
+            Guid connectionId)
+    {
+        return
+            $"reconnect-status-{connectionId:N}";
+    }
+
+    private static string GetInitial(
+        string? value)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return "B";
+        }
+
+        return char.ToUpperInvariant(
+                value.Trim()[0])
+            .ToString();
+    }
+
+    private static string GetDisplayName(
+        string? value)
+    {
+        return string.IsNullOrWhiteSpace(
+                value)
+            ? "BillWatch user"
+            : value;
+    }
+
+    private static string
+        GetConnectionStatusText(
+            int status)
+    {
+        return status switch
+        {
+            0 => "Connected",
+            1 => "Needs attention",
+            2 => "Disconnected",
+            _ => "Unknown"
+        };
+    }
+
+    private static string
+        GetConnectionStatusClass(
+            int status)
+    {
+        return status switch
+        {
+            0 =>
+                "connection-pill active",
+
+            1 =>
+                "connection-pill attention",
+
+            2 =>
+                "connection-pill disconnected",
+
+            _ =>
+                "connection-pill unknown"
+        };
+    }
+
+    private static string GetSyncText(
+        DateTimeOffset? lastSync)
+    {
+        if (lastSync is null)
+        {
+            return "Not synced yet";
+        }
+
+        return
+            $"Last sync {lastSync.Value.LocalDateTime:MMM d, yyyy h:mm tt}";
+    }
+
+    private static string
+        GetAccountDisplayName(
+            BankAccountViewModel account)
+    {
+        if (!string.IsNullOrWhiteSpace(
+                account.OfficialName))
+        {
+            return account.OfficialName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                account.Name))
+        {
+            return account.Name;
+        }
+
+        return "Bank account";
+    }
+
+    private static string
+        FormatAccountType(
+            string? type,
+            string? subtype)
+    {
+        var formattedType =
+            FormatEnumText(
+                type);
+
+        if (string.IsNullOrWhiteSpace(
+                subtype))
+        {
+            return formattedType;
+        }
+
+        return
+            $"{formattedType} · {FormatEnumText(subtype)}";
+    }
+
+    private static string
+        GetAccountIconText(
+            string? accountType)
+    {
+        if (string.IsNullOrWhiteSpace(
+                accountType))
+        {
+            return "$";
+        }
+
+        return accountType
+            .StartsWith(
+                "Credit",
+                StringComparison.OrdinalIgnoreCase)
+            ? "C"
+            : "$";
+    }
+
+    private static string FormatEnumText(
+        string? value)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return "Account";
+        }
+
+        return value
+            .Replace(
+                "_",
+                " ",
+                StringComparison.Ordinal)
+            .Trim();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_bffModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _bffModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    public sealed class BankConnectionViewModel
+    {
+        public Guid Id { get; set; }
+
+        public string InstitutionName
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public int Status { get; set; }
+
+        public DateTimeOffset?
+            LastSuccessfulSyncAtUtc
+        {
+            get;
+            set;
+        }
+
+        public DateTimeOffset CreatedAtUtc
+        {
+            get;
+            set;
+        }
+    }
+
+    public sealed class BankAccountViewModel
+    {
+        public Guid Id { get; set; }
+
+        public Guid BankConnectionId
+        {
+            get;
+            set;
+        }
+
+        public string InstitutionName
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Name
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string? OfficialName
+        {
+            get;
+            set;
+        }
+
+        public string? Mask
+        {
+            get;
+            set;
+        }
+
+        public string AccountType
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string? AccountSubtype
+        {
+            get;
+            set;
+        }
+
+        public bool IsActive { get; set; }
+    }
+}

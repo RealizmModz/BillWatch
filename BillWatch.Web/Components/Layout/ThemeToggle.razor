@@ -1,0 +1,86 @@
+﻿@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<button class="theme-toggle"
+        type="button"
+        @onclick="ToggleThemeAsync"
+        aria-label="@ButtonLabel"
+        title="@ButtonLabel">
+
+    @if (_isDark)
+    {
+        <svg class="theme-icon"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="M4.93 4.93l1.41 1.41"></path>
+            <path d="M17.66 17.66l1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="M4.93 19.07l1.41-1.41"></path>
+            <path d="M17.66 6.34l1.41-1.41"></path>
+        </svg>
+    }
+    else
+    {
+        <svg class="theme-icon"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3
+            7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    }
+</button>
+
+@code {
+    private IJSObjectReference? _themeModule;
+    private bool _isDark = true;
+
+    private string ButtonLabel =>
+        _isDark
+            ? "Switch to light mode"
+            : "Switch to dark mode";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _themeModule =
+            await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/theme.js");
+
+        _isDark =
+            await _themeModule.InvokeAsync<bool>(
+                "initializeTheme");
+
+        StateHasChanged();
+    }
+
+    private async Task ToggleThemeAsync()
+    {
+        if (_themeModule is null)
+        {
+            return;
+        }
+
+        _isDark =
+            await _themeModule.InvokeAsync<bool>(
+                "toggleTheme");
+    }
+}

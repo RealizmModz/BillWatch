@@ -1,0 +1,980 @@
+﻿@page "/app"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@layout AppLayout
+
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
+<PageTitle>Overview — BillWatch</PageTitle>
+
+<link rel="stylesheet"
+      href="/onboarding.css" />
+
+<div class="app-page">
+    <header class="page-heading">
+        <div>
+            <span class="page-kicker">
+                Bill intelligence
+            </span>
+
+            <h1>
+                Overview
+            </h1>
+
+            <p>
+                Your recurring bills and the changes
+                BillWatch can verify from your data.
+            </p>
+        </div>
+
+        @if (!_isLoading &&
+             HasActiveConnection)
+        {
+            <button class="status-check-button"
+                    type="button"
+                    disabled="@_isCheckingStatus"
+                    @onclick="CheckStatusAsync">
+
+                @if (_isCheckingStatus)
+                {
+                    <span class="status-spinner"></span>
+                    <span>Checking…</span>
+                }
+                else
+                {
+                    <span aria-hidden="true">↻</span>
+                    <span>Check status</span>
+                }
+            </button>
+        }
+    </header>
+
+    @if (_isLoading)
+    {
+        <div class="dashboard-loading">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </div>
+
+        <div class="skeleton-panel"></div>
+    }
+    else if (!string.IsNullOrWhiteSpace(
+        _errorMessage))
+    {
+        <div class="app-error-state">
+            <div class="state-symbol">
+                !
+            </div>
+
+            <div>
+                <h2>
+                    We couldn't load your BillWatch overview
+                </h2>
+
+                <p>
+                    @_errorMessage
+                </p>
+            </div>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="ReloadAsync">
+                Try again
+            </button>
+        </div>
+    }
+    else if (!HasActiveConnection)
+    {
+        @if (HasConnectionNeedingAttention)
+        {
+            <section class="onboarding-card attention-state">
+                <div class="onboarding-copy">
+                    <span class="page-kicker">
+                        Action needed
+                    </span>
+
+                    <h2>
+                        Your bank connection needs attention.
+                    </h2>
+
+                    <p>
+                        BillWatch has stopped automatic synchronization
+                        for the affected connection until it can be
+                        reauthorized.
+                    </p>
+
+                    <a class="onboarding-primary-action"
+                       href="/app/account">
+                        Review connection
+                        <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+
+                <div class="onboarding-visual">
+                    <div class="attention-symbol">
+                        !
+                    </div>
+
+                    <strong>
+                        Sync paused
+                    </strong>
+
+                    <span>
+                        Your existing BillWatch records remain available.
+                    </span>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="onboarding-card">
+                <div class="onboarding-copy">
+                    <span class="page-kicker">
+                        Get started
+                    </span>
+
+                    <h2>
+                        Connect your bank once.
+                        BillWatch handles the rest.
+                    </h2>
+
+                    <p>
+                        BillWatch uses transaction history to
+                        discover recurring bills automatically.
+                        Your bank credentials are handled by Plaid,
+                        not entered into BillWatch.
+                    </p>
+
+                    <div class="onboarding-trust">
+                        <div>
+                            <span>✓</span>
+                            Read-only financial visibility
+                        </div>
+
+                        <div>
+                            <span>✓</span>
+                            No money movement
+                        </div>
+
+                        <div>
+                            <span>✓</span>
+                            Disconnect anytime
+                        </div>
+                    </div>
+
+                    <a class="onboarding-primary-action"
+                       href="/app/account">
+                        Connect a bank
+                        <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+
+                <div class="onboarding-steps">
+                    <div class="onboarding-step active">
+                        <span>1</span>
+
+                        <div>
+                            <strong>
+                                Connect
+                            </strong>
+
+                            <small>
+                                Securely link your financial institution
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="onboarding-line"></div>
+
+                    <div class="onboarding-step">
+                        <span>2</span>
+
+                        <div>
+                            <strong>
+                                Discover
+                            </strong>
+
+                            <small>
+                                Transaction history reveals recurring bills
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="onboarding-line"></div>
+
+                    <div class="onboarding-step">
+                        <span>3</span>
+
+                        <div>
+                            <strong>
+                                Watch
+                            </strong>
+
+                            <small>
+                                BillWatch keeps monitoring automatically
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
+    }
+    else if (_billStreams.Count == 0 &&
+             IsWaitingForFirstSync)
+    {
+        <section class="onboarding-card sync-state">
+            <div class="onboarding-copy">
+                <span class="page-kicker">
+                    Bank connected
+                </span>
+
+                <h2>
+                    BillWatch is preparing your first scan.
+                </h2>
+
+                <p>
+                    Your connection is active and immediately
+                    eligible for the automatic monitoring pipeline.
+                    BillWatch will synchronize accounts and transactions,
+                    then run deterministic recurring-bill discovery.
+                </p>
+
+                <div class="automatic-monitoring-note">
+                    <span class="automatic-dot"></span>
+
+                    <div>
+                        <strong>
+                            Automatic monitoring is active
+                        </strong>
+
+                        <span>
+                            You do not need to manually trigger a
+                            transaction refresh.
+                        </span>
+                    </div>
+                </div>
+
+                <button class="onboarding-secondary-action"
+                        type="button"
+                        disabled="@_isCheckingStatus"
+                        @onclick="CheckStatusAsync">
+
+                    @if (_isCheckingStatus)
+                    {
+                        <span class="status-spinner"></span>
+                        <span>Checking status…</span>
+                    }
+                    else
+                    {
+                        <span>Check for progress</span>
+                        <span aria-hidden="true">↻</span>
+                    }
+                </button>
+            </div>
+
+            <div class="scan-visual">
+                <div class="scan-rings">
+                    <div class="scan-ring-middle">
+                        <div class="scan-ring-inner">
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="1.7"
+                                 stroke-linecap="round"
+                                 stroke-linejoin="round"
+                                 aria-hidden="true">
+
+                                <path d="M3 10h18" />
+                                <path d="M5 10v8" />
+                                <path d="M9 10v8" />
+                                <path d="M15 10v8" />
+                                <path d="M19 10v8" />
+                                <path d="M2 21h20" />
+                                <path d="M12 3L2 8h20z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <strong>
+                    Connected
+                </strong>
+
+                <span>
+                    Waiting for first successful synchronization
+                </span>
+            </div>
+        </section>
+    }
+    else if (_billStreams.Count == 0)
+    {
+        <section class="onboarding-card history-state">
+            <div class="onboarding-copy">
+                <span class="page-kicker">
+                    Monitoring active
+                </span>
+
+                <h2>
+                    No supported recurring bills found yet.
+                </h2>
+
+                <p>
+                    BillWatch has successfully synchronized your
+                    connection, but the available transaction history
+                    does not currently support a recurring Bill Stream.
+                    It will keep checking automatically as new
+                    transactions arrive.
+                </p>
+
+                @if (LatestSuccessfulSync is not null)
+                {
+                    <div class="last-sync-note">
+                        <span>
+                            Last successful sync
+                        </span>
+
+                        <strong>
+                            @FormatSyncTime(
+                                LatestSuccessfulSync.Value)
+                        </strong>
+                    </div>
+                }
+
+                <a class="onboarding-secondary-action link-action"
+                   href="/app/account">
+                    View connected accounts
+                    <span aria-hidden="true">→</span>
+                </a>
+            </div>
+
+            <div class="history-visual">
+                <div class="history-symbol">
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.7"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         aria-hidden="true">
+
+                        <path d="M12 8v4l3 2" />
+                        <circle cx="12"
+                                cy="12"
+                                r="9" />
+                    </svg>
+                </div>
+
+                <strong>
+                    Building history
+                </strong>
+
+                <span>
+                    BillWatch only creates a recurring bill
+                    when the evidence supports it.
+                </span>
+            </div>
+        </section>
+    }
+    else
+    {
+        @if (HasConnectionNeedingAttention)
+        {
+            <div class="connection-warning">
+                <div class="connection-warning-icon">
+                    !
+                </div>
+
+                <div>
+                    <strong>
+                        One of your bank connections needs attention.
+                    </strong>
+
+                    <span>
+                        BillWatch can continue showing existing data,
+                        but that connection will not refresh until it
+                        is repaired.
+                    </span>
+                </div>
+
+                <a href="/app/account">
+                    Review
+                </a>
+            </div>
+        }
+
+        <section class="metric-grid">
+            <article class="metric-card">
+                <span class="metric-label">
+                    Bills watched
+                </span>
+
+                <strong class="metric-value">
+                    @_billStreams.Count
+                </strong>
+
+                <span class="metric-footnote">
+                    Active recurring Bill Streams
+                </span>
+            </article>
+
+            <article class="metric-card">
+                <span class="metric-label">
+                    Current total
+                </span>
+
+                <strong class="metric-value">
+                    @FormatMoney(
+                        CurrentTotal)
+                </strong>
+
+                <span class="metric-footnote">
+                    Latest recognized charges
+                </span>
+            </article>
+
+            <article class="metric-card">
+                <span class="metric-label">
+                    Above prior average
+                </span>
+
+                <strong class="metric-value">
+                    @BillsAbovePriorAverage
+                </strong>
+
+                <span class="metric-footnote">
+                    Based on transaction history
+                </span>
+            </article>
+        </section>
+
+        <section class="dashboard-grid">
+            <article class="app-panel bills-panel">
+                <div class="panel-heading">
+                    <div>
+                        <span class="panel-kicker">
+                            Recurring bills
+                        </span>
+
+                        <h2>
+                            Latest amounts
+                        </h2>
+                    </div>
+
+                    <a href="/app/bills"
+                       class="text-action">
+                        View all
+                        <span aria-hidden="true">
+                            →
+                        </span>
+                    </a>
+                </div>
+
+                <div class="bill-list">
+                    @foreach (var bill
+                        in _billStreams
+                            .OrderByDescending(
+                                item =>
+                                    item.CurrentAmount)
+                            .Take(6))
+                    {
+                        var difference =
+                            GetDifference(
+                                bill);
+
+                        <a class="bill-row"
+                           href="@($"/app/bills/{bill.Id}")">
+
+                            <div class="bill-avatar">
+                                @GetProviderInitial(
+                                    bill.ProviderName)
+                            </div>
+
+                            <div class="bill-info">
+                                <strong>
+                                    @bill.ProviderName
+                                </strong>
+
+                                <span>
+                                    @FormatCategory(
+                                        bill.Category)
+                                </span>
+                            </div>
+
+                            <div class="bill-amount">
+                                <strong>
+                                    @FormatMoney(
+                                        bill.CurrentAmount)
+                                </strong>
+
+                                @if (bill.PreviousAverage > 0m)
+                                {
+                                    <span class="@GetDifferenceClass(
+                                                                                              difference)">
+                                        @FormatDifference(
+                                            difference)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>
+                                        Building history
+                                    </span>
+                                }
+                            </div>
+                        </a>
+                    }
+                </div>
+            </article>
+
+            <aside class="app-panel insight-panel">
+                @if (LargestIncrease is not null)
+                {
+                    var increase =
+                        GetDifference(
+                            LargestIncrease);
+
+                    <span class="panel-kicker">
+                        Largest current increase
+                    </span>
+
+                    <div class="insight-provider">
+                        @LargestIncrease.ProviderName
+                    </div>
+
+                    <div class="insight-change">
+                        +@FormatMoney(
+                                                    increase)
+                    </div>
+
+                    <span class="insight-period">
+                        above its prior transaction average
+                    </span>
+
+                    <div class="annual-impact">
+                        <span>
+                            Annualized difference
+                        </span>
+
+                        <strong>
+                            +@FormatMoney(
+                                                            increase * 12m)
+                        </strong>
+                    </div>
+
+                    <p class="evidence-note">
+                        Transaction history confirms that the
+                        amount changed. Provider evidence is
+                        needed before BillWatch can responsibly
+                        explain why.
+                    </p>
+
+                    <a class="primary-action"
+                       href="@($"/app/bills/{LargestIncrease.Id}")">
+                        Review bill
+                        <span aria-hidden="true">
+                            →
+                        </span>
+                    </a>
+                }
+                else
+                {
+                    <span class="panel-kicker">
+                        Current status
+                    </span>
+
+                    <div class="steady-state">
+                        <div class="steady-check">
+                            ✓
+                        </div>
+
+                        <h2>
+                            No current increases found
+                        </h2>
+
+                        <p>
+                            None of the latest recognized bill
+                            amounts are above their available
+                            prior transaction averages.
+                        </p>
+                    </div>
+                }
+            </aside>
+        </section>
+    }
+</div>
+
+@code {
+    private IJSObjectReference?
+        _bffModule;
+
+    private List<BillStreamViewModel>
+        _billStreams = [];
+
+    private List<BankConnectionViewModel>
+        _connections = [];
+
+    private bool _isLoading =
+        true;
+
+    private bool _isCheckingStatus;
+
+    private string? _errorMessage;
+
+    private bool HasActiveConnection =>
+        _connections.Any(
+            connection =>
+                connection.Status == 0);
+
+    private bool HasConnectionNeedingAttention =>
+        _connections.Any(
+            connection =>
+                connection.Status == 1);
+
+    private bool IsWaitingForFirstSync =>
+        _connections.Any(
+            connection =>
+                connection.Status == 0 &&
+                connection.LastSuccessfulSyncAtUtc is null);
+
+    private DateTimeOffset?
+        LatestSuccessfulSync =>
+            _connections
+                .Where(
+                    connection =>
+                        connection.Status == 0 &&
+                        connection.LastSuccessfulSyncAtUtc
+                            .HasValue)
+                .Select(
+                    connection =>
+                        connection.LastSuccessfulSyncAtUtc)
+                .OrderByDescending(
+                    value =>
+                        value)
+                .FirstOrDefault();
+
+    private decimal CurrentTotal =>
+        _billStreams.Sum(
+            bill =>
+                Math.Max(
+                    bill.CurrentAmount,
+                    0m));
+
+    private int BillsAbovePriorAverage =>
+        _billStreams.Count(
+            bill =>
+                bill.PreviousAverage > 0m &&
+                bill.CurrentAmount >
+                    bill.PreviousAverage);
+
+    private BillStreamViewModel?
+        LargestIncrease =>
+            _billStreams
+                .Where(
+                    bill =>
+                        bill.PreviousAverage > 0m &&
+                        bill.CurrentAmount >
+                            bill.PreviousAverage)
+                .OrderByDescending(
+                    GetDifference)
+                .FirstOrDefault();
+
+    protected override async Task
+        OnAfterRenderAsync(
+            bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task<
+        IJSObjectReference>
+        GetBffModuleAsync()
+    {
+        _bffModule ??=
+            await JS.InvokeAsync<
+                IJSObjectReference>(
+                "import",
+                "./js/bff.js");
+
+        return _bffModule;
+    }
+
+    private async Task ReloadAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task CheckStatusAsync()
+    {
+        if (_isCheckingStatus)
+        {
+            return;
+        }
+
+        _isCheckingStatus =
+            true;
+
+        try
+        {
+            await LoadDataAsync();
+        }
+        finally
+        {
+            _isCheckingStatus =
+                false;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading =
+            true;
+
+        _errorMessage =
+            null;
+
+        try
+        {
+            await LoadDataAsync();
+        }
+        catch (JSException)
+        {
+            _errorMessage =
+                "BillWatch could not reach the secure API. Try again in a moment.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "Something went wrong while loading your BillWatch overview.";
+        }
+        finally
+        {
+            _isLoading =
+                false;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        var module =
+            await GetBffModuleAsync();
+
+        var connectionResult =
+            await module
+                .InvokeAsync<
+                    BankConnectionViewModel[]>(
+                    "getBankConnections");
+
+        var billStreamResult =
+            await module
+                .InvokeAsync<
+                    BillStreamViewModel[]>(
+                    "getBillStreams");
+
+        _connections =
+            connectionResult?
+                .ToList()
+            ?? [];
+
+        _billStreams =
+            billStreamResult?
+                .Where(
+                    bill =>
+                        bill.IsActive)
+                .ToList()
+            ?? [];
+    }
+
+    private static decimal GetDifference(
+        BillStreamViewModel bill)
+    {
+        if (bill.PreviousAverage <= 0m)
+        {
+            return 0m;
+        }
+
+        return bill.CurrentAmount -
+            bill.PreviousAverage;
+    }
+
+    private static string FormatMoney(
+        decimal amount)
+    {
+        return amount.ToString(
+            "C2");
+    }
+
+    private static string FormatDifference(
+        decimal difference)
+    {
+        if (difference > 0m)
+        {
+            return $"+{FormatMoney(difference)}";
+        }
+
+        if (difference < 0m)
+        {
+            return $"-{FormatMoney(Math.Abs(difference))}";
+        }
+
+        return "No change";
+    }
+
+    private static string
+        GetDifferenceClass(
+            decimal difference)
+    {
+        if (difference > 0m)
+        {
+            return "amount-increase";
+        }
+
+        if (difference < 0m)
+        {
+            return "amount-decrease";
+        }
+
+        return "amount-steady";
+    }
+
+    private static string
+        GetProviderInitial(
+            string providerName)
+    {
+        if (string.IsNullOrWhiteSpace(
+                providerName))
+        {
+            return "?";
+        }
+
+        return char.ToUpperInvariant(
+                providerName.Trim()[0])
+            .ToString();
+    }
+
+    private static string FormatCategory(
+        string category)
+    {
+        if (string.IsNullOrWhiteSpace(
+                category) ||
+            string.Equals(
+                category,
+                "Unknown",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "Recurring bill";
+        }
+
+        return category switch
+        {
+            "MobilePhone" =>
+                "Mobile phone",
+
+            "NaturalGas" =>
+                "Natural gas",
+
+            _ =>
+                category
+        };
+    }
+
+    private static string FormatSyncTime(
+        DateTimeOffset value)
+    {
+        return value.LocalDateTime
+            .ToString(
+                "MMM d, yyyy h:mm tt");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_bffModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _bffModule
+                .DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    public sealed class BillStreamViewModel
+    {
+        public Guid Id { get; set; }
+
+        public string ProviderName
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Category
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public bool IsActive
+        {
+            get;
+            set;
+        }
+
+        public decimal CurrentAmount
+        {
+            get;
+            set;
+        }
+
+        public decimal PreviousAverage
+        {
+            get;
+            set;
+        }
+    }
+
+    public sealed class BankConnectionViewModel
+    {
+        public Guid Id { get; set; }
+
+        public string InstitutionName
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public int Status
+        {
+            get;
+            set;
+        }
+
+        public DateTimeOffset?
+            LastSuccessfulSyncAtUtc
+        {
+            get;
+            set;
+        }
+
+        public DateTimeOffset CreatedAtUtc
+        {
+            get;
+            set;
+        }
+    }
+}

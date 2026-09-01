@@ -1,0 +1,103 @@
+﻿@inherits LayoutComponentBase
+
+<link rel="stylesheet"
+      href="/theme.css" />
+
+<div class="site-shell">
+    <header class="site-header">
+        <div class="header-inner">
+            <a class="brand"
+               href="/"
+               aria-label="BillWatch home">
+
+                <span class="brand-mark">
+                    <span class="brand-mark-inner"></span>
+                </span>
+
+                <span class="brand-name">
+                    BillWatch
+                </span>
+            </a>
+
+            <nav class="desktop-nav"
+                 aria-label="Primary navigation">
+
+                <a href="/#how-it-works">
+                    How it works
+                </a>
+
+                <a href="/#example">
+                    Example
+                </a>
+
+                <a href="/#security">
+                    Security
+                </a>
+            </nav>
+
+            <div class="header-actions">
+                <ThemeToggle />
+
+                <AuthorizeView>
+                    <Authorized>
+                        <a class="header-action"
+                           href="/app">
+                            Dashboard
+                        </a>
+                    </Authorized>
+
+                    <NotAuthorized>
+                        <a class="header-action"
+                           href="/login">
+                            Sign in
+                        </a>
+
+                        <a class="header-action"
+                           href="/register">
+                            Get started
+                        </a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        @Body
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <a class="brand"
+                   href="/"
+                   aria-label="BillWatch home">
+
+                    <span class="brand-mark brand-mark-small">
+                        <span class="brand-mark-inner"></span>
+                    </span>
+
+                    <span class="brand-name">
+                        BillWatch
+                    </span>
+                </a>
+
+                <p>
+                    Know when your bills change — and why.
+                </p>
+            </div>
+
+            <div class="footer-status">
+                <span class="status-dot"></span>
+
+                <span>
+                    Built around privacy, clarity, and evidence.
+                </span>
+            </div>
+
+            <div class="footer-copy">
+                © @DateTime.UtcNow.Year BillWatch
+            </div>
+        </div>
+    </footer>
+</div>

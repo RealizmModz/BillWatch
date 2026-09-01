@@ -50,7 +50,9 @@ reject_placeholder()
 {
     key=$1
     value=$2
+
     [ -n "$value" ] || fail "$key is empty."
+
     case "$value" in
         *replace-with*|*example.com*|*placeholder*|*change-me*|*changeme*)
             fail "$key still contains an example or placeholder value."
@@ -62,6 +64,7 @@ reject_unsafe_env_value()
 {
     key=$1
     value=$2
+
     case "$value" in
         *[!A-Za-z0-9._~!@%+=,:/-]*)
             fail "$key contains whitespace, quoting, interpolation, or unsupported characters."
@@ -69,7 +72,30 @@ reject_unsafe_env_value()
     esac
 }
 
+validate_public_hostname()
+{
+    host_key=$1
+    candidate_host=$2
+
+    case "$candidate_host" in
+        localhost|*.localhost|*.local|*.internal|*[!A-Za-z0-9.-]*|.*|*..*|*.)
+            fail "$host_key must be a public DNS hostname."
+            ;;
+    esac
+
+    case "$candidate_host" in
+        *.*) ;;
+        *) fail "$host_key must contain a public DNS suffix." ;;
+    esac
+
+    case "$candidate_host" in
+        *[!0-9.]*) ;;
+        *) fail "$host_key must not be a numeric address." ;;
+    esac
+}
+
 host=$(read_value BILLWATCH_HOST)
+web_host=$(read_value BILLWATCH_WEB_HOST)
 release_id=$(read_value BILLWATCH_RELEASE_ID)
 acme_email=$(read_value ACME_EMAIL)
 database_password=$(read_value BILLWATCH_DATABASE_PASSWORD)
@@ -82,6 +108,7 @@ backup_work_size=$(read_value BILLWATCH_BACKUP_WORK_SIZE)
 
 for required_pair in \
     "BILLWATCH_HOST:$host" \
+    "BILLWATCH_WEB_HOST:$web_host" \
     "BILLWATCH_RELEASE_ID:$release_id" \
     "ACME_EMAIL:$acme_email" \
     "BILLWATCH_DATABASE_PASSWORD:$database_password" \
@@ -94,38 +121,39 @@ do
     reject_unsafe_env_value "${required_pair%%:*}" "${required_pair#*:}"
 done
 
-case "$host" in
-    localhost|*.localhost|*.local|*.internal|*[!A-Za-z0-9.-]*|.*|*..*|*.)
-        fail "BILLWATCH_HOST must be a public DNS hostname."
+validate_public_hostname BILLWATCH_HOST "$host"
+validate_public_hostname BILLWATCH_WEB_HOST "$web_host"
+
+[ "$host" != "$web_host" ] ||
+    fail "BILLWATCH_HOST and BILLWATCH_WEB_HOST must be different hostnames."
+
+case "$release_id" in
+    *[!0-9a-f]*|'')
+        fail "BILLWATCH_RELEASE_ID must be a lowercase 40-character Git commit."
         ;;
 esac
 
-case "$host" in
-    *.*) ;;
-    *) fail "BILLWATCH_HOST must contain a public DNS suffix." ;;
-esac
-
-case "$host" in
-    *[!0-9.]*) ;;
-    *) fail "BILLWATCH_HOST must not be a numeric address." ;;
-esac
-
-case "$release_id" in
-    *[!0-9a-f]*|'') fail "BILLWATCH_RELEASE_ID must be a lowercase 40-character Git commit." ;;
-esac
-[ "${#release_id}" -eq 40 ] || fail "BILLWATCH_RELEASE_ID must be a lowercase 40-character Git commit."
+[ "${#release_id}" -eq 40 ] ||
+    fail "BILLWATCH_RELEASE_ID must be a lowercase 40-character Git commit."
 
 case "$acme_email" in
     *@*.*) ;;
-    *) fail "ACME_EMAIL must be a valid operational email address." ;;
+    *)
+        fail "ACME_EMAIL must be a valid operational email address."
+        ;;
 esac
 
-[ "${#database_password}" -ge 32 ] || fail "BILLWATCH_DATABASE_PASSWORD must contain at least 32 characters."
-[ "${#restic_password}" -ge 24 ] || fail "RESTIC_PASSWORD must contain at least 24 characters."
+[ "${#database_password}" -ge 32 ] ||
+    fail "BILLWATCH_DATABASE_PASSWORD must contain at least 32 characters."
+
+[ "${#restic_password}" -ge 24 ] ||
+    fail "RESTIC_PASSWORD must contain at least 24 characters."
 
 case "$plaid_environment" in
-    sandbox|development|production) ;;
-    *) fail "PLAID_ENVIRONMENT must be sandbox, development, or production." ;;
+    sandbox|production) ;;
+    *)
+        fail "PLAID_ENVIRONMENT must be sandbox or production."
+        ;;
 esac
 
 case "$restic_repository" in
@@ -133,10 +161,13 @@ case "$restic_repository" in
         fail "RESTIC_REPOSITORY must be an off-host repository."
         ;;
     *:*) ;;
-    *) fail "RESTIC_REPOSITORY must use an explicit remote backend." ;;
+    *)
+        fail "RESTIC_REPOSITORY must use an explicit remote backend."
+        ;;
 esac
 
-printf '%s' "$backup_work_size" | grep -Eq '^[1-9][0-9]*[mMgG]$' ||
+printf '%s' "$backup_work_size" |
+    grep -Eq '^[1-9][0-9]*[mMgG]$' ||
     fail "BILLWATCH_BACKUP_WORK_SIZE must be a positive value such as 8g."
 
 case "$restic_repository" in
@@ -144,13 +175,16 @@ case "$restic_repository" in
         aws_access_key=$(read_value AWS_ACCESS_KEY_ID)
         aws_secret_key=$(read_value AWS_SECRET_ACCESS_KEY)
         aws_region=$(read_value AWS_DEFAULT_REGION)
+
         reject_placeholder AWS_ACCESS_KEY_ID "$aws_access_key"
         reject_placeholder AWS_SECRET_ACCESS_KEY "$aws_secret_key"
         reject_placeholder AWS_DEFAULT_REGION "$aws_region"
+
         reject_unsafe_env_value AWS_ACCESS_KEY_ID "$aws_access_key"
         reject_unsafe_env_value AWS_SECRET_ACCESS_KEY "$aws_secret_key"
         reject_unsafe_env_value AWS_DEFAULT_REGION "$aws_region"
         ;;
 esac
 
-printf '%s\n' "Production configuration preflight passed for $host at release $release_id."
+printf '%s\n' \
+    "Production configuration preflight passed for API $host and web $web_host at release $release_id."

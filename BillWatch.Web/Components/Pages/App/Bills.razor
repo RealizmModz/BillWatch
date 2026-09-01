@@ -1,0 +1,571 @@
+﻿@page "/app/bills"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@layout AppLayout
+
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
+<PageTitle>Bills — BillWatch</PageTitle>
+
+<link rel="stylesheet"
+      href="/bills.css" />
+
+<div class="app-page">
+    <header class="page-heading bills-page-heading">
+        <div>
+            <span class="page-kicker">
+                Recurring expenses
+            </span>
+
+            <h1>
+                Bills
+            </h1>
+
+            <p>
+                Every recurring bill BillWatch has discovered
+                from your transaction history.
+            </p>
+        </div>
+
+        @if (!_isLoading &&
+             string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="bills-heading-summary">
+                <strong>
+                    @_billStreams.Count
+                </strong>
+
+                <span>
+                    monitored
+                </span>
+
+                <div class="summary-divider"></div>
+
+                <strong>
+                    @FormatMoney(TotalCurrent)
+                </strong>
+
+                <span>
+                    current total
+                </span>
+            </div>
+        }
+    </header>
+
+    @if (_isLoading)
+    {
+        <div class="bill-card-grid">
+            @for (var i = 0;
+                  i < 6;
+                  i++)
+            {
+                <div class="bill-card-skeleton"></div>
+            }
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(
+        _errorMessage))
+    {
+        <div class="app-error-state">
+            <div class="state-symbol">
+                !
+            </div>
+
+            <div>
+                <h2>
+                    We couldn't load your bills
+                </h2>
+
+                <p>
+                    @_errorMessage
+                </p>
+            </div>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="ReloadAsync">
+                Try again
+            </button>
+        </div>
+    }
+    else if (_billStreams.Count == 0)
+    {
+        <div class="empty-dashboard">
+            <div class="empty-icon">
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.7"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     aria-hidden="true">
+
+                    <path d="M6 2h9l3 3v17H6z" />
+                    <path d="M14 2v4h4" />
+                    <path d="M9 11h6" />
+                    <path d="M9 15h4" />
+                </svg>
+            </div>
+
+            <span class="page-kicker">
+                No bills yet
+            </span>
+
+            <h2>
+                BillWatch hasn't discovered a recurring bill yet.
+            </h2>
+
+            <p>
+                Once recurring charges are matched into Bill Streams,
+                they'll appear here automatically.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="bill-filter-bar">
+            <button type="button"
+                    class="@GetFilterClass(BillFilter.All)"
+                    @onclick="() => SetFilter(BillFilter.All)">
+                All
+                <span>@_billStreams.Count</span>
+            </button>
+
+            <button type="button"
+                    class="@GetFilterClass(BillFilter.Increased)"
+                    @onclick="() => SetFilter(BillFilter.Increased)">
+                Increased
+                <span>@IncreasedCount</span>
+            </button>
+
+            <button type="button"
+                    class="@GetFilterClass(BillFilter.Decreased)"
+                    @onclick="() => SetFilter(BillFilter.Decreased)">
+                Decreased
+                <span>@DecreasedCount</span>
+            </button>
+
+            <button type="button"
+                    class="@GetFilterClass(BillFilter.NoHistory)"
+                    @onclick="() => SetFilter(BillFilter.NoHistory)">
+                Building history
+                <span>@NoHistoryCount</span>
+            </button>
+        </div>
+
+        @if (FilteredBills.Count == 0)
+        {
+            <div class="filtered-empty">
+                No bills match this filter.
+            </div>
+        }
+        else
+        {
+            <section class="bill-card-grid">
+                @foreach (var bill in FilteredBills)
+                {
+                    var difference =
+                        GetDifference(
+                            bill);
+
+                    <a class="bill-card"
+                       href="@($"/app/bills/{bill.Id}")">
+
+                        <div class="bill-card-top">
+                            <div class="bill-provider">
+                                <div class="bill-provider-avatar">
+                                    @GetProviderInitial(
+                                        bill.ProviderName)
+                                </div>
+
+                                <div>
+                                    <h2>
+                                        @bill.ProviderName
+                                    </h2>
+
+                                    <span>
+                                        @FormatCategory(
+                                            bill.Category)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <span class="watching-state">
+                                <span></span>
+                                Watching
+                            </span>
+                        </div>
+
+                        <div class="bill-current">
+                            <span>
+                                Current amount
+                            </span>
+
+                            <strong>
+                                @FormatMoney(
+                                    bill.CurrentAmount)
+                            </strong>
+                        </div>
+
+                        @if (bill.PreviousAverage > 0m)
+                        {
+                            <div class="@GetChangePanelClass(
+                                                                            difference)">
+
+                                <div>
+                                    <span>
+                                        vs. prior average
+                                    </span>
+
+                                    <strong>
+                                        @FormatDifference(
+                                            difference)
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>
+                                        annualized
+                                    </span>
+
+                                    <strong>
+                                        @FormatAnnualized(
+                                            difference)
+                                    </strong>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="bill-history-state">
+                                <span class="history-dot"></span>
+
+                                More transaction history is needed
+                                before BillWatch can compare this bill.
+                            </div>
+                        }
+
+                        <div class="bill-card-footer">
+                            <span>
+                                See bill history
+                            </span>
+
+                            <span aria-hidden="true">
+                                →
+                            </span>
+                        </div>
+                    </a>
+                }
+            </section>
+        }
+    }
+</div>
+
+@code {
+    private IJSObjectReference?
+        _bffModule;
+
+    private List<BillStreamViewModel>
+        _billStreams = [];
+
+    private bool _isLoading =
+        true;
+
+    private string? _errorMessage;
+
+    private BillFilter _filter =
+        BillFilter.All;
+
+    private decimal TotalCurrent =>
+        _billStreams.Sum(
+            bill =>
+                Math.Max(
+                    bill.CurrentAmount,
+                    0m));
+
+    private int IncreasedCount =>
+        _billStreams.Count(
+            bill =>
+                bill.PreviousAverage > 0m &&
+                GetDifference(bill) > 0m);
+
+    private int DecreasedCount =>
+        _billStreams.Count(
+            bill =>
+                bill.PreviousAverage > 0m &&
+                GetDifference(bill) < 0m);
+
+    private int NoHistoryCount =>
+        _billStreams.Count(
+            bill =>
+                bill.PreviousAverage <= 0m);
+
+    private IReadOnlyList<BillStreamViewModel>
+        FilteredBills =>
+            _billStreams
+                .Where(
+                    bill =>
+                        _filter switch
+                        {
+                            BillFilter.Increased =>
+                                bill.PreviousAverage > 0m &&
+                                GetDifference(bill) > 0m,
+
+                            BillFilter.Decreased =>
+                                bill.PreviousAverage > 0m &&
+                                GetDifference(bill) < 0m,
+
+                            BillFilter.NoHistory =>
+                                bill.PreviousAverage <= 0m,
+
+                            _ =>
+                                true
+                        })
+                .OrderByDescending(
+                    bill =>
+                        bill.CurrentAmount)
+                .ThenBy(
+                    bill =>
+                        bill.ProviderName)
+                .ToList();
+
+    protected override async Task
+        OnAfterRenderAsync(
+            bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task ReloadAsync()
+    {
+        await LoadAsync();
+    }
+
+    private void SetFilter(
+        BillFilter filter)
+    {
+        _filter =
+            filter;
+    }
+
+    private string GetFilterClass(
+        BillFilter filter)
+    {
+        return _filter == filter
+            ? "bill-filter active"
+            : "bill-filter";
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading =
+            true;
+
+        _errorMessage =
+            null;
+
+        try
+        {
+            _bffModule ??=
+                await JS.InvokeAsync<
+                    IJSObjectReference>(
+                    "import",
+                    "./js/bff.js");
+
+            var result =
+                await _bffModule
+                    .InvokeAsync<
+                        BillStreamViewModel[]>(
+                        "getBillStreams");
+
+            _billStreams =
+                result?
+                    .Where(
+                        bill =>
+                            bill.IsActive)
+                    .ToList()
+                ?? [];
+        }
+        catch (JSException)
+        {
+            _errorMessage =
+                "BillWatch could not reach the secure API.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "Something went wrong while loading your bills.";
+        }
+        finally
+        {
+            _isLoading =
+                false;
+        }
+    }
+
+    private static decimal GetDifference(
+        BillStreamViewModel bill)
+    {
+        if (bill.PreviousAverage <= 0m)
+        {
+            return 0m;
+        }
+
+        return bill.CurrentAmount -
+            bill.PreviousAverage;
+    }
+
+    private static string FormatMoney(
+        decimal amount)
+    {
+        return amount.ToString(
+            "C2");
+    }
+
+    private static string FormatDifference(
+        decimal difference)
+    {
+        if (difference > 0m)
+        {
+            return $"+{FormatMoney(difference)}";
+        }
+
+        if (difference < 0m)
+        {
+            return $"-{FormatMoney(Math.Abs(difference))}";
+        }
+
+        return "No change";
+    }
+
+    private static string FormatAnnualized(
+        decimal difference)
+    {
+        var annualized =
+            difference * 12m;
+
+        if (annualized > 0m)
+        {
+            return $"+{FormatMoney(annualized)}/yr";
+        }
+
+        if (annualized < 0m)
+        {
+            return $"-{FormatMoney(Math.Abs(annualized))}/yr";
+        }
+
+        return "$0.00/yr";
+    }
+
+    private static string GetChangePanelClass(
+        decimal difference)
+    {
+        if (difference > 0m)
+        {
+            return "bill-change-panel increase";
+        }
+
+        if (difference < 0m)
+        {
+            return "bill-change-panel decrease";
+        }
+
+        return "bill-change-panel steady";
+    }
+
+    private static string GetProviderInitial(
+        string providerName)
+    {
+        if (string.IsNullOrWhiteSpace(
+                providerName))
+        {
+            return "?";
+        }
+
+        return char.ToUpperInvariant(
+                providerName.Trim()[0])
+            .ToString();
+    }
+
+    private static string FormatCategory(
+        string category)
+    {
+        if (string.IsNullOrWhiteSpace(
+                category) ||
+            string.Equals(
+                category,
+                "Unknown",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "Recurring bill";
+        }
+
+        return category;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_bffModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _bffModule
+                .DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    private enum BillFilter
+    {
+        All,
+        Increased,
+        Decreased,
+        NoHistory
+    }
+
+    public sealed class BillStreamViewModel
+    {
+        public Guid Id { get; set; }
+
+        public string ProviderName
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Category
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public bool IsActive { get; set; }
+
+        public decimal CurrentAmount
+        {
+            get;
+            set;
+        }
+
+        public decimal PreviousAverage
+        {
+            get;
+            set;
+        }
+    }
+}

@@ -1,0 +1,1085 @@
+﻿@page "/app/bills/{BillStreamId:guid}"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@layout AppLayout
+
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
+<PageTitle>@PageTitleText</PageTitle>
+
+<link rel="stylesheet"
+      href="/bills.css" />
+
+<div class="app-page">
+    <a class="detail-back"
+       href="/app/bills">
+        ← Bills
+    </a>
+
+    @if (_isLoading)
+    {
+        <div class="detail-loading">
+            <div class="detail-heading-skeleton"></div>
+
+            <div class="detail-grid">
+                <div class="detail-panel-skeleton"></div>
+                <div class="detail-panel-skeleton"></div>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(
+        _errorMessage))
+    {
+        <div class="app-error-state">
+            <div class="state-symbol">
+                !
+            </div>
+
+            <div>
+                <h2>
+                    We couldn't open this bill
+                </h2>
+
+                <p>
+                    @_errorMessage
+                </p>
+            </div>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="ReloadAsync">
+                Try again
+            </button>
+        </div>
+    }
+    else if (_detail is not null)
+    {
+        var transactionDifference =
+            GetTransactionDifference();
+
+        var latestChange =
+            LatestChange;
+
+        <header class="bill-detail-header">
+            <div class="bill-detail-provider">
+                <div class="detail-provider-avatar">
+                    @GetProviderInitial(
+                        _detail.ProviderName)
+                </div>
+
+                <div>
+                    <span class="page-kicker">
+                        @FormatCategory(
+                            _detail.Category)
+                    </span>
+
+                    <h1>
+                        @_detail.ProviderName
+                    </h1>
+
+                    <div class="detail-status-line">
+                        <span class="watching-state">
+                            <span></span>
+                            Watching
+                        </span>
+
+                        @if (_detail.Statements.Count > 0)
+                        {
+                            <span>
+                                @_detail.Statements.Count
+                                statement@(Pluralize(
+                                                                    _detail.Statements.Count))
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="current-bill-amount">
+                <span>
+                    Latest transaction
+                </span>
+
+                <strong>
+                    @FormatMoney(
+                        _detail.CurrentAmount)
+                </strong>
+
+                @if (_detail.PreviousAverage > 0m)
+                {
+                    <small class="@GetDifferenceClass(
+                                                                    transactionDifference)">
+                        @FormatDifference(
+                            transactionDifference)
+                        vs. prior average
+                    </small>
+                }
+            </div>
+        </header>
+
+        <StatementUploadPanel BillStreamId="@BillStreamId"
+                              ProviderName="@_detail.ProviderName"
+                              OnProcessed="@HandleStatementProcessedAsync" />
+
+        @if (latestChange is not null)
+        {
+            <section class="@GetDetectedChangeClass(
+                                                latestChange.AmountDifference)">
+
+                <div class="detected-change-main">
+                    <div class="change-eyebrow">
+                        Detected statement change
+                    </div>
+
+                    <div class="detected-change-values">
+                        <div>
+                            <span>
+                                Previous
+                            </span>
+
+                            <strong>
+                                @FormatMoney(
+                                    latestChange.PreviousAmount)
+                            </strong>
+                        </div>
+
+                        <span class="detail-arrow">
+                            →
+                        </span>
+
+                        <div>
+                            <span>
+                                Current
+                            </span>
+
+                            <strong>
+                                @FormatMoney(
+                                    latestChange.CurrentAmount)
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="change-impact-stack">
+                    <div>
+                        <span>
+                            Change
+                        </span>
+
+                        <strong>
+                            @FormatDifference(
+                                latestChange.AmountDifference)
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            Annual impact
+                        </span>
+
+                        <strong>
+                            @FormatSignedMoney(
+                                latestChange.AnnualizedImpact)
+                        </strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="detail-panel explanation-panel">
+                <div class="panel-heading">
+                    <div>
+                        <span class="panel-kicker">
+                            Why it changed
+                        </span>
+
+                        <h2>
+                            BillWatch explanation
+                        </h2>
+                    </div>
+
+                    <span class="@GetConfidenceClass(
+                                                              latestChange.Confidence)">
+                        @FormatConfidence(
+                            latestChange.Confidence)
+                    </span>
+                </div>
+
+                <p class="change-description">
+                    @GetExplanation(
+                        latestChange.Description)
+                </p>
+
+                <div class="evidence-metadata">
+                    <div>
+                        <span>
+                            Change type
+                        </span>
+
+                        <strong>
+                            @FormatEnumText(
+                                latestChange.ChangeType)
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            Detected
+                        </span>
+
+                        <strong>
+                            @FormatDetectedDate(
+                                latestChange.DetectedAtUtc)
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>
+                            Status
+                        </span>
+
+                        <strong>
+                            @(latestChange.IsAcknowledged
+                                ? "Reviewed"
+                                : "Not reviewed")
+                        </strong>
+                    </div>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="detail-panel no-explanation-panel">
+                <div class="no-change-icon">
+                    ?
+                </div>
+
+                <div>
+                    <span class="panel-kicker">
+                        Explanation
+                    </span>
+
+                    <h2>
+                        We don't know yet.
+                    </h2>
+
+                    <p>
+                        BillWatch has transaction history for this
+                        recurring bill, but no verified statement
+                        comparison has produced a detected change yet.
+                    </p>
+                </div>
+            </section>
+        }
+
+        <div class="detail-grid">
+            <section class="detail-panel">
+                <div class="panel-heading">
+                    <div>
+                        <span class="panel-kicker">
+                            Provider documents
+                        </span>
+
+                        <h2>
+                            Statement history
+                        </h2>
+                    </div>
+
+                    <span class="panel-count">
+                        @_detail.Statements.Count
+                    </span>
+                </div>
+
+                @if (_detail.Statements.Count == 0)
+                {
+                    <div class="detail-empty">
+                        <strong>
+                            No processed statements yet
+                        </strong>
+
+                        <span>
+                            Transaction history can detect that an
+                            amount moved. Statements are what allow
+                            BillWatch to explain why.
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="statement-list">
+                        @foreach (var statement
+                            in _detail.Statements
+                                .OrderByDescending(
+                                    item =>
+                                        item.PeriodEnd))
+                        {
+                            <article class="statement-row">
+                                <div class="statement-date-icon">
+                                    <span>
+                                        @GetMonth(
+                                            statement.PeriodEnd)
+                                    </span>
+
+                                    <strong>
+                                        @GetDay(
+                                            statement.PeriodEnd)
+                                    </strong>
+                                </div>
+
+                                <div class="statement-info">
+                                    <strong>
+                                        @FormatPeriod(
+                                            statement.PeriodStart,
+                                            statement.PeriodEnd)
+                                    </strong>
+
+                                    <span>
+                                        @FormatStatementMeta(
+                                            statement)
+                                    </span>
+                                </div>
+
+                                <div class="statement-amount">
+                                    <strong>
+                                        @FormatMoney(
+                                            statement.TotalAmount)
+                                    </strong>
+
+                                    <span>
+                                        @statement.CurrencyCode
+                                    </span>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="detail-panel">
+                <div class="panel-heading">
+                    <div>
+                        <span class="panel-kicker">
+                            History
+                        </span>
+
+                        <h2>
+                            Detected changes
+                        </h2>
+                    </div>
+
+                    <span class="panel-count">
+                        @_detail.Changes.Count
+                    </span>
+                </div>
+
+                @if (_detail.Changes.Count == 0)
+                {
+                    <div class="detail-empty">
+                        <strong>
+                            No statement changes yet
+                        </strong>
+
+                        <span>
+                            BillWatch will list verified historical
+                            changes here as statement comparisons
+                            become available.
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="change-history-list">
+                        @foreach (var change
+                            in _detail.Changes
+                                .OrderByDescending(
+                                    item =>
+                                        item.DetectedAtUtc))
+                        {
+                            <article class="change-history-row">
+                                <div class="@GetHistoryIndicatorClass(
+                                                                                    change.AmountDifference)">
+                                </div>
+
+                                <div class="change-history-copy">
+                                    <div class="change-history-heading">
+                                        <strong>
+                                            @FormatEnumText(
+                                                change.ChangeType)
+                                        </strong>
+
+                                        <span>
+                                            @FormatDetectedDate(
+                                                change.DetectedAtUtc)
+                                        </span>
+                                    </div>
+
+                                    <p>
+                                        @GetExplanation(
+                                            change.Description)
+                                    </p>
+
+                                    <div class="change-history-meta">
+                                        <span>
+                                            @FormatDifference(
+                                                change.AmountDifference)
+                                        </span>
+
+                                        <span>
+                                            @FormatSignedMoney(
+                                                change.AnnualizedImpact)
+                                            / year
+                                        </span>
+
+                                        <span>
+                                            @FormatConfidence(
+                                                change.Confidence)
+                                        </span>
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid BillStreamId
+    {
+        get;
+        set;
+    }
+
+    private IJSObjectReference?
+        _bffModule;
+
+    private BillStreamDetailViewModel?
+        _detail;
+
+    private bool _isLoading =
+        true;
+
+    private string? _errorMessage;
+
+    private string PageTitleText =>
+        _detail is null
+            ? "Bill — BillWatch"
+            : $"{_detail.ProviderName} — BillWatch";
+
+    private BillChangeViewModel?
+        LatestChange =>
+            _detail?
+                .Changes
+                .OrderByDescending(
+                    change =>
+                        change.DetectedAtUtc)
+                .FirstOrDefault();
+
+    protected override async Task
+        OnAfterRenderAsync(
+            bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task ReloadAsync()
+    {
+        await LoadAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task
+        HandleStatementProcessedAsync()
+    {
+        try
+        {
+            await LoadDetailAsync();
+
+            _errorMessage =
+                null;
+        }
+        catch (JSException)
+        {
+            _errorMessage =
+                "The statement finished processing, but BillWatch could not refresh this bill.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "The statement finished processing, but BillWatch could not refresh this bill.";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading =
+            true;
+
+        _errorMessage =
+            null;
+
+        if (BillStreamId ==
+            Guid.Empty)
+        {
+            _isLoading =
+                false;
+
+            _errorMessage =
+                "BillWatch could not determine which bill to open.";
+
+            return;
+        }
+
+        try
+        {
+            await LoadDetailAsync();
+
+            if (_detail is null)
+            {
+                _errorMessage =
+                    "This bill could not be found.";
+            }
+        }
+        catch (JSException)
+        {
+            _errorMessage =
+                "BillWatch could not load this bill from the secure API.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "Something went wrong while opening this bill.";
+        }
+        finally
+        {
+            _isLoading =
+                false;
+        }
+    }
+
+    private async Task LoadDetailAsync()
+    {
+        _bffModule ??=
+            await JS.InvokeAsync<
+                IJSObjectReference>(
+                "import",
+                "./js/bff.js");
+
+        _detail =
+            await _bffModule
+                .InvokeAsync<
+                    BillStreamDetailViewModel>(
+                    "getBillStreamDetail",
+                    BillStreamId.ToString(
+                        "D"));
+    }
+
+    private decimal GetTransactionDifference()
+    {
+        if (_detail is null ||
+            _detail.PreviousAverage <= 0m)
+        {
+            return 0m;
+        }
+
+        return _detail.CurrentAmount -
+            _detail.PreviousAverage;
+    }
+
+    private static string FormatMoney(
+        decimal amount)
+    {
+        return amount.ToString(
+            "C2");
+    }
+
+    private static string FormatSignedMoney(
+        decimal amount)
+    {
+        if (amount > 0m)
+        {
+            return
+                $"+{FormatMoney(amount)}";
+        }
+
+        if (amount < 0m)
+        {
+            return
+                $"-{FormatMoney(Math.Abs(amount))}";
+        }
+
+        return
+            FormatMoney(0m);
+    }
+
+    private static string FormatDifference(
+        decimal difference)
+    {
+        return FormatSignedMoney(
+            difference);
+    }
+
+    private static string GetDifferenceClass(
+        decimal difference)
+    {
+        if (difference > 0m)
+        {
+            return
+                "detail-amount-difference increase";
+        }
+
+        if (difference < 0m)
+        {
+            return
+                "detail-amount-difference decrease";
+        }
+
+        return
+            "detail-amount-difference steady";
+    }
+
+    private static string GetDetectedChangeClass(
+        decimal difference)
+    {
+        if (difference > 0m)
+        {
+            return
+                "detected-change-card increase";
+        }
+
+        if (difference < 0m)
+        {
+            return
+                "detected-change-card decrease";
+        }
+
+        return
+            "detected-change-card steady";
+    }
+
+    private static string GetHistoryIndicatorClass(
+        decimal difference)
+    {
+        if (difference > 0m)
+        {
+            return
+                "change-history-indicator increase";
+        }
+
+        if (difference < 0m)
+        {
+            return
+                "change-history-indicator decrease";
+        }
+
+        return
+            "change-history-indicator steady";
+    }
+
+    private static string GetProviderInitial(
+        string providerName)
+    {
+        if (string.IsNullOrWhiteSpace(
+                providerName))
+        {
+            return "?";
+        }
+
+        return char.ToUpperInvariant(
+                providerName.Trim()[0])
+            .ToString();
+    }
+
+    private static string FormatCategory(
+        string? category)
+    {
+        if (string.IsNullOrWhiteSpace(
+                category) ||
+            string.Equals(
+                category,
+                "Unknown",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return
+                "Recurring bill";
+        }
+
+        return FormatEnumText(
+            category);
+    }
+
+    private static string GetExplanation(
+        string? description)
+    {
+        if (string.IsNullOrWhiteSpace(
+                description))
+        {
+            return
+                "BillWatch detected a change, but the available evidence does not explain the cause confidently.";
+        }
+
+        return description.Trim();
+    }
+
+    private static string FormatConfidence(
+        string? confidence)
+    {
+        if (string.IsNullOrWhiteSpace(
+                confidence))
+        {
+            return
+                "Unknown confidence";
+        }
+
+        return FormatEnumText(
+            confidence);
+    }
+
+    private static string GetConfidenceClass(
+        string? confidence)
+    {
+        if (string.Equals(
+                confidence,
+                "Confirmed",
+                StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(
+                confidence,
+                "High",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return
+                "confidence-pill confirmed";
+        }
+
+        if (string.Equals(
+                confidence,
+                "Unknown",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return
+                "confidence-pill unknown";
+        }
+
+        return
+            "confidence-pill inferred";
+    }
+
+    private static string FormatDetectedDate(
+        DateTimeOffset date)
+    {
+        return date.LocalDateTime
+            .ToString(
+                "MMM d, yyyy");
+    }
+
+    private static string FormatPeriod(
+        DateOnly start,
+        DateOnly end)
+    {
+        if (start.Year ==
+                end.Year &&
+            start.Month ==
+                end.Month)
+        {
+            return
+                $"{start:MMM d} – {end:d, yyyy}";
+        }
+
+        return
+            $"{start:MMM d} – {end:MMM d, yyyy}";
+    }
+
+    private static string FormatStatementMeta(
+        BillStatementViewModel statement)
+    {
+        var parts =
+            new List<string>();
+
+        if (statement.StatementDate is not null)
+        {
+            parts.Add(
+                $"Statement {statement.StatementDate.Value:MMM d, yyyy}");
+        }
+
+        if (statement.DueDate is not null)
+        {
+            parts.Add(
+                $"Due {statement.DueDate.Value:MMM d, yyyy}");
+        }
+
+        return parts.Count == 0
+            ? "Statement period"
+            : string.Join(
+                " · ",
+                parts);
+    }
+
+    private static string GetMonth(
+        DateOnly date)
+    {
+        return date.ToString(
+                "MMM")
+            .ToUpperInvariant();
+    }
+
+    private static string GetDay(
+        DateOnly date)
+    {
+        return date.Day
+            .ToString();
+    }
+
+    private static string FormatEnumText(
+        string? value)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return "Unknown";
+        }
+
+        var builder =
+            new System.Text.StringBuilder();
+
+        for (var index = 0;
+             index < value.Length;
+             index++)
+        {
+            var character =
+                value[index];
+
+            if (index > 0 &&
+                char.IsUpper(
+                    character) &&
+                !char.IsWhiteSpace(
+                    value[index - 1]))
+            {
+                builder.Append(
+                    ' ');
+            }
+
+            builder.Append(
+                character);
+        }
+
+        return builder
+            .ToString()
+            .Trim();
+    }
+
+    private static string Pluralize(
+        int count)
+    {
+        return count == 1
+            ? string.Empty
+            : "s";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_bffModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _bffModule
+                .DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    public sealed class
+        BillStreamDetailViewModel
+    {
+        public Guid Id
+        {
+            get;
+            set;
+        }
+
+        public string ProviderName
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Category
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public bool IsActive
+        {
+            get;
+            set;
+        }
+
+        public decimal CurrentAmount
+        {
+            get;
+            set;
+        }
+
+        public decimal PreviousAverage
+        {
+            get;
+            set;
+        }
+
+        public List<BillStatementViewModel>
+            Statements
+        {
+            get;
+            set;
+        } = [];
+
+        public List<BillChangeViewModel>
+            Changes
+        {
+            get;
+            set;
+        } = [];
+    }
+
+    public sealed class
+        BillStatementViewModel
+    {
+        public Guid Id
+        {
+            get;
+            set;
+        }
+
+        public DateOnly PeriodStart
+        {
+            get;
+            set;
+        }
+
+        public DateOnly PeriodEnd
+        {
+            get;
+            set;
+        }
+
+        public DateOnly? StatementDate
+        {
+            get;
+            set;
+        }
+
+        public DateOnly? DueDate
+        {
+            get;
+            set;
+        }
+
+        public decimal TotalAmount
+        {
+            get;
+            set;
+        }
+
+        public string CurrencyCode
+        {
+            get;
+            set;
+        } = "USD";
+    }
+
+    public sealed class
+        BillChangeViewModel
+    {
+        public Guid Id
+        {
+            get;
+            set;
+        }
+
+        public Guid? PreviousStatementId
+        {
+            get;
+            set;
+        }
+
+        public Guid CurrentStatementId
+        {
+            get;
+            set;
+        }
+
+        public string ChangeType
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Confidence
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Description
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public decimal PreviousAmount
+        {
+            get;
+            set;
+        }
+
+        public decimal CurrentAmount
+        {
+            get;
+            set;
+        }
+
+        public decimal AmountDifference
+        {
+            get;
+            set;
+        }
+
+        public decimal AnnualizedImpact
+        {
+            get;
+            set;
+        }
+
+        public bool IsAcknowledged
+        {
+            get;
+            set;
+        }
+
+        public DateTimeOffset DetectedAtUtc
+        {
+            get;
+            set;
+        }
+    }
+}

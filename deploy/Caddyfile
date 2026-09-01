@@ -1,8 +1,13 @@
 {
-	email {$ACME_EMAIL}
+    email {$ACME_EMAIL}
 }
 
 {$BILLWATCH_HOST} {
-	encode zstd gzip
-	reverse_proxy api:8080
+    encode zstd gzip
+    reverse_proxy api:8080
+}
+
+{$BILLWATCH_WEB_HOST} {
+    encode zstd gzip
+    reverse_proxy web:8080
 }

@@ -1,0 +1,738 @@
+﻿@page "/app/activity"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@layout AppLayout
+
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>Activity — BillWatch</PageTitle>
+
+<link rel="stylesheet"
+      href="/activity-alerts.css" />
+
+<div class="app-page">
+    <header class="page-heading">
+        <div>
+            <span class="page-kicker">
+                BillWatch alerts
+            </span>
+
+            <h1>
+                Activity
+            </h1>
+
+            <p>
+                Important bill changes, payment reminders,
+                newly discovered recurring bills, and connection
+                issues that may need your attention.
+            </p>
+        </div>
+
+        @if (!_isLoading &&
+             string.IsNullOrWhiteSpace(
+                 _errorMessage))
+        {
+            <button type="button"
+                    class="activity-refresh-button"
+                    disabled="@_isMutating"
+                    @onclick="ReloadAsync">
+
+                <span aria-hidden="true">
+                    ↻
+                </span>
+
+                Refresh
+            </button>
+        }
+    </header>
+
+    @if (_isLoading)
+    {
+        <div class="activity-summary-skeleton">
+            @for (var index = 0;
+                  index < 3;
+                  index++)
+            {
+                <div></div>
+            }
+        </div>
+
+        <div class="alert-loading-list">
+            @for (var index = 0;
+                  index < 5;
+                  index++)
+            {
+                <div class="alert-loading-row"></div>
+            }
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(
+        _errorMessage))
+    {
+        <div class="app-error-state">
+            <div class="state-symbol">
+                !
+            </div>
+
+            <div>
+                <h2>
+                    We couldn't load your activity
+                </h2>
+
+                <p>
+                    @_errorMessage
+                </p>
+            </div>
+
+            <button type="button"
+                    class="secondary-action"
+                    @onclick="ReloadAsync">
+                Try again
+            </button>
+        </div>
+    }
+    else
+    {
+        <AlertSummary Total="@_alerts.Count"
+                      Unread="@UnreadCount"
+                      NeedsAttention="@NeedsAttentionCount" />
+
+        <div class="activity-toolbar">
+            <div class="activity-filters">
+                <button type="button"
+                        class="@GetFilterClass(
+                                                ActivityFilter.All)"
+                        @onclick="() => SetFilter(ActivityFilter.All)">
+
+                    All
+
+                    <span>
+                        @_alerts.Count
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="@GetFilterClass(
+                                                ActivityFilter.Unread)"
+                        @onclick="() => SetFilter(ActivityFilter.Unread)">
+
+                    Unread
+
+                    <span>
+                        @UnreadCount
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="@GetFilterClass(
+                                                ActivityFilter.Attention)"
+                        @onclick="() => SetFilter(ActivityFilter.Attention)">
+
+                    Needs attention
+
+                    <span>
+                        @NeedsAttentionCount
+                    </span>
+                </button>
+            </div>
+
+            <span class="activity-retention-note">
+                Showing up to 100 recent active alerts
+            </span>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(
+            _actionError))
+        {
+            <div class="activity-action-error">
+                @_actionError
+            </div>
+        }
+
+        @if (_alerts.Count == 0)
+        {
+            <section class="alerts-empty">
+                <div class="alerts-empty-icon">
+                    ✓
+                </div>
+
+                <span class="page-kicker">
+                    All quiet
+                </span>
+
+                <h2>
+                    No BillWatch alerts yet.
+                </h2>
+
+                <p>
+                    BillWatch will surface meaningful recurring-bill
+                    changes and account issues here when evidence
+                    supports them.
+                </p>
+            </section>
+        }
+        else if (FilteredAlerts.Count == 0)
+        {
+            <section class="alerts-filter-empty">
+                <strong>
+                    Nothing in this view.
+                </strong>
+
+                <span>
+                    Try another activity filter.
+                </span>
+            </section>
+        }
+        else
+        {
+            <section class="alert-list">
+                @foreach (var alert
+                    in FilteredAlerts)
+                {
+                    <AlertCard @key="alert.Id"
+                               Alert="@ToCardViewModel(alert)"
+                               IsBusy="@IsAlertBusy(alert.Id)"
+                               CanReview="@CanReview(alert)"
+                               OnMarkRead="@HandleMarkReadAsync"
+                               OnDismiss="@HandleDismissAsync"
+                               OnReview="@HandleReviewAsync" />
+                }
+            </section>
+        }
+    }
+</div>
+
+@code {
+    private IJSObjectReference?
+        _bffModule;
+
+    private List<BillAlertViewModel>
+        _alerts = [];
+
+    private bool _isLoading =
+        true;
+
+    private bool _isMutating;
+
+    private Guid? _busyAlertId;
+
+    private string? _errorMessage;
+
+    private string? _actionError;
+
+    private ActivityFilter _filter =
+        ActivityFilter.All;
+
+    private int UnreadCount =>
+        _alerts.Count(
+            alert =>
+                !alert.IsRead);
+
+    private int NeedsAttentionCount =>
+        _alerts.Count(
+            alert =>
+                IsAttentionSeverity(
+                    alert.Severity));
+
+    private IReadOnlyList<
+        BillAlertViewModel>
+        FilteredAlerts =>
+            _alerts
+                .Where(
+                    alert =>
+                        _filter switch
+                        {
+                            ActivityFilter.Unread =>
+                                !alert.IsRead,
+
+                            ActivityFilter.Attention =>
+                                IsAttentionSeverity(
+                                    alert.Severity),
+
+                            _ =>
+                                true
+                        })
+                .OrderByDescending(
+                    alert =>
+                        alert.CreatedAtUtc)
+                .ThenByDescending(
+                    alert =>
+                        alert.Id)
+                .ToList();
+
+    protected override async Task
+        OnAfterRenderAsync(
+            bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task<
+        IJSObjectReference>
+        GetBffModuleAsync()
+    {
+        _bffModule ??=
+            await JS.InvokeAsync<
+                IJSObjectReference>(
+                "import",
+                "./js/bff.js");
+
+        return _bffModule;
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (_isMutating)
+        {
+            return;
+        }
+
+        await LoadAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading =
+            true;
+
+        _errorMessage =
+            null;
+
+        _actionError =
+            null;
+
+        try
+        {
+            var module =
+                await GetBffModuleAsync();
+
+            var result =
+                await module
+                    .InvokeAsync<
+                        BillAlertViewModel[]>(
+                        "getAlerts",
+                        false,
+                        false,
+                        100);
+
+            _alerts =
+                result?
+                    .Where(
+                        alert =>
+                            !alert.IsDismissed)
+                    .OrderByDescending(
+                        alert =>
+                            alert.CreatedAtUtc)
+                    .ToList()
+                ?? [];
+        }
+        catch (JSException)
+        {
+            _errorMessage =
+                "BillWatch could not reach the secure API.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "Something went wrong while loading BillWatch activity.";
+        }
+        finally
+        {
+            _isLoading =
+                false;
+        }
+    }
+
+    private void SetFilter(
+        ActivityFilter filter)
+    {
+        _filter =
+            filter;
+    }
+
+    private string GetFilterClass(
+        ActivityFilter filter)
+    {
+        return _filter ==
+                filter
+            ? "activity-filter active"
+            : "activity-filter";
+    }
+
+    private bool IsAlertBusy(
+        Guid alertId)
+    {
+        return _isMutating &&
+            _busyAlertId ==
+                alertId;
+    }
+
+    private static bool
+        IsAttentionSeverity(
+            string? severity)
+    {
+        return string.Equals(
+                severity,
+                "Warning",
+                StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(
+                severity,
+                "Critical",
+                StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool CanReview(
+        BillAlertViewModel alert)
+    {
+        if (alert.BillStreamId
+            .HasValue)
+        {
+            return true;
+        }
+
+        return string.Equals(
+            alert.AlertType,
+            "ConnectionIssue",
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task HandleMarkReadAsync(
+        Guid alertId)
+    {
+        var alert =
+            FindAlert(
+                alertId);
+
+        if (alert is null ||
+            alert.IsRead)
+        {
+            return;
+        }
+
+        await RunAlertMutationAsync(
+            alertId,
+            async module =>
+            {
+                await module
+                    .InvokeAsync<object?>(
+                        "markAlertRead",
+                        alertId.ToString(
+                            "D"));
+
+                alert.IsRead =
+                    true;
+            });
+    }
+
+    private async Task HandleDismissAsync(
+        Guid alertId)
+    {
+        var alert =
+            FindAlert(
+                alertId);
+
+        if (alert is null)
+        {
+            return;
+        }
+
+        await RunAlertMutationAsync(
+            alertId,
+            async module =>
+            {
+                await module
+                    .InvokeAsync<object?>(
+                        "dismissAlert",
+                        alertId.ToString(
+                            "D"));
+
+                _alerts.Remove(
+                    alert);
+            });
+    }
+
+    private async Task HandleReviewAsync(
+        Guid alertId)
+    {
+        var alert =
+            FindAlert(
+                alertId);
+
+        if (alert is null)
+        {
+            return;
+        }
+
+        var destination =
+            GetReviewDestination(
+                alert);
+
+        if (destination is null)
+        {
+            return;
+        }
+
+        if (!alert.IsRead)
+        {
+            var succeeded =
+                await RunAlertMutationAsync(
+                    alertId,
+                    async module =>
+                    {
+                        await module
+                            .InvokeAsync<object?>(
+                                "markAlertRead",
+                                alertId.ToString(
+                                    "D"));
+
+                        alert.IsRead =
+                            true;
+                    });
+
+            if (!succeeded)
+            {
+                return;
+            }
+        }
+
+        Navigation.NavigateTo(
+            destination);
+    }
+
+    private async Task<bool>
+        RunAlertMutationAsync(
+            Guid alertId,
+            Func<IJSObjectReference, Task>
+                mutation)
+    {
+        if (_isMutating)
+        {
+            return false;
+        }
+
+        _isMutating =
+            true;
+
+        _busyAlertId =
+            alertId;
+
+        _actionError =
+            null;
+
+        try
+        {
+            var module =
+                await GetBffModuleAsync();
+
+            await mutation(
+                module);
+
+            return true;
+        }
+        catch (JSException)
+        {
+            _actionError =
+                "BillWatch could not update that alert. Try again.";
+        }
+        catch (Exception)
+        {
+            _actionError =
+                "BillWatch could not update that alert. Try again.";
+        }
+        finally
+        {
+            _isMutating =
+                false;
+
+            _busyAlertId =
+                null;
+
+            StateHasChanged();
+        }
+
+        return false;
+    }
+
+    private BillAlertViewModel?
+        FindAlert(
+            Guid alertId)
+    {
+        return _alerts
+            .FirstOrDefault(
+                alert =>
+                    alert.Id ==
+                        alertId);
+    }
+
+    private static string?
+        GetReviewDestination(
+            BillAlertViewModel alert)
+    {
+        if (alert.BillStreamId
+            .HasValue)
+        {
+            return
+                $"/app/bills/{alert.BillStreamId.Value:D}";
+        }
+
+        if (string.Equals(
+                alert.AlertType,
+                "ConnectionIssue",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return
+                "/app/account";
+        }
+
+        return null;
+    }
+
+    private static
+        AlertCard.AlertCardViewModel
+        ToCardViewModel(
+            BillAlertViewModel alert)
+    {
+        return new
+            AlertCard.AlertCardViewModel
+        {
+            Id =
+                    alert.Id,
+
+            BillStreamId =
+                    alert.BillStreamId,
+
+            BillChangeId =
+                    alert.BillChangeId,
+
+            AlertType =
+                    alert.AlertType,
+
+            Severity =
+                    alert.Severity,
+
+            Title =
+                    alert.Title,
+
+            Message =
+                    alert.Message,
+
+            IsRead =
+                    alert.IsRead,
+
+            IsDismissed =
+                    alert.IsDismissed,
+
+            CreatedAtUtc =
+                    alert.CreatedAtUtc,
+
+            UpdatedAtUtc =
+                    alert.UpdatedAtUtc
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_bffModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _bffModule
+                .DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    private enum ActivityFilter
+    {
+        All,
+        Unread,
+        Attention
+    }
+
+    public sealed class BillAlertViewModel
+    {
+        public Guid Id
+        {
+            get;
+            set;
+        }
+
+        public Guid? BillStreamId
+        {
+            get;
+            set;
+        }
+
+        public Guid? BillChangeId
+        {
+            get;
+            set;
+        }
+
+        public string AlertType
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Severity
+        {
+            get;
+            set;
+        } = "Info";
+
+        public string Title
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Message
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public bool IsRead
+        {
+            get;
+            set;
+        }
+
+        public bool IsDismissed
+        {
+            get;
+            set;
+        }
+
+        public DateTimeOffset CreatedAtUtc
+        {
+            get;
+            set;
+        }
+
+        public DateTimeOffset UpdatedAtUtc
+        {
+            get;
+            set;
+        }
+    }
+}

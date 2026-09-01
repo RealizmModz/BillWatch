@@ -40,6 +40,30 @@ services:
       - data
       - public_edge
 
+  web:
+    image: billwatch-web:${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging: *default-logging
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: 8080
+      AllowedHosts: ${BILLWATCH_WEB_HOST:?Set BILLWATCH_WEB_HOST}
+      BillWatchApi__BaseUrl: http://api:8080
+      BillWatchApi__HostHeader: ${BILLWATCH_HOST:?Set BILLWATCH_HOST}
+      DataProtection__KeysPath: /var/lib/billwatch-web/keys
+      ReverseProxy__KnownProxies__0: 172.28.0.10
+    volumes:
+      - web_data_protection_keys:/var/lib/billwatch-web/keys
+    networks:
+      - public_edge
+
   database:
     image: postgres:17-bookworm
     restart: unless-stopped
@@ -127,9 +151,12 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      web:
+        condition: service_healthy
     environment:
       ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
       BILLWATCH_HOST: ${BILLWATCH_HOST:?Set BILLWATCH_HOST}
+      BILLWATCH_WEB_HOST: ${BILLWATCH_WEB_HOST:?Set BILLWATCH_WEB_HOST}
     ports:
       - "80:80"
       - "443:443"
@@ -157,3 +184,4 @@ volumes:
   data_protection_keys:
   postgres_data:
   statement_files:
+  web_data_protection_keys:

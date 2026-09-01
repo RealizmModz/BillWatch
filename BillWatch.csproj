@@ -33,7 +33,8 @@
 			$(DefaultItemExcludes);
 			BillWatch.API\**\*;
 			BillWatch.Core\**\*;
-			BillWatch.Tests\**\*
+			BillWatch.Tests\**\*;
+			BillWatch.Web\**\*
 		</DefaultItemExcludes>
 	</PropertyGroup>
 
@@ -83,8 +84,9 @@
 
 	<ItemGroup>
 		<MauiXaml Update="BillDetailPage.xaml">
-		  <Generator>MSBuild:Compile</Generator>
+			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+
 		<MauiXaml Update="BillsPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

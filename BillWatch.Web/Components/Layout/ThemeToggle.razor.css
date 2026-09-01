@@ -1,0 +1,37 @@
+.theme-toggle {
+    width: 39px;
+    height: 39px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--bw-border);
+    border-radius: 12px;
+    background: var(--bw-surface-soft);
+    color: var(--bw-text-secondary);
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+    .theme-toggle:hover {
+        background: var(--bw-surface-hover);
+        border-color: var(--bw-border-strong);
+        color: var(--bw-text);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.09);
+    }
+
+    .theme-toggle:active {
+        transform: translateY(0);
+    }
+
+    .theme-toggle:focus-visible {
+        outline: 3px solid rgba(91, 118, 255, 0.28);
+        outline-offset: 2px;
+    }
+
+.theme-icon {
+    width: 18px;
+    height: 18px;
+}

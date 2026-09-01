@@ -1,0 +1,272 @@
+﻿@inherits LayoutComponentBase
+
+<link rel="stylesheet"
+      href="/theme.css" />
+
+<link rel="stylesheet"
+      href="/app-shell.css" />
+
+<link rel="stylesheet"
+      href="/app-pages.css" />
+
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <div class="sidebar-top">
+            <a class="app-brand"
+               href="/app"
+               aria-label="BillWatch dashboard">
+
+                <span class="app-brand-mark">
+                    <span></span>
+                </span>
+
+                <strong>
+                    BillWatch
+                </strong>
+            </a>
+
+            <nav class="app-nav"
+                 aria-label="BillWatch navigation">
+
+                <NavLink href="/app"
+                         Match="NavLinkMatch.All"
+                         class="app-nav-link">
+
+                    <span class="nav-icon"
+                          aria-hidden="true">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.8"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+
+                            <rect x="3"
+                                  y="3"
+                                  width="7"
+                                  height="7"
+                                  rx="2" />
+
+                            <rect x="14"
+                                  y="3"
+                                  width="7"
+                                  height="7"
+                                  rx="2" />
+
+                            <rect x="3"
+                                  y="14"
+                                  width="7"
+                                  height="7"
+                                  rx="2" />
+
+                            <rect x="14"
+                                  y="14"
+                                  width="7"
+                                  height="7"
+                                  rx="2" />
+                        </svg>
+                    </span>
+
+                    <span>
+                        Overview
+                    </span>
+                </NavLink>
+
+                <NavLink href="/app/bills"
+                         class="app-nav-link">
+
+                    <span class="nav-icon"
+                          aria-hidden="true">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.8"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+
+                            <path d="M6 2h9l3 3v17H6z" />
+                            <path d="M14 2v4h4" />
+                            <path d="M9 11h6" />
+                            <path d="M9 15h6" />
+                        </svg>
+                    </span>
+
+                    <span>
+                        Bills
+                    </span>
+                </NavLink>
+
+                <NavLink href="/app/activity"
+                         class="app-nav-link">
+
+                    <span class="nav-icon"
+                          aria-hidden="true">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.8"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+
+                            <path d="M4 13h4l2-6 4 12 2-6h4" />
+                        </svg>
+                    </span>
+
+                    <span>
+                        Activity
+                    </span>
+                </NavLink>
+
+                <NavLink href="/app/account"
+                         class="app-nav-link mobile-account-link">
+
+                    <span class="nav-icon"
+                          aria-hidden="true">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.8"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+
+                            <circle cx="12"
+                                    cy="8"
+                                    r="4" />
+
+                            <path d="M4 22c0-4 3.6-7 8-7s8 3 8 7" />
+                        </svg>
+                    </span>
+
+                    <span>
+                        Account
+                    </span>
+                </NavLink>
+            </nav>
+        </div>
+
+        <div class="sidebar-bottom">
+            <NavLink href="/app/account"
+                     class="app-nav-link desktop-account-link">
+
+                <span class="nav-icon"
+                      aria-hidden="true">
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.8"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+
+                        <circle cx="12"
+                                cy="8"
+                                r="4" />
+
+                        <path d="M4 22c0-4 3.6-7 8-7s8 3 8 7" />
+                    </svg>
+                </span>
+
+                <span>
+                    Account
+                </span>
+            </NavLink>
+
+            <div class="sidebar-account">
+                <AuthorizeView>
+                    <Authorized Context="auth">
+                        <div class="account-avatar">
+                            @GetInitial(
+                                auth.User.Identity?.Name)
+                        </div>
+
+                        <div class="account-copy">
+                            <strong>
+                                @GetDisplayName(
+                                    auth.User.Identity?.Name)
+                            </strong>
+
+                            <span>
+                                Signed in
+                            </span>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                <form method="post"
+                      action="/auth/logout">
+
+                    <AntiforgeryToken />
+
+                    <button class="logout-button"
+                            type="submit"
+                            title="Sign out"
+                            aria-label="Sign out">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.8"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             aria-hidden="true">
+
+                            <path d="M10 17l5-5-5-5" />
+                            <path d="M15 12H3" />
+                            <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    <div class="app-main">
+        <header class="app-topbar">
+            <div class="mobile-brand">
+                <a href="/app">
+                    BillWatch
+                </a>
+            </div>
+
+            <div class="topbar-spacer"></div>
+
+            <div class="topbar-status">
+                <span class="watch-dot"></span>
+                Secure session
+            </div>
+
+            <ThemeToggle />
+        </header>
+
+        <main class="app-content">
+            @Body
+        </main>
+    </div>
+</div>
+
+@code {
+    private static string GetInitial(
+        string? value)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return "B";
+        }
+
+        return char.ToUpperInvariant(
+                value.Trim()[0])
+            .ToString();
+    }
+
+    private static string GetDisplayName(
+        string? value)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return "BillWatch user";
+        }
+
+        return value;
+    }
+}

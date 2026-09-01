@@ -1,8 +1,7 @@
 <Solution>
   <Project Path="BillWatch.API/BillWatch.API.csproj" />
   <Project Path="BillWatch.Core/BillWatch.Core.csproj" />
+  <Project Path="BillWatch.csproj" />
   <Project Path="BillWatch.Tests/BillWatch.Tests.csproj" />
-  <Project Path="BillWatch.csproj">
-    <Build Solution="Debug|*" />
-  </Project>
+  <Project Path="BillWatch.Web/BillWatch.Web.csproj" Id="d1284b23-1452-4ac2-a448-1cf772deb572" />
 </Solution>

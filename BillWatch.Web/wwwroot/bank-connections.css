@@ -1,0 +1,393 @@
+﻿.connect-bank-card {
+    padding: 25px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 22px;
+    border: 1px solid rgba(86, 111, 244, 0.18);
+    border-radius: 21px;
+    background: linear-gradient( 145deg, rgba(71, 96, 232, 0.10), var(--bw-surface-soft));
+    box-shadow: 0 16px 46px rgba(0, 0, 0, 0.06);
+}
+
+.connect-bank-icon {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 17px;
+    background: rgba(80, 105, 240, 0.13);
+    color: #8a9eff;
+}
+
+    .connect-bank-icon svg {
+        width: 27px;
+        height: 27px;
+    }
+
+.connect-bank-copy h2 {
+    margin: 5px 0 7px;
+    color: var(--bw-text);
+    font-size: 1.12rem;
+    letter-spacing: -0.035em;
+}
+
+.connect-bank-copy p {
+    max-width: 610px;
+    margin: 0;
+    color: var(--bw-text-muted);
+    font-size: 0.7rem;
+    line-height: 1.6;
+}
+
+.plaid-security-note {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--bw-text-muted);
+    font-size: 0.61rem;
+}
+
+    .plaid-security-note > span {
+        width: 18px;
+        height: 18px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: rgba(55, 181, 118, 0.10);
+        color: #4aba7f;
+        font-size: 0.58rem;
+    }
+
+.connect-bank-actions {
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+}
+
+.connect-bank-button {
+    min-height: 43px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient( 145deg, #294ff0, #5c74f5);
+    color: white;
+    box-shadow: 0 11px 27px rgba(47, 78, 232, 0.24);
+    font-size: 0.73rem;
+    font-weight: 740;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+}
+
+    .connect-bank-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 15px 33px rgba(47, 78, 232, 0.31);
+    }
+
+    .connect-bank-button:disabled {
+        opacity: 0.62;
+        cursor: wait;
+    }
+
+.connect-bank-status {
+    max-width: 220px;
+    color: var(--bw-text-subtle);
+    font-size: 0.55rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+    .connect-bank-status[data-state="working"] {
+        color: #8498ff;
+    }
+
+    .connect-bank-status[data-state="success"] {
+        color: #4aba7f;
+    }
+
+    .connect-bank-status[data-state="error"] {
+        color: #df7069;
+    }
+
+    .connect-bank-status[data-state="neutral"] {
+        color: var(--bw-text-muted);
+    }
+
+
+/*
+    Connection attention state
+*/
+
+.connection-attention-summary {
+    margin-bottom: 14px;
+    padding: 13px 14px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 11px;
+    border: 1px solid rgba(222, 159, 57, 0.17);
+    border-radius: 13px;
+    background: rgba(222, 159, 57, 0.065);
+}
+
+.attention-summary-icon {
+    width: 31px;
+    height: 31px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    background: rgba(222, 159, 57, 0.11);
+    color: #d7a149;
+    font-size: 0.7rem;
+    font-weight: 850;
+}
+
+.connection-attention-summary > div:last-child {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.connection-attention-summary strong {
+    color: var(--bw-text-secondary);
+    font-size: 0.66rem;
+}
+
+.connection-attention-summary span {
+    margin-top: 3px;
+    color: var(--bw-text-muted);
+    font-size: 0.58rem;
+    line-height: 1.5;
+}
+
+
+/*
+    Individual connection rows
+*/
+
+.connection-row {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+    .connection-row.requires-attention {
+        margin: 5px -8px;
+        padding: 13px 8px;
+        border: 1px solid rgba(222, 159, 57, 0.15);
+        border-radius: 13px;
+        background: rgba(222, 159, 57, 0.045);
+    }
+
+    .connection-row.disconnected {
+        opacity: 0.68;
+    }
+
+.connection-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.reconnect-button,
+.disconnect-button {
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 9px;
+    font-size: 0.57rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease;
+}
+
+.reconnect-button {
+    border: 1px solid rgba(83, 108, 242, 0.22);
+    background: rgba(83, 108, 242, 0.10);
+    color: #879aff;
+}
+
+    .reconnect-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: rgba(83, 108, 242, 0.36);
+        background: rgba(83, 108, 242, 0.16);
+    }
+
+    .reconnect-button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+    }
+
+.disconnect-button {
+    border: 1px solid rgba(218, 78, 70, 0.15);
+    background: rgba(218, 78, 70, 0.07);
+    color: #db716a;
+}
+
+    .disconnect-button:hover:not(:disabled) {
+        border-color: rgba(218, 78, 70, 0.27);
+        background: rgba(218, 78, 70, 0.12);
+    }
+
+    .disconnect-button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+    }
+
+.connection-reconnect-status,
+.connection-disconnected-note {
+    grid-column: 2 / -1;
+    margin-top: -5px;
+    font-size: 0.55rem;
+    line-height: 1.45;
+}
+
+.connection-reconnect-status {
+    color: #c89a49;
+}
+
+    .connection-reconnect-status[data-state="working"] {
+        color: #879aff;
+    }
+
+    .connection-reconnect-status[data-state="success"] {
+        color: #4aba7f;
+    }
+
+    .connection-reconnect-status[data-state="error"] {
+        color: #df7069;
+    }
+
+    .connection-reconnect-status[data-state="neutral"] {
+        color: var(--bw-text-muted);
+    }
+
+.connection-disconnected-note {
+    color: var(--bw-text-subtle);
+}
+
+
+/*
+    General account action feedback
+*/
+
+.account-action-message {
+    padding: 11px 14px;
+    border: 1px solid rgba(219, 111, 103, 0.17);
+    border-radius: 12px;
+    background: rgba(219, 111, 103, 0.07);
+    color: #df756e;
+    font-size: 0.67rem;
+}
+
+    .account-action-message.success {
+        border-color: rgba(63, 180, 119, 0.18);
+        background: rgba(63, 180, 119, 0.07);
+        color: #4cba7e;
+    }
+
+
+/*
+    Responsive
+*/
+
+@media (max-width: 1100px) {
+    .connection-row {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .connection-actions {
+        grid-column: 2 / -1;
+        justify-content: flex-start;
+    }
+
+    .connection-reconnect-status,
+    .connection-disconnected-note {
+        grid-column: 2 / -1;
+    }
+}
+
+@media (max-width: 950px) {
+    .connect-bank-card {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .connect-bank-actions {
+        grid-column: 2;
+        min-width: 0;
+        align-items: flex-start;
+    }
+
+    .connect-bank-button {
+        min-width: 180px;
+    }
+
+    .connect-bank-status {
+        max-width: 420px;
+        text-align: left;
+    }
+}
+
+@media (max-width: 720px) {
+    .connect-bank-card {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .connect-bank-actions {
+        grid-column: auto;
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .connect-bank-button {
+        width: 100%;
+    }
+
+    .connect-bank-status {
+        max-width: none;
+        text-align: center;
+    }
+
+    .connection-row,
+    .connection-row.requires-attention {
+        grid-template-columns: auto minmax(0, 1fr);
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .connection-status {
+        grid-column: 2;
+        align-items: flex-start;
+        margin-top: -5px;
+    }
+
+    .connection-actions {
+        grid-column: 2;
+        justify-content: flex-start;
+        margin-top: -3px;
+    }
+
+    .connection-reconnect-status,
+    .connection-disconnected-note {
+        grid-column: 2;
+    }
+}
+
+@media (max-width: 480px) {
+    .connection-actions {
+        width: 100%;
+    }
+
+    .reconnect-button,
+    .disconnect-button {
+        flex: 1;
+    }
+}

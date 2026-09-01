@@ -4,6 +4,7 @@ using BillWatch.API.Services.Statements;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace BillWatch.API.Controllers;
@@ -47,6 +48,7 @@ public sealed class BillStatementUploadsController
     [RequestFormLimits(
         MultipartBodyLengthLimit =
             MaxMultipartBodyLength)]
+    [EnableRateLimiting("statement-upload")]
     public async Task<ActionResult<BillStatementUploadResult>>
         UploadStatement(
             Guid billStreamId,

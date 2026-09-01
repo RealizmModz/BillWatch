@@ -1,0 +1,392 @@
+﻿<article class="@GetCardClass()">
+    <div class="@GetIconClass()">
+        @GetIconText()
+    </div>
+
+    <div class="alert-card-content">
+        <div class="alert-card-heading">
+            <div>
+                <div class="alert-title-line">
+                    @if (!Alert.IsRead)
+                    {
+                        <span class="unread-dot"
+                              title="Unread"></span>
+                    }
+
+                    <strong>
+                        @Alert.Title
+                    </strong>
+                </div>
+
+                <span class="alert-type">
+                    @FormatAlertType(
+                        Alert.AlertType)
+                </span>
+            </div>
+
+            <time datetime="@Alert.CreatedAtUtc.ToString("O")">
+                @FormatDate(
+                    Alert.CreatedAtUtc)
+            </time>
+        </div>
+
+        <p>
+            @Alert.Message
+        </p>
+
+        <div class="alert-card-footer">
+            <div class="alert-meta">
+                <span class="@GetSeverityClass()">
+                    @Alert.Severity
+                </span>
+
+                <span>
+                    @(Alert.IsRead
+                        ? "Read"
+                        : "Unread")
+                </span>
+            </div>
+
+            <div class="alert-actions">
+                @if (!Alert.IsRead)
+                {
+                    <button type="button"
+                            class="alert-secondary-action"
+                            disabled="@IsBusy"
+                            @onclick="HandleMarkReadAsync">
+                        Mark read
+                    </button>
+                }
+
+                <button type="button"
+                        class="alert-secondary-action dismiss"
+                        disabled="@IsBusy"
+                        @onclick="HandleDismissAsync">
+                    Dismiss
+                </button>
+
+                @if (CanReview)
+                {
+                    <button type="button"
+                            class="alert-primary-action"
+                            disabled="@IsBusy"
+                            @onclick="HandleReviewAsync">
+                        Review
+
+                        <span aria-hidden="true">
+                            →
+                        </span>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public AlertCardViewModel Alert
+    {
+        get;
+        set;
+    } = new();
+
+    [Parameter]
+    public bool IsBusy
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public bool CanReview
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public EventCallback<Guid>
+        OnMarkRead
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public EventCallback<Guid>
+        OnDismiss
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public EventCallback<Guid>
+        OnReview
+    {
+        get;
+        set;
+    }
+
+    private async Task HandleMarkReadAsync()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        await OnMarkRead
+            .InvokeAsync(
+                Alert.Id);
+    }
+
+    private async Task HandleDismissAsync()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        await OnDismiss
+            .InvokeAsync(
+                Alert.Id);
+    }
+
+    private async Task HandleReviewAsync()
+    {
+        if (IsBusy ||
+            !CanReview)
+        {
+            return;
+        }
+
+        await OnReview
+            .InvokeAsync(
+                Alert.Id);
+    }
+
+    private string GetCardClass()
+    {
+        var className =
+            "alert-card";
+
+        if (!Alert.IsRead)
+        {
+            className +=
+                " unread";
+        }
+
+        className +=
+            $" severity-{Alert.Severity.ToLowerInvariant()}";
+
+        return className;
+    }
+
+    private string GetIconClass()
+    {
+        return
+            $"alert-card-icon {GetTypeClass(Alert.AlertType)}";
+    }
+
+    private string GetIconText()
+    {
+        return Alert.AlertType switch
+        {
+            "BillIncrease" =>
+                "↑",
+
+            "BillDecrease" =>
+                "↓",
+
+            "NewFee" =>
+                "+",
+
+            "RemovedDiscount" =>
+                "−",
+
+            "PaymentDue" =>
+                "$",
+
+            "ConnectionIssue" =>
+                "!",
+
+            "NewBill" =>
+                "N",
+
+            _ =>
+                "•"
+        };
+    }
+
+    private string GetSeverityClass()
+    {
+        return
+            $"alert-severity {Alert.Severity.ToLowerInvariant()}";
+    }
+
+    private static string GetTypeClass(
+        string? alertType)
+    {
+        return alertType switch
+        {
+            "BillIncrease" =>
+                "increase",
+
+            "BillDecrease" =>
+                "decrease",
+
+            "NewFee" =>
+                "fee",
+
+            "RemovedDiscount" =>
+                "discount",
+
+            "PaymentDue" =>
+                "due",
+
+            "ConnectionIssue" =>
+                "connection",
+
+            "NewBill" =>
+                "new-bill",
+
+            _ =>
+                "unknown"
+        };
+    }
+
+    private static string FormatAlertType(
+        string? value)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return "BillWatch alert";
+        }
+
+        return value switch
+        {
+            "BillIncrease" =>
+                "Bill increase",
+
+            "BillDecrease" =>
+                "Bill decrease",
+
+            "NewFee" =>
+                "New fee",
+
+            "RemovedDiscount" =>
+                "Removed discount",
+
+            "PaymentDue" =>
+                "Payment due",
+
+            "ConnectionIssue" =>
+                "Connection issue",
+
+            "NewBill" =>
+                "New recurring bill",
+
+            _ =>
+                value
+        };
+    }
+
+    private static string FormatDate(
+        DateTimeOffset value)
+    {
+        var local =
+            value.LocalDateTime;
+
+        var today =
+            DateTime.Today;
+
+        if (local.Date ==
+            today)
+        {
+            return
+                $"Today · {local:h:mm tt}";
+        }
+
+        if (local.Date ==
+            today.AddDays(-1))
+        {
+            return
+                $"Yesterday · {local:h:mm tt}";
+        }
+
+        return local.ToString(
+            "MMM d, yyyy");
+    }
+
+    public sealed class AlertCardViewModel
+    {
+        public Guid Id
+        {
+            get;
+            set;
+        }
+
+        public Guid? BillStreamId
+        {
+            get;
+            set;
+        }
+
+        public Guid? BillChangeId
+        {
+            get;
+            set;
+        }
+
+        public string AlertType
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Severity
+        {
+            get;
+            set;
+        } = "Info";
+
+        public string Title
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string Message
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public bool IsRead
+        {
+            get;
+            set;
+        }
+
+        public bool IsDismissed
+        {
+            get;
+            set;
+        }
+
+        public DateTimeOffset CreatedAtUtc
+        {
+            get;
+            set;
+        }
+
+        public DateTimeOffset UpdatedAtUtc
+        {
+            get;
+            set;
+        }
+    }
+}
