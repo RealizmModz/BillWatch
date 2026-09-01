@@ -171,7 +171,7 @@ public static class AuthEndpointMappings
                         context);
 
                 return Results.Redirect(
-                    "/"); dotnet build BillWatch.Web\BillWatch.Web.csproj
+                    "/");
             });
 
         return endpoints;
