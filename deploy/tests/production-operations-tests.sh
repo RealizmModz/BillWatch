@@ -80,11 +80,44 @@ while [ "$#" -gt 0 ]; do
     fi
     shift
 done
+
+if [ -n "${BILLWATCH_TEST_CURL_COUNT_FILE:-}" ]; then
+    count=0
+    if [ -f "$BILLWATCH_TEST_CURL_COUNT_FILE" ]; then
+        count=$(cat "$BILLWATCH_TEST_CURL_COUNT_FILE")
+    fi
+    count=$((count + 1))
+    printf '%s\n' "$count" > "$BILLWATCH_TEST_CURL_COUNT_FILE"
+    if [ "$count" -lt "${BILLWATCH_TEST_CURL_SUCCEED_ON:-1}" ]; then
+        exit 35
+    fi
+fi
+
 printf '%s\n' '{"status":"ready"}' > "$output"
 EOF
 
-chmod 755 "$fake_bin/getent" "$fake_bin/curl"
+cat > "$fake_bin/sleep" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$1" >> "$BILLWATCH_TEST_SLEEP_LOG"
+EOF
+
+chmod 755 "$fake_bin/getent" "$fake_bin/curl" "$fake_bin/sleep"
 PATH="$fake_bin:$PATH" "$root_dir/deploy/monitor-readiness.sh" 'https://api.billwatch.test' >/dev/null
+
+curl_count_file="$temp_dir/readiness-curl-count"
+sleep_log="$temp_dir/readiness-sleeps.log"
+PATH="$fake_bin:$PATH" \
+    BILLWATCH_TEST_CURL_COUNT_FILE="$curl_count_file" \
+    BILLWATCH_TEST_CURL_SUCCEED_ON=4 \
+    BILLWATCH_TEST_SLEEP_LOG="$sleep_log" \
+    "$root_dir/deploy/monitor-readiness.sh" 'https://api.billwatch.test' >/dev/null 2>&1
+[ "$(cat "$curl_count_file")" = 4 ] ||
+    fail "readiness monitor did not retry until the endpoint recovered."
+[ "$(wc -l < "$sleep_log" | tr -d ' ')" = 3 ] ||
+    fail "readiness monitor did not back off between failed attempts."
+if grep -vx '5' "$sleep_log" >/dev/null; then
+    fail "readiness monitor used an unexpected retry delay."
+fi
 
 deployment_root="$temp_dir/deployment"
 mkdir -p "$deployment_root/deploy"

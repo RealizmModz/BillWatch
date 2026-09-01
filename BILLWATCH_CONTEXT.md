@@ -177,7 +177,9 @@ Production configuration now has an executable fail-closed preflight before depl
 
 Production deployment is now a guarded one-command operation. It requires a clean Git checkout whose exact commit matches the validated release ID, prevents concurrent deploys with an atomic host lock, validates Compose, builds immutable API and recovery images, creates a verified encrypted recovery point before replacing an existing API, waits for the database/API/edge services, and records the release only after the external HTTPS readiness probe returns BillWatch's exact ready response. It deliberately does not attempt an unsafe automatic database rollback after migrations.
 
-The production backup wrapper is tracked as executable so a clean Linux checkout satisfies the guarded deployment precondition without an unsafe host-only permission change. The first hosted deployment completed successfully on 2026-08-31 at release `2771ac588665b5272cee48aa7be1e002a9e9fcc7` against `api.204-168-161-228.sslip.io`. The guarded deployment, Compose service checks, public HTTPS live probe, and public HTTPS readiness probe all passed. Plaid remains in sandbox, AI runtime features remain disabled, and the encrypted off-host Restic repository is initialized.
+The production backup wrapper is tracked as executable so a clean Linux checkout satisfies the guarded deployment precondition without an unsafe host-only permission change. The first hosted deployment completed successfully on 2026-08-31 at release `2771ac588665b5272cee48aa7be1e002a9e9fcc7` against `api.204-168-161-228.sslip.io`. The owned production hostname `api.billbeacon.net` was activated on 2026-08-31 at release `60f0f72583760c8f60a725b485c17d4062c46651`; the guarded deployment, encrypted pre-deployment recovery point, Compose service checks, Let's Encrypt issuance, public HTTPS live probe, and public HTTPS readiness probe all passed. Cloudflare is intentionally DNS-only until trusted Cloudflare client-IP forwarding is configured and regression-tested. Plaid remains in sandbox, AI runtime features remain disabled, and the encrypted off-host Restic repository is initialized.
+
+The first custom-hostname activation exposed a bounded readiness race: Caddy obtained the certificate successfully roughly six seconds after startup, but three immediate TLS probes had already failed and withheld the release marker. The readiness monitor now makes six bounded attempts with a five-second delay between failures, preserving fail-closed verification while allowing normal first-certificate issuance time. Regression coverage proves recovery after transient TLS failures and verifies the fixed retry delay.
 
 An external readiness workflow now probes the deployed HTTPS origin from GitHub Actions every 15 minutes after `BILLWATCH_PRODUCTION_URL` is configured. The bounded probe rejects local/private targets, redirects, credentials, ports, and paths and accepts only the minimal ready response. The hostname still must be selected and a forced-failure notification drill must pass before this launch gate is closed.
 
@@ -185,13 +187,12 @@ The next activation checkpoint requires a ground-truth statement corpus, measure
 
 ## Remaining private-beta launch gates
 
-1. Replace the temporary `sslip.io` activation hostname with the owned production API hostname under `billbeacon.net`, then repeat the guarded HTTPS readiness verification.
-2. Configure the real encrypted off-host Restic destination, enable the daily timer, and perform a clean-host recovery drill with real protected data.
-3. Supply the deployed HTTPS API origin through `BillWatchApiBaseUrl` and produce signed client release artifacts.
-4. Add external uptime/error monitoring and verify a forced readiness failure raises an alert.
-5. Validate real Plaid institutions and failure/reconnect behavior.
-6. Build a ground-truth provider statement corpus and measure false alerts/extraction accuracy.
-7. Run internal Beta 0 on real bills, then invite 3–5 trusted testers.
+1. Enable the daily encrypted backup timer and perform a clean-host recovery drill with real protected data.
+2. Supply `https://api.billbeacon.net` through `BillWatchApiBaseUrl` and produce signed client release artifacts.
+3. Configure `BILLWATCH_PRODUCTION_URL=https://api.billbeacon.net` for external uptime/error monitoring and verify a forced readiness failure raises an alert.
+4. Validate real Plaid institutions and failure/reconnect behavior.
+5. Build a ground-truth provider statement corpus and measure false alerts/extraction accuracy.
+6. Run internal Beta 0 on real bills, then invite 3–5 trusted testers.
 
 ## Development workflow
 

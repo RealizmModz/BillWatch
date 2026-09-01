@@ -65,8 +65,10 @@ done
 response_file=$(mktemp)
 trap 'rm -f "$response_file"' EXIT HUP INT TERM
 
+max_attempts=6
+retry_delay_seconds=5
 attempt=1
-while [ "$attempt" -le 3 ]
+while [ "$attempt" -le "$max_attempts" ]
 do
     if curl \
         --connect-timeout 5 \
@@ -86,7 +88,11 @@ do
         exit 0
     fi
 
+    if [ "$attempt" -lt "$max_attempts" ]; then
+        sleep "$retry_delay_seconds"
+    fi
+
     attempt=$((attempt + 1))
 done
 
-fail "the production readiness endpoint failed three bounded attempts."
+fail "the production readiness endpoint failed after $max_attempts bounded attempts."
