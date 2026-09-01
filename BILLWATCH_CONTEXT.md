@@ -177,7 +177,7 @@ Production configuration now has an executable fail-closed preflight before depl
 
 Production deployment is now a guarded one-command operation. It requires a clean Git checkout whose exact commit matches the validated release ID, prevents concurrent deploys with an atomic host lock, validates Compose, builds immutable API and recovery images, creates a verified encrypted recovery point before replacing an existing API, waits for the database/API/edge services, and records the release only after the external HTTPS readiness probe returns BillWatch's exact ready response. It deliberately does not attempt an unsafe automatic database rollback after migrations.
 
-The production backup wrapper is tracked as executable so a clean Linux checkout satisfies the guarded deployment precondition without an unsafe host-only permission change. The first hosted deployment is being activated against `api.204-168-161-228.sslip.io` with Plaid sandbox, AI runtime features disabled, and an initialized encrypted off-host Restic repository.
+The production backup wrapper is tracked as executable so a clean Linux checkout satisfies the guarded deployment precondition without an unsafe host-only permission change. The first hosted deployment completed successfully on 2026-08-31 at release `2771ac588665b5272cee48aa7be1e002a9e9fcc7` against `api.204-168-161-228.sslip.io`. The guarded deployment, Compose service checks, public HTTPS live probe, and public HTTPS readiness probe all passed. Plaid remains in sandbox, AI runtime features remain disabled, and the encrypted off-host Restic repository is initialized.
 
 An external readiness workflow now probes the deployed HTTPS origin from GitHub Actions every 15 minutes after `BILLWATCH_PRODUCTION_URL` is configured. The bounded probe rejects local/private targets, redirects, credentials, ports, and paths and accepts only the minimal ready response. The hostname still must be selected and a forced-failure notification drill must pass before this launch gate is closed.
 
@@ -185,7 +185,7 @@ The next activation checkpoint requires a ground-truth statement corpus, measure
 
 ## Remaining private-beta launch gates
 
-1. Select the production host and API hostname, then deploy the included HTTPS stack with real secret-manager or protected environment values.
+1. Replace the temporary `sslip.io` activation hostname with the owned production API hostname under `billbeacon.net`, then repeat the guarded HTTPS readiness verification.
 2. Configure the real encrypted off-host Restic destination, enable the daily timer, and perform a clean-host recovery drill with real protected data.
 3. Supply the deployed HTTPS API origin through `BillWatchApiBaseUrl` and produce signed client release artifacts.
 4. Add external uptime/error monitoring and verify a forced readiness failure raises an alert.
