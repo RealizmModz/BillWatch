@@ -189,6 +189,9 @@ builder.Services.AddSingleton<
 builder.Services.AddScoped<
     SubscriptionAccessKeyRedemptionService>();
 
+builder.Services.AddScoped<
+    AdminSubscriptionAccessKeyService>();
+
 /*
  * Rate limiting is intentionally fail-closed.
  *
