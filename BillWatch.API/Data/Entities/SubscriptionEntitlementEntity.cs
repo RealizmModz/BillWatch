@@ -1,3 +1,6 @@
+using BillWatch.API.Data.Configurations;
+using Microsoft.EntityFrameworkCore;
+
 namespace BillWatch.API.Data.Entities;
 
 public enum BillWatchSubscriptionTier
@@ -15,6 +18,8 @@ public enum SubscriptionEntitlementSource
     Internal
 }
 
+[EntityTypeConfiguration(
+    typeof(SubscriptionEntitlementEntityConfiguration))]
 public sealed class SubscriptionEntitlementEntity
 {
     public Guid Id { get; set; } =
@@ -49,4 +54,10 @@ public sealed class SubscriptionEntitlementEntity
         null!;
 
     public ApplicationUser? GrantedByUser { get; set; }
+
+    public ICollection<SubscriptionAccessKeyRedemptionEntity> AccessKeyRedemptions
+    {
+        get;
+        set;
+    } = [];
 }
