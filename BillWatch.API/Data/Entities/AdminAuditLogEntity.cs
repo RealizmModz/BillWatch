@@ -1,5 +1,10 @@
+using BillWatch.API.Data.Configurations;
+using Microsoft.EntityFrameworkCore;
+
 namespace BillWatch.API.Data.Entities;
 
+[EntityTypeConfiguration(
+    typeof(AdminAuditLogEntityConfiguration))]
 public sealed class AdminAuditLogEntity
 {
     public Guid Id { get; set; } =
