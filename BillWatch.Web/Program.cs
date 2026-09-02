@@ -133,6 +133,7 @@ app.MapStaticAssets();
 app.MapBillWatchHealthEndpoints();
 app.MapBillWatchAuthEndpoints();
 app.MapBillWatchBffEndpoints();
+app.MapBillWatchAdminBffEndpoints();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
