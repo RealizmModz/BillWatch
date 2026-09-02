@@ -1,5 +1,10 @@
+using BillWatch.API.Data.Configurations;
+using Microsoft.EntityFrameworkCore;
+
 namespace BillWatch.API.Data.Entities;
 
+[EntityTypeConfiguration(
+    typeof(SubscriptionAccessKeyRedemptionEntityConfiguration))]
 public sealed class SubscriptionAccessKeyRedemptionEntity
 {
     public Guid Id { get; set; } =
