@@ -33,6 +33,7 @@
         {
             <button type="button"
                     class="admin-refresh-button"
+                    disabled="@_isMutating"
                     @onclick="ReloadAsync">
                 <span aria-hidden="true">↻</span>
                 Refresh
@@ -125,6 +126,55 @@
                 <small>Newest administrative actions first</small>
             </article>
         </section>
+
+        @if (!string.IsNullOrWhiteSpace(_mutationError))
+        {
+            <div class="admin-mutation-message error" role="alert">
+                @_mutationError
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_newPlaintextKey))
+        {
+            <section class="admin-secret-card" aria-live="polite">
+                <div>
+                    <span class="panel-kicker">
+                        One-time access key
+                    </span>
+
+                    <h2>
+                        Copy this key now
+                    </h2>
+
+                    <p>
+                        BillWatch stored only its hash. This plaintext
+                        value cannot be retrieved again after you dismiss
+                        it or leave this page.
+                    </p>
+                </div>
+
+                <code>@_newPlaintextKey</code>
+
+                <div class="admin-secret-actions">
+                    <button type="button"
+                            class="admin-primary-button"
+                            @onclick="CopyNewKeyAsync">
+                        Copy key
+                    </button>
+
+                    <button type="button"
+                            class="admin-secondary-button"
+                            @onclick="DismissNewKey">
+                        Dismiss
+                    </button>
+
+                    @if (!string.IsNullOrWhiteSpace(_copyStatus))
+                    {
+                        <span>@_copyStatus</span>
+                    }
+                </div>
+            </section>
+        }
 
         <section class="admin-panel">
             <div class="admin-panel-heading">
@@ -219,8 +269,93 @@
                 </div>
 
                 <span class="admin-panel-note">
-                    Hashes and plaintext keys are never listed
+                    Plaintext is returned exactly once at creation
                 </span>
+            </div>
+
+            <div class="admin-key-builder">
+                <div class="admin-field">
+                    <label for="key-purpose">Purpose</label>
+                    <select id="key-purpose"
+                            disabled="@_isMutating"
+                            @bind="_newKeyPurpose">
+                        <option value="Complimentary">Complimentary</option>
+                        <option value="Beta">Beta</option>
+                    </select>
+                </div>
+
+                <div class="admin-field">
+                    <label for="key-tier">Tier</label>
+                    <select id="key-tier"
+                            disabled="@_isMutating"
+                            @bind="_newKeyTier">
+                        <option value="Standard">Standard</option>
+                        <option value="Beta">Beta</option>
+                    </select>
+                </div>
+
+                <div class="admin-field">
+                    <label for="key-redemptions">Max redemptions</label>
+                    <input id="key-redemptions"
+                           type="number"
+                           min="1"
+                           max="10000"
+                           disabled="@_isMutating"
+                           @bind="_newKeyMaxRedemptions" />
+                </div>
+
+                <div class="admin-field admin-check-field">
+                    <label>
+                        <input type="checkbox"
+                               disabled="@_isMutating"
+                               @bind="_newKeyLifetime" />
+                        Lifetime subscription grant
+                    </label>
+                </div>
+
+                @if (!_newKeyLifetime)
+                {
+                    <div class="admin-field">
+                        <label for="key-duration">Subscription days</label>
+                        <input id="key-duration"
+                               type="number"
+                               min="1"
+                               max="3650"
+                               disabled="@_isMutating"
+                               @bind="_newKeyDurationDays" />
+                    </div>
+                }
+
+                <div class="admin-field admin-check-field">
+                    <label>
+                        <input type="checkbox"
+                               disabled="@_isMutating"
+                               @bind="_expireNewKey" />
+                        Expire unused key
+                    </label>
+                </div>
+
+                @if (_expireNewKey)
+                {
+                    <div class="admin-field">
+                        <label for="key-expiration">Key valid for days</label>
+                        <input id="key-expiration"
+                               type="number"
+                               min="1"
+                               max="3650"
+                               disabled="@_isMutating"
+                               @bind="_newKeyExpirationDays" />
+                    </div>
+                }
+
+                <div class="admin-key-builder-action">
+                    <button type="button"
+                            class="admin-primary-button"
+                            disabled="@_isMutating"
+                            @onclick="CreateAccessKeyAsync">
+                        @(_isMutating ? "Working…" : "Create access key")
+                    </button>
+                </div>
             </div>
 
             @if (_accessKeys is null ||
@@ -241,6 +376,7 @@
                                 <th>Usage</th>
                                 <th>Status</th>
                                 <th>Created</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -264,6 +400,41 @@
                                     </td>
                                     <td>
                                         @FormatUtc(key.CreatedAtUtc)
+                                    </td>
+                                    <td class="admin-row-action">
+                                        @if (string.Equals(
+                                            key.Status,
+                                            "Active",
+                                            StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            @if (_pendingRevokeKeyId == key.Id)
+                                            {
+                                                <div class="admin-confirm-actions">
+                                                    <button type="button"
+                                                            class="admin-danger-button"
+                                                            disabled="@_isMutating"
+                                                            @onclick="() => RevokeAccessKeyAsync(key.Id)">
+                                                        Confirm
+                                                    </button>
+
+                                                    <button type="button"
+                                                            class="admin-text-button"
+                                                            disabled="@_isMutating"
+                                                            @onclick="CancelKeyRevocation">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="admin-text-button danger"
+                                                        disabled="@_isMutating"
+                                                        @onclick="() => BeginKeyRevocation(key.Id)">
+                                                    Revoke
+                                                </button>
+                                            }
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -351,9 +522,33 @@
 
     private bool _isLoading = true;
 
+    private bool _isMutating;
+
     private bool _accessDenied;
 
     private string? _errorMessage;
+
+    private string? _mutationError;
+
+    private string? _newPlaintextKey;
+
+    private string? _copyStatus;
+
+    private Guid? _pendingRevokeKeyId;
+
+    private string _newKeyPurpose = "Complimentary";
+
+    private string _newKeyTier = "Standard";
+
+    private int _newKeyMaxRedemptions = 1;
+
+    private bool _newKeyLifetime;
+
+    private int _newKeyDurationDays = 30;
+
+    private bool _expireNewKey;
+
+    private int _newKeyExpirationDays = 7;
 
     private int ActiveAccessKeyCount =>
         _accessKeys?.Items.Count(
@@ -370,7 +565,7 @@
             return;
         }
 
-        await LoadAsync();
+        await LoadAsync(clearTransientKey: false);
         StateHasChanged();
     }
 
@@ -386,18 +581,25 @@
 
     private async Task ReloadAsync()
     {
-        await LoadAsync();
+        await LoadAsync(clearTransientKey: true);
         StateHasChanged();
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(bool clearTransientKey)
     {
         _isLoading = true;
         _accessDenied = false;
         _errorMessage = null;
+        _mutationError = null;
+        _pendingRevokeKeyId = null;
         _users = [];
         _accessKeys = null;
         _auditLog = null;
+
+        if (clearTransientKey)
+        {
+            DismissNewKey();
+        }
 
         try
         {
@@ -460,6 +662,198 @@
         {
             _isLoading = false;
         }
+    }
+
+    private async Task CreateAccessKeyAsync()
+    {
+        if (_isMutating)
+        {
+            return;
+        }
+
+        _mutationError = ValidateNewAccessKey();
+        _copyStatus = null;
+
+        if (!string.IsNullOrWhiteSpace(_mutationError))
+        {
+            return;
+        }
+
+        _isMutating = true;
+        _pendingRevokeKeyId = null;
+
+        try
+        {
+            var module = await GetAdminModuleAsync();
+            var request = new AdminCreateAccessKeyRequest
+            {
+                Purpose = _newKeyPurpose,
+                Tier = _newKeyTier,
+                DurationDays = _newKeyLifetime
+                    ? null
+                    : _newKeyDurationDays,
+                GrantsLifetimeAccess = _newKeyLifetime,
+                MaxRedemptions = _newKeyMaxRedemptions,
+                ExpiresAtUtc = _expireNewKey
+                    ? DateTimeOffset.UtcNow.AddDays(
+                        _newKeyExpirationDays)
+                    : null
+            };
+
+            var result = await module.InvokeAsync<
+                AdminFetchResult<CreatedAccessKeyViewModel>>(
+                "createAdminAccessKey",
+                request);
+
+            if (result.AccessDenied)
+            {
+                _accessDenied = true;
+                return;
+            }
+
+            if (result.Value is null ||
+                string.IsNullOrWhiteSpace(
+                    result.Value.PlaintextKey))
+            {
+                _mutationError =
+                    "BillWatch created an invalid access-key response.";
+                return;
+            }
+
+            _newPlaintextKey = result.Value.PlaintextKey;
+            _copyStatus = null;
+
+            await LoadAsync(clearTransientKey: false);
+        }
+        catch (JSException)
+        {
+            _mutationError =
+                "BillWatch could not create the access key.";
+        }
+        catch (Exception)
+        {
+            _mutationError =
+                "BillWatch could not create the access key.";
+        }
+        finally
+        {
+            _isMutating = false;
+            StateHasChanged();
+        }
+    }
+
+    private string? ValidateNewAccessKey()
+    {
+        if (_newKeyMaxRedemptions is < 1 or > 10000)
+        {
+            return "Maximum redemptions must be between 1 and 10,000.";
+        }
+
+        if (!_newKeyLifetime &&
+            _newKeyDurationDays is < 1 or > 3650)
+        {
+            return "Subscription duration must be between 1 and 3,650 days.";
+        }
+
+        if (_expireNewKey &&
+            _newKeyExpirationDays is < 1 or > 3650)
+        {
+            return "Key lifetime must be between 1 and 3,650 days.";
+        }
+
+        return null;
+    }
+
+    private void BeginKeyRevocation(Guid keyId)
+    {
+        if (!_isMutating)
+        {
+            _pendingRevokeKeyId = keyId;
+            _mutationError = null;
+        }
+    }
+
+    private void CancelKeyRevocation()
+    {
+        if (!_isMutating)
+        {
+            _pendingRevokeKeyId = null;
+        }
+    }
+
+    private async Task RevokeAccessKeyAsync(Guid keyId)
+    {
+        if (_isMutating ||
+            _pendingRevokeKeyId != keyId)
+        {
+            return;
+        }
+
+        _isMutating = true;
+        _mutationError = null;
+
+        try
+        {
+            var module = await GetAdminModuleAsync();
+            var result = await module.InvokeAsync<
+                AdminFetchResult<object>>(
+                "revokeAdminAccessKey",
+                keyId.ToString("D"));
+
+            if (result.AccessDenied)
+            {
+                _accessDenied = true;
+                return;
+            }
+
+            await LoadAsync(clearTransientKey: false);
+        }
+        catch (JSException)
+        {
+            _mutationError =
+                "BillWatch could not revoke that access key.";
+        }
+        catch (Exception)
+        {
+            _mutationError =
+                "BillWatch could not revoke that access key.";
+        }
+        finally
+        {
+            _pendingRevokeKeyId = null;
+            _isMutating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyNewKeyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newPlaintextKey))
+        {
+            return;
+        }
+
+        try
+        {
+            var module = await GetAdminModuleAsync();
+            var copied = await module.InvokeAsync<bool>(
+                "copyTextToClipboard",
+                _newPlaintextKey);
+
+            _copyStatus = copied
+                ? "Copied"
+                : "Clipboard unavailable";
+        }
+        catch (JSException)
+        {
+            _copyStatus = "Clipboard unavailable";
+        }
+    }
+
+    private void DismissNewKey()
+    {
+        _newPlaintextKey = null;
+        _copyStatus = null;
     }
 
     private static string GetInitial(string? email)
@@ -567,6 +961,8 @@
 
     public async ValueTask DisposeAsync()
     {
+        DismissNewKey();
+
         if (_adminModule is null)
         {
             return;
@@ -662,5 +1058,27 @@
         public Guid? SubjectId { get; set; }
 
         public DateTimeOffset CreatedAtUtc { get; set; }
+    }
+
+    private sealed class AdminCreateAccessKeyRequest
+    {
+        public string Purpose { get; set; } = string.Empty;
+
+        public string Tier { get; set; } = string.Empty;
+
+        public int? DurationDays { get; set; }
+
+        public bool GrantsLifetimeAccess { get; set; }
+
+        public int MaxRedemptions { get; set; }
+
+        public DateTimeOffset? ExpiresAtUtc { get; set; }
+    }
+
+    private sealed class CreatedAccessKeyViewModel
+    {
+        public Guid Id { get; set; }
+
+        public string PlaintextKey { get; set; } = string.Empty;
     }
 }
