@@ -150,6 +150,19 @@ async function mutateAdminJson(
     return await handleAdminResponse(response);
 }
 
+function requireIdentifier(
+    value,
+    label) {
+
+    if (typeof value !== "string" ||
+        !value.trim()) {
+        throw new Error(`${label} is required.`);
+    }
+
+    return encodeURIComponent(
+        value.trim());
+}
+
 export async function getAdminUsers(
     skip = 0,
     take = 50) {
@@ -202,6 +215,55 @@ export async function getAdminAuditLog(
 
     return await getAdminJson(
         `/bff/admin/audit-log?skip=${safeSkip}&take=${safeTake}`);
+}
+
+export async function assignAdminRole(
+    userId,
+    roleName) {
+
+    return await mutateAdminJson(
+        `/bff/admin/users/${requireIdentifier(userId, "User ID")}/roles/${requireIdentifier(roleName, "Role")}`,
+        "POST");
+}
+
+export async function removeAdminRole(
+    userId,
+    roleName) {
+
+    return await mutateAdminJson(
+        `/bff/admin/users/${requireIdentifier(userId, "User ID")}/roles/${requireIdentifier(roleName, "Role")}`,
+        "DELETE");
+}
+
+export async function grantAdminEntitlement(
+    userId,
+    request) {
+
+    if (!request) {
+        throw new Error(
+            "Subscription grant settings are required.");
+    }
+
+    return await mutateAdminJson(
+        `/bff/admin/users/${requireIdentifier(userId, "User ID")}/entitlements`,
+        "POST",
+        request);
+}
+
+export async function setAdminProgram(
+    userId,
+    programName,
+    request) {
+
+    if (!request) {
+        throw new Error(
+            "Program membership settings are required.");
+    }
+
+    return await mutateAdminJson(
+        `/bff/admin/users/${requireIdentifier(userId, "User ID")}/programs/${requireIdentifier(programName, "Program")}`,
+        "PUT",
+        request);
 }
 
 export async function createAdminAccessKey(request) {
