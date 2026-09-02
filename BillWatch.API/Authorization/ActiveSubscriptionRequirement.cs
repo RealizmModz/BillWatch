@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BillWatch.API.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace BillWatch.API.Authorization;
@@ -17,6 +18,12 @@ public sealed class ActiveSubscriptionAuthorizationHandler(
         AuthorizationHandlerContext context,
         ActiveSubscriptionRequirement requirement)
     {
+        if (IsSubscriptionAccessExempt(context.Resource))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
         var userIdValue =
             context.User.FindFirstValue(
                 ClaimTypes.NameIdentifier);
@@ -43,5 +50,19 @@ public sealed class ActiveSubscriptionAuthorizationHandler(
         {
             context.Succeed(requirement);
         }
+    }
+
+    private static bool IsSubscriptionAccessExempt(object? resource)
+    {
+        var endpoint = resource switch
+        {
+            HttpContext httpContext => httpContext.GetEndpoint(),
+            Endpoint directEndpoint => directEndpoint,
+            _ => null
+        };
+
+        return endpoint?.Metadata
+            .GetMetadata<SubscriptionAccessExemptAttribute>()
+            is not null;
     }
 }
