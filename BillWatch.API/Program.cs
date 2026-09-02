@@ -9,6 +9,7 @@ using BillWatch.API.Infrastructure;
 using BillWatch.API.Services.Bills;
 using BillWatch.API.Services.Plaid;
 using BillWatch.API.Services.Statements;
+using BillWatch.API.Services.Subscriptions;
 using BillWatch.Core.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
@@ -29,6 +30,9 @@ const string AccountExportRateLimitPolicy =
 
 const string StatementDownloadRateLimitPolicy =
     "statement-download";
+
+const string SubscriptionRedemptionRateLimitPolicy =
+    "subscription-redemption";
 
 var builder =
     WebApplication.CreateBuilder(
@@ -179,6 +183,12 @@ builder.Services.AddScoped<
 builder.Services.AddSingleton(
     TimeProvider.System);
 
+builder.Services.AddSingleton<
+    SubscriptionAccessKeyGenerator>();
+
+builder.Services.AddScoped<
+    SubscriptionAccessKeyRedemptionService>();
+
 /*
  * Rate limiting is intentionally fail-closed.
  *
@@ -293,6 +303,20 @@ builder.Services.AddRateLimiter(
                             true),
                     permitLimit:
                         30,
+                    window:
+                        TimeSpan.FromMinutes(
+                            10)));
+
+        options.AddPolicy(
+            SubscriptionRedemptionRateLimitPolicy,
+            httpContext =>
+                CreateFixedWindowPartition(
+                    GetRateLimitPartitionKey(
+                        httpContext,
+                        preferAuthenticatedUser:
+                            true),
+                    permitLimit:
+                        5,
                     window:
                         TimeSpan.FromMinutes(
                             10)));
