@@ -47,6 +47,7 @@ jobs:
       BILLWATCH_BACKUP_WORK_SIZE: 1g
       BILLWATCH_DATABASE_PASSWORD: ci-only-password
       BILLWATCH_HOST: localhost
+      BILLWATCH_WEB_HOST: web.localhost
       BILLWATCH_RELEASE_ID: ci
       BILLWATCH_REQUIRE_RECOVERY_FIXTURE: "true"
       PLAID_CLIENT_ID: ci-client
@@ -65,7 +66,7 @@ jobs:
       - name: Configure container builder
         uses: docker/setup-buildx-action@v4
 
-      - name: Build production image
+      - name: Build production API image
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -73,14 +74,28 @@ jobs:
           load: true
           push: false
           tags: billwatch-api:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build production web image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.web
+          load: true
+          push: false
+          tags: billwatch-web:ci
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
       - name: Start production stack
         run: docker compose --file compose.production.yml up --detach --no-build
 
-      - name: Verify HTTPS readiness
+      - name: Verify API HTTPS readiness
         run: curl --fail --insecure --retry 30 --retry-all-errors --retry-delay 2 https://localhost/health/ready
+
+      - name: Verify web HTTPS readiness
+        run: curl --fail --insecure --retry 30 --retry-all-errors --retry-delay 2 --resolve web.localhost:443:127.0.0.1 https://web.localhost/health/ready
 
       - name: Seed protected recovery fixture
         shell: bash
