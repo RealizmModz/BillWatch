@@ -7,6 +7,15 @@
     align-items: end;
 }
 
+.admin-refresh-button,
+.admin-primary-button,
+.admin-secondary-button,
+.admin-danger-button,
+.admin-text-button {
+    font: inherit;
+    cursor: pointer;
+}
+
 .admin-refresh-button {
     display: inline-flex;
     align-items: center;
@@ -17,9 +26,18 @@
     border-radius: 14px;
     background: var(--surface-elevated, rgba(127, 127, 127, .08));
     color: inherit;
-    font: inherit;
     font-weight: 700;
-    cursor: pointer;
+}
+
+.admin-refresh-button:disabled,
+.admin-primary-button:disabled,
+.admin-secondary-button:disabled,
+.admin-danger-button:disabled,
+.admin-text-button:disabled,
+.admin-field input:disabled,
+.admin-field select:disabled {
+    cursor: not-allowed;
+    opacity: .52;
 }
 
 .admin-summary-grid {
@@ -30,7 +48,8 @@
 
 .admin-summary-card,
 .admin-panel,
-.admin-access-state {
+.admin-access-state,
+.admin-secret-card {
     border: 1px solid var(--border-color, rgba(127, 127, 127, .18));
     background: var(--surface-elevated, rgba(127, 127, 127, .055));
     box-shadow: 0 14px 44px rgba(0, 0, 0, .06);
@@ -79,7 +98,8 @@
     border-bottom: 1px solid var(--border-color, rgba(127, 127, 127, .16));
 }
 
-.admin-panel-heading h2 {
+.admin-panel-heading h2,
+.admin-secret-card h2 {
     margin: 4px 0 0;
     font-size: 1.28rem;
     letter-spacing: -.025em;
@@ -90,6 +110,106 @@
     font-size: .78rem;
     text-align: right;
     opacity: .55;
+}
+
+.admin-mutation-message {
+    padding: 13px 16px;
+    border-radius: 14px;
+    font-size: .86rem;
+    font-weight: 650;
+}
+
+.admin-mutation-message.error {
+    border: 1px solid rgba(207, 64, 64, .22);
+    background: rgba(207, 64, 64, .09);
+    color: rgb(188, 52, 52);
+}
+
+.admin-secret-card {
+    padding: 24px;
+    border-radius: 24px;
+    display: grid;
+    gap: 18px;
+    border-color: rgba(225, 151, 22, .32);
+    background: linear-gradient(
+        135deg,
+        rgba(225, 151, 22, .11),
+        var(--surface-elevated, rgba(127, 127, 127, .045)));
+}
+
+.admin-secret-card p {
+    max-width: 760px;
+    margin: 7px 0 0;
+    opacity: .68;
+    line-height: 1.55;
+}
+
+.admin-secret-card code {
+    display: block;
+    width: 100%;
+    padding: 17px 18px;
+    overflow-wrap: anywhere;
+    border: 1px solid rgba(225, 151, 22, .28);
+    border-radius: 15px;
+    background: rgba(0, 0, 0, .08);
+    color: inherit;
+    font-size: clamp(.9rem, 2vw, 1.08rem);
+    letter-spacing: .045em;
+}
+
+.admin-secret-actions,
+.admin-confirm-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.admin-secret-actions > span {
+    margin-left: 4px;
+    font-size: .8rem;
+    font-weight: 700;
+    opacity: .65;
+}
+
+.admin-primary-button,
+.admin-secondary-button,
+.admin-danger-button {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-weight: 800;
+}
+
+.admin-primary-button {
+    border: 1px solid transparent;
+    background: rgb(93, 95, 239);
+    color: #fff;
+}
+
+.admin-secondary-button {
+    border: 1px solid var(--border-color, rgba(127, 127, 127, .22));
+    background: rgba(127, 127, 127, .08);
+    color: inherit;
+}
+
+.admin-danger-button {
+    border: 1px solid transparent;
+    background: rgb(188, 52, 52);
+    color: #fff;
+}
+
+.admin-text-button {
+    padding: 5px 7px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.admin-text-button.danger {
+    color: rgb(188, 52, 52);
 }
 
 .admin-list,
@@ -201,6 +321,66 @@
     color: inherit;
 }
 
+.admin-key-builder {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    gap: 14px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color, rgba(127, 127, 127, .12));
+    background: rgba(127, 127, 127, .025);
+}
+
+.admin-field {
+    display: grid;
+    align-content: start;
+    gap: 7px;
+}
+
+.admin-field label {
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .035em;
+    opacity: .62;
+}
+
+.admin-field input[type="number"],
+.admin-field select {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 11px;
+    border: 1px solid var(--border-color, rgba(127, 127, 127, .22));
+    border-radius: 12px;
+    background: var(--surface-elevated, rgba(127, 127, 127, .07));
+    color: inherit;
+    font: inherit;
+}
+
+.admin-check-field {
+    align-content: center;
+    padding-top: 22px;
+}
+
+.admin-check-field label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 42px;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: .8rem;
+    opacity: .82;
+}
+
+.admin-check-field input {
+    width: 17px;
+    height: 17px;
+}
+
+.admin-key-builder-action {
+    display: flex;
+    align-items: end;
+}
+
 .admin-table-wrap {
     overflow-x: auto;
 }
@@ -208,7 +388,7 @@
 .admin-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 720px;
+    min-width: 820px;
 }
 
 .admin-table th,
@@ -243,6 +423,12 @@
     margin-top: 3px;
     font-size: .73rem;
     opacity: .52;
+}
+
+.admin-row-action {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right !important;
 }
 
 .admin-audit-row {
@@ -329,6 +515,12 @@
     to { background-position: -100% 0; }
 }
 
+@media (max-width: 1000px) {
+    .admin-key-builder {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+}
+
 @media (max-width: 860px) {
     .admin-summary-grid {
         grid-template-columns: 1fr;
@@ -366,6 +558,16 @@
         text-align: left;
     }
 
+    .admin-key-builder {
+        grid-template-columns: 1fr;
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .admin-check-field {
+        padding-top: 0;
+    }
+
     .admin-user-row,
     .admin-audit-row,
     .admin-table th,
@@ -376,6 +578,10 @@
 
     .admin-badges {
         padding-left: 0;
+    }
+
+    .admin-secret-card {
+        padding: 20px;
     }
 }
 
