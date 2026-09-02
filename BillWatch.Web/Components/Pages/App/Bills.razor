@@ -95,18 +95,9 @@
     {
         <div class="empty-dashboard">
             <div class="empty-icon">
-                <svg viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="1.7"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
+                <svg class="bw-sprite"
                      aria-hidden="true">
-
-                    <path d="M6 2h9l3 3v17H6z" />
-                    <path d="M14 2v4h4" />
-                    <path d="M9 11h6" />
-                    <path d="M9 15h4" />
+                    <use href="/assets/billwatch-sprites.svg#bill"></use>
                 </svg>
             </div>
 
@@ -176,9 +167,11 @@
 
                         <div class="bill-card-top">
                             <div class="bill-provider">
-                                <div class="bill-provider-avatar">
-                                    @GetProviderInitial(
-                                        bill.ProviderName)
+                                <div class="@GetBillAvatarClass(bill.Category)"
+                                     aria-hidden="true">
+                                    <svg class="bw-sprite bill-category-sprite">
+                                        <use href="@GetBillSpriteHref(bill.Category)"></use>
+                                    </svg>
                                 </div>
 
                                 <div>
@@ -213,7 +206,7 @@
                         @if (bill.PreviousAverage > 0m)
                         {
                             <div class="@GetChangePanelClass(
-                                                                            difference)">
+                                difference)">
 
                                 <div>
                                     <span>
@@ -483,18 +476,58 @@
         return "bill-change-panel steady";
     }
 
-    private static string GetProviderInitial(
-        string providerName)
+    private static string GetBillAvatarClass(
+        string category)
     {
-        if (string.IsNullOrWhiteSpace(
-                providerName))
+        return category switch
         {
-            return "?";
-        }
+            "Internet" =>
+                "bill-provider-avatar bill-category-internet",
 
-        return char.ToUpperInvariant(
-                providerName.Trim()[0])
-            .ToString();
+            "MobilePhone" =>
+                "bill-provider-avatar bill-category-phone",
+
+            "Electricity" =>
+                "bill-provider-avatar bill-category-electricity",
+
+            "NaturalGas" =>
+                "bill-provider-avatar bill-category-gas",
+
+            "Utility" =>
+                "bill-provider-avatar bill-category-utility",
+
+            _ =>
+                "bill-provider-avatar bill-category-other"
+        };
+    }
+
+    private static string GetBillSpriteHref(
+        string category)
+    {
+        var sprite =
+            category switch
+            {
+                "Internet" =>
+                    "internet",
+
+                "MobilePhone" =>
+                    "phone",
+
+                "Electricity" =>
+                    "electricity",
+
+                "NaturalGas" =>
+                    "gas",
+
+                "Utility" =>
+                    "utility",
+
+                _ =>
+                    "other-bill"
+            };
+
+        return
+            $"/assets/billwatch-sprites.svg#{sprite}";
     }
 
     private static string FormatCategory(
@@ -510,7 +543,17 @@
             return "Recurring bill";
         }
 
-        return category;
+        return category switch
+        {
+            "MobilePhone" =>
+                "Mobile phone",
+
+            "NaturalGas" =>
+                "Natural gas",
+
+            _ =>
+                category
+        };
     }
 
     public async ValueTask DisposeAsync()

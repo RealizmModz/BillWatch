@@ -1,0 +1,1165 @@
+/* BillWatch premium authenticated UI layer.
+   Loaded by AppLayout after the existing shell/page styles.
+   It intentionally preserves behavior and only changes presentation. */
+
+.app-shell {
+    --premium-accent: #5b6df8;
+    --premium-accent-strong: #4660f2;
+    --premium-accent-soft: rgba(91, 109, 248, 0.12);
+    --premium-success: #35b978;
+    --premium-success-soft: rgba(53, 185, 120, 0.11);
+    --premium-warning: #e4a943;
+    --premium-warning-soft: rgba(228, 169, 67, 0.11);
+    --premium-danger: #e56f67;
+    --premium-danger-soft: rgba(229, 111, 103, 0.1);
+    --premium-radius-sm: 12px;
+    --premium-radius-md: 18px;
+    --premium-radius-lg: 24px;
+    --premium-radius-xl: 30px;
+    --premium-shadow-sm: 0 10px 30px rgba(15, 23, 42, 0.06);
+    --premium-shadow-md: 0 18px 54px rgba(15, 23, 42, 0.09);
+    --premium-shadow-lg: 0 28px 80px rgba(15, 23, 42, 0.13);
+    min-height: 100vh;
+    grid-template-columns: 236px minmax(0, 1fr);
+    background:
+        radial-gradient(circle at 70% -12%, rgba(91, 109, 248, 0.13), transparent 34rem),
+        radial-gradient(circle at 98% 38%, rgba(94, 197, 255, 0.055), transparent 30rem),
+        var(--bw-bg);
+}
+
+html:not([data-theme="light"]) .app-shell,
+html[data-theme="dark"] .app-shell {
+    --premium-shadow-sm: 0 12px 34px rgba(0, 0, 0, 0.2);
+    --premium-shadow-md: 0 20px 58px rgba(0, 0, 0, 0.28);
+    --premium-shadow-lg: 0 32px 90px rgba(0, 0, 0, 0.38);
+}
+
+.app-shell *,
+.app-shell *::before,
+.app-shell *::after {
+    box-sizing: border-box;
+}
+
+.app-shell a,
+.app-shell button,
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell button:focus-visible,
+.app-shell a:focus-visible,
+.app-shell input:focus-visible,
+.app-shell select:focus-visible,
+.app-shell textarea:focus-visible {
+    outline: 2px solid rgba(91, 109, 248, 0.72);
+    outline-offset: 3px;
+}
+
+/* Shell */
+
+.app-shell .app-sidebar {
+    height: 100vh;
+    padding: 24px 14px 18px;
+    border-right: 1px solid var(--bw-border);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 34%), var(--bw-surface-soft);
+    box-shadow: 12px 0 42px rgba(15, 23, 42, 0.025);
+    backdrop-filter: blur(30px) saturate(130%);
+    -webkit-backdrop-filter: blur(30px) saturate(130%);
+}
+
+.app-shell .sidebar-top {
+    gap: 38px;
+}
+
+.app-shell .app-brand {
+    padding: 0 12px;
+    gap: 11px;
+}
+
+.app-shell .app-brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #3956f0 0%, #6679ff 58%, #8b96ff 100%);
+    box-shadow: 0 10px 28px rgba(70, 96, 242, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.app-shell .app-brand-mark span {
+    top: 10px;
+    left: 10px;
+}
+
+.app-shell .app-brand strong {
+    font-size: 1.08rem;
+    font-weight: 780;
+    letter-spacing: -0.045em;
+}
+
+.app-shell .app-nav {
+    gap: 7px;
+}
+
+.app-shell .app-nav-link {
+    position: relative;
+    min-height: 48px;
+    padding: 0 13px;
+    gap: 12px;
+    border: 1px solid transparent;
+    border-radius: 15px;
+    color: var(--bw-text-muted);
+    font-size: 0.8rem;
+    font-weight: 670;
+    letter-spacing: -0.01em;
+    transition: transform 160ms ease, color 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-shell .app-nav-link:hover {
+    color: var(--bw-text);
+    background: rgba(105, 121, 164, 0.065);
+    transform: translateX(2px);
+}
+
+.app-shell .app-nav-link.active {
+    color: var(--bw-text);
+    border-color: rgba(91, 109, 248, 0.16);
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.14), rgba(91, 109, 248, 0.07));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 10px 26px rgba(70, 96, 242, 0.08);
+}
+
+.app-shell .app-nav-link.active::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    width: 3px;
+    height: 20px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #8190ff, #5368ef);
+    box-shadow: 0 0 16px rgba(91, 109, 248, 0.52);
+}
+
+.app-shell .nav-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.app-shell .nav-icon svg {
+    width: 19px;
+    height: 19px;
+    stroke-width: 1.7;
+}
+
+.app-shell .sidebar-bottom {
+    gap: 14px;
+}
+
+.app-shell .sidebar-account {
+    padding: 15px 9px 0;
+    gap: 10px;
+}
+
+.app-shell .account-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.22), rgba(91, 109, 248, 0.08));
+    color: #94a2ff;
+    box-shadow: inset 0 0 0 1px rgba(91, 109, 248, 0.12);
+}
+
+.app-shell .account-copy strong {
+    font-size: 0.7rem;
+}
+
+.app-shell .account-copy span {
+    color: var(--bw-text-subtle);
+    font-size: 0.58rem;
+}
+
+.app-shell .logout-button {
+    width: 35px;
+    height: 35px;
+    border-radius: 11px;
+}
+
+.app-shell .app-main {
+    min-width: 0;
+    background: transparent;
+}
+
+.app-shell .app-topbar {
+    height: 76px;
+    padding: 0 34px;
+    border-bottom: 1px solid var(--bw-border);
+    background: var(--bw-header-bg);
+    backdrop-filter: blur(28px) saturate(135%);
+    -webkit-backdrop-filter: blur(28px) saturate(135%);
+}
+
+.app-shell .topbar-status {
+    min-height: 34px;
+    padding: 0 12px;
+    gap: 8px;
+    border-color: var(--bw-border);
+    background: var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+    font-size: 0.64rem;
+}
+
+.app-shell .watch-dot {
+    background: var(--premium-success);
+}
+
+.app-shell .app-content {
+    width: min(1180px, calc(100% - 64px));
+    padding: 52px 0 92px;
+}
+
+/* Shared page hierarchy */
+
+.app-shell .app-page {
+    gap: 32px;
+}
+
+.app-shell .page-heading {
+    align-items: flex-end;
+    gap: 34px;
+}
+
+.app-shell .page-kicker,
+.app-shell .panel-kicker,
+.app-shell .change-eyebrow,
+.app-shell .danger-kicker {
+    color: #8291fa;
+    font-size: 0.63rem;
+    font-weight: 820;
+    letter-spacing: 0.12em;
+}
+
+.app-shell .page-heading h1 {
+    margin: 10px 0 10px;
+    font-size: clamp(2.35rem, 4.4vw, 3.45rem);
+    line-height: 0.96;
+    font-weight: 770;
+    letter-spacing: -0.065em;
+}
+
+.app-shell .page-heading p {
+    max-width: 690px;
+    font-size: 0.88rem;
+    line-height: 1.65;
+}
+
+.app-shell .metric-grid,
+.app-shell .transaction-summary-grid,
+.app-shell .activity-summary {
+    gap: 16px;
+}
+
+.app-shell .metric-card,
+.app-shell .transaction-summary-grid article,
+.app-shell .summary-card {
+    min-height: 148px;
+    padding: 23px;
+    border: 1px solid var(--bw-border);
+    border-radius: 22px;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.035), transparent 50%), var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.app-shell .metric-card:hover,
+.app-shell .transaction-summary-grid article:hover,
+.app-shell .summary-card:hover {
+    border-color: var(--bw-border-strong);
+    transform: translateY(-1px);
+}
+
+.app-shell .metric-label,
+.app-shell .transaction-summary-grid article > span,
+.app-shell .summary-card span {
+    font-size: 0.67rem;
+    font-weight: 680;
+}
+
+.app-shell .metric-value,
+.app-shell .transaction-summary-grid article > strong,
+.app-shell .summary-card strong {
+    margin-top: 16px;
+    font-size: clamp(2rem, 4vw, 2.55rem);
+    font-weight: 760;
+    letter-spacing: -0.065em;
+}
+
+.app-shell .metric-footnote,
+.app-shell .transaction-summary-grid article > small,
+.app-shell .summary-card small {
+    padding-top: 14px;
+    font-size: 0.59rem;
+    line-height: 1.45;
+}
+
+.app-shell .app-panel,
+.app-shell .detail-panel,
+.app-shell .account-panel,
+.app-shell .alerts-empty,
+.app-shell .activity-empty,
+.app-shell .transaction-empty,
+.app-shell .privacy-management-card,
+.app-shell .privacy-explanation-card {
+    border: 1px solid var(--bw-border);
+    border-radius: var(--premium-radius-lg);
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.025), transparent 48%), var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .dashboard-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(310px, 0.72fr);
+    gap: 20px;
+}
+
+.app-shell .bills-panel,
+.app-shell .insight-panel,
+.app-shell .detail-panel,
+.app-shell .account-panel {
+    padding: 27px;
+}
+
+.app-shell .panel-heading {
+    margin-bottom: 22px;
+}
+
+.app-shell .panel-heading h2,
+.app-shell .account-panel-heading h2 {
+    margin-top: 6px;
+    font-size: 1.15rem;
+    font-weight: 730;
+    letter-spacing: -0.04em;
+}
+
+.app-shell .text-action {
+    color: #8796ff;
+    font-size: 0.69rem;
+}
+
+.app-shell .primary-action,
+.app-shell .secondary-action,
+.app-shell .activity-refresh-button,
+.app-shell .privacy-primary-button,
+.app-shell .connect-bank-button,
+.app-shell .reconnect-button,
+.app-shell .disconnect-button,
+.app-shell .danger-button,
+.app-shell .cancel-delete-button,
+.app-shell .final-delete-button {
+    min-height: 42px;
+    border-radius: 13px;
+    font-size: 0.68rem;
+    font-weight: 740;
+    letter-spacing: -0.005em;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.app-shell .primary-action,
+.app-shell .privacy-primary-button,
+.app-shell .connect-bank-button {
+    background: linear-gradient(145deg, #435ef1, #697aff);
+    box-shadow: 0 12px 30px rgba(70, 96, 242, 0.23), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.app-shell .primary-action:hover,
+.app-shell .privacy-primary-button:hover:not(:disabled),
+.app-shell .connect-bank-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 17px 38px rgba(70, 96, 242, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.app-shell .secondary-action,
+.app-shell .activity-refresh-button,
+.app-shell .cancel-delete-button {
+    border: 1px solid var(--bw-border);
+    background: var(--bw-surface-soft);
+    color: var(--bw-text-secondary);
+    box-shadow: none;
+}
+
+/* Overview */
+
+.app-shell .bill-row {
+    min-height: 78px;
+    padding: 12px 4px;
+    gap: 14px;
+}
+
+.app-shell .bill-row:hover {
+    border-radius: 14px;
+    background: rgba(91, 109, 248, 0.045);
+}
+
+.app-shell .bill-avatar,
+.app-shell .bill-provider-avatar,
+.app-shell .connection-logo,
+.app-shell .financial-icon,
+.app-shell .transaction-icon,
+.app-shell .detail-provider-avatar {
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.15), rgba(91, 109, 248, 0.06));
+    color: #91a0ff;
+    box-shadow: inset 0 0 0 1px rgba(91, 109, 248, 0.09);
+}
+
+.app-shell .bill-avatar {
+    width: 43px;
+    height: 43px;
+    border-radius: 14px;
+}
+
+.app-shell .bill-info strong,
+.app-shell .bill-provider h2,
+.app-shell .transaction-title-line strong,
+.app-shell .connection-copy strong,
+.app-shell .financial-account-copy strong {
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.app-shell .bill-amount strong,
+.app-shell .transaction-amount {
+    font-size: 0.84rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.app-shell .insight-panel {
+    min-height: 390px;
+}
+
+.app-shell .insight-change {
+    margin-top: 10px;
+    font-size: clamp(2.85rem, 5vw, 4.15rem);
+    font-weight: 760;
+}
+
+.app-shell .annual-impact {
+    padding: 16px;
+    border: 1px solid rgba(229, 111, 103, 0.1);
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(229, 111, 103, 0.12), rgba(229, 111, 103, 0.055));
+}
+
+.app-shell .annual-impact strong {
+    font-size: 1.12rem;
+}
+
+.app-shell .steady-check,
+.app-shell .alerts-empty-icon,
+.app-shell .activity-empty-icon {
+    background: var(--premium-success-soft);
+    color: var(--premium-success);
+}
+
+/* Bills */
+
+.app-shell .bills-heading-summary,
+.app-shell .activity-count {
+    padding: 13px 16px;
+    border-radius: 16px;
+    background: var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .bill-filter-bar,
+.app-shell .activity-filters {
+    gap: 8px;
+}
+
+.app-shell .bill-filter,
+.app-shell .activity-filter {
+    min-height: 39px;
+    padding: 0 13px;
+    border-radius: 12px;
+    background: var(--bw-surface-soft);
+    font-size: 0.66rem;
+}
+
+.app-shell .bill-filter.active,
+.app-shell .activity-filter.active {
+    border-color: rgba(91, 109, 248, 0.24);
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.14), rgba(91, 109, 248, 0.07));
+    color: #91a0ff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.app-shell .bill-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.app-shell .bill-card {
+    min-height: 292px;
+    padding: 24px;
+    border-radius: 24px;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.035), transparent 50%), var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .bill-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(91, 109, 248, 0.2);
+    box-shadow: var(--premium-shadow-md);
+}
+
+.app-shell .bill-provider-avatar {
+    width: 43px;
+    height: 43px;
+    border-radius: 14px;
+}
+
+.app-shell .watching-state {
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: rgba(53, 185, 120, 0.065);
+    color: var(--premium-success);
+}
+
+.app-shell .bill-current {
+    margin-top: 32px;
+}
+
+.app-shell .bill-current strong {
+    margin-top: 7px;
+    font-size: 2.15rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+}
+
+.app-shell .bill-change-panel {
+    margin-top: 22px;
+    padding: 14px;
+    border: 1px solid transparent;
+    border-radius: 16px;
+}
+
+.app-shell .bill-change-panel.increase {
+    border-color: rgba(229, 111, 103, 0.09);
+    background: var(--premium-danger-soft);
+}
+
+.app-shell .bill-change-panel.decrease {
+    border-color: rgba(53, 185, 120, 0.09);
+    background: var(--premium-success-soft);
+}
+
+.app-shell .bill-change-panel.steady {
+    border-color: var(--bw-border);
+    background: rgba(105, 121, 164, 0.055);
+}
+
+.app-shell .bill-detail-header {
+    align-items: center;
+    padding: 4px 0 12px;
+}
+
+.app-shell .detail-provider-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+}
+
+.app-shell .bill-detail-provider h1 {
+    font-size: clamp(2.55rem, 5vw, 4rem);
+    font-weight: 760;
+}
+
+.app-shell .current-bill-amount > strong {
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+}
+
+.app-shell .detected-change-card {
+    padding: 28px;
+    border-radius: 25px;
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .detected-change-card.increase {
+    background: linear-gradient(145deg, rgba(229, 111, 103, 0.13), var(--bw-surface-soft) 60%);
+}
+
+.app-shell .detected-change-card.decrease {
+    background: linear-gradient(145deg, rgba(53, 185, 120, 0.13), var(--bw-surface-soft) 60%);
+}
+
+.app-shell .detected-change-values strong {
+    font-size: 1.65rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.app-shell .change-impact-stack > div {
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(105, 121, 164, 0.055);
+}
+
+.app-shell .change-description {
+    font-size: 0.93rem;
+    line-height: 1.75;
+}
+
+/* Activity */
+
+.app-shell .activity-toolbar {
+    gap: 22px;
+}
+
+.app-shell .activity-refresh-button {
+    padding: 0 14px;
+}
+
+.app-shell .alert-list,
+.app-shell .activity-list {
+    gap: 12px;
+}
+
+.app-shell .alert-card {
+    padding: 21px 22px;
+    gap: 17px;
+    border-radius: 21px;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.025), transparent 52%), var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .alert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--premium-shadow-md);
+}
+
+.app-shell .alert-card.unread {
+    border-color: rgba(91, 109, 248, 0.2);
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.085), var(--bw-surface-soft) 58%);
+}
+
+.app-shell .alert-card-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+}
+
+.app-shell .alert-title-line strong {
+    font-size: 0.82rem;
+}
+
+.app-shell .alert-card-content > p {
+    margin: 13px 0 17px;
+    font-size: 0.71rem;
+    line-height: 1.65;
+}
+
+.app-shell .alert-meta > span,
+.app-shell .activity-meta span {
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: rgba(105, 121, 164, 0.065);
+}
+
+.app-shell .alert-secondary-action,
+.app-shell .alert-primary-action {
+    min-height: 34px;
+    padding: 0 11px;
+    border-radius: 10px;
+}
+
+.app-shell .activity-item {
+    min-height: 126px;
+    padding: 21px 22px;
+    gap: 18px;
+    border-radius: 21px;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.025), transparent 52%), var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .activity-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--premium-shadow-md);
+}
+
+.app-shell .activity-date {
+    width: 50px;
+    height: 54px;
+    border-radius: 14px;
+}
+
+/* Account */
+
+.app-shell .account-identity-card {
+    padding: 20px 22px;
+    border-radius: 21px;
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.055), var(--bw-surface-soft) 58%);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .identity-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+}
+
+.app-shell .identity-copy strong {
+    font-size: 0.79rem;
+}
+
+.app-shell .account-grid {
+    gap: 20px;
+}
+
+.app-shell .account-panel {
+    min-height: 350px;
+}
+
+.app-shell .account-count {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+}
+
+.app-shell .connection-row,
+.app-shell .financial-account-row {
+    min-height: 78px;
+    padding: 12px 2px;
+}
+
+.app-shell .connection-logo,
+.app-shell .financial-icon {
+    width: 43px;
+    height: 43px;
+    border-radius: 14px;
+}
+
+.app-shell .connection-pill {
+    padding: 6px 9px;
+}
+
+.app-shell .privacy-panel {
+    padding: 30px;
+    border-radius: 24px;
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.085), var(--bw-surface-soft) 58%);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .privacy-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 19px;
+}
+
+.app-shell .connect-bank-card {
+    padding: 28px;
+    gap: 24px;
+    border-color: rgba(91, 109, 248, 0.19);
+    border-radius: 25px;
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.12), var(--bw-surface-soft) 60%);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .connect-bank-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 20px;
+}
+
+.app-shell .connect-bank-copy h2 {
+    font-size: 1.22rem;
+}
+
+.app-shell .connect-bank-copy p {
+    font-size: 0.73rem;
+}
+
+.app-shell .connection-row.requires-attention,
+.app-shell .connection-row.disconnected {
+    border-radius: 16px;
+}
+
+.app-shell .reconnect-button {
+    border-color: rgba(91, 109, 248, 0.2);
+    background: rgba(91, 109, 248, 0.1);
+    color: #91a0ff;
+}
+
+/* Transactions */
+
+.app-shell .transaction-toolbar {
+    gap: 12px;
+}
+
+.app-shell .transaction-search,
+.app-shell .transaction-account-filter {
+    min-height: 46px;
+    border-radius: 14px;
+    background: var(--bw-surface-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.app-shell .transaction-search:focus-within,
+.app-shell .transaction-account-filter:focus {
+    border-color: rgba(91, 109, 248, 0.38);
+    box-shadow: 0 0 0 4px rgba(91, 109, 248, 0.08);
+}
+
+.app-shell .transaction-search input,
+.app-shell .transaction-account-filter {
+    font-size: 0.68rem;
+}
+
+.app-shell .transaction-list {
+    border-radius: 22px;
+    background: var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .transaction-row {
+    min-height: 82px;
+    padding: 14px 18px;
+    gap: 14px;
+    transition: background 150ms ease;
+}
+
+.app-shell .transaction-row:hover {
+    background: rgba(91, 109, 248, 0.035);
+}
+
+.app-shell .transaction-icon {
+    width: 41px;
+    height: 41px;
+    border-radius: 14px;
+}
+
+.app-shell .transaction-icon.outflow {
+    background: rgba(105, 121, 164, 0.075);
+    color: var(--bw-text-muted);
+}
+
+.app-shell .transaction-icon.credit {
+    background: var(--premium-success-soft);
+    color: var(--premium-success);
+}
+
+.app-shell .transaction-title-line strong {
+    font-size: 0.73rem;
+}
+
+.app-shell .transaction-amount {
+    min-width: 88px;
+    font-size: 0.75rem;
+}
+
+/* Privacy */
+
+.app-shell .privacy-management-card {
+    padding: 26px;
+    gap: 20px;
+}
+
+.app-shell .privacy-management-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 17px;
+}
+
+.app-shell .privacy-management-copy h2,
+.app-shell .privacy-explanation-card h2,
+.app-shell .danger-zone h2 {
+    font-size: 1.1rem;
+}
+
+.app-shell .privacy-management-copy > p,
+.app-shell .privacy-explanation-card > p,
+.app-shell .danger-zone > p {
+    font-size: 0.69rem;
+    line-height: 1.65;
+}
+
+.app-shell .danger-zone {
+    padding: 26px;
+    border-color: rgba(229, 111, 103, 0.2);
+    border-radius: 24px;
+    background: linear-gradient(145deg, rgba(229, 111, 103, 0.085), var(--bw-surface-soft) 60%);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .danger-icon {
+    width: 47px;
+    height: 47px;
+    border-radius: 15px;
+}
+
+.app-shell .delete-consequences,
+.app-shell .delete-confirmation {
+    border-radius: 15px;
+}
+
+.app-shell .delete-confirmation-input {
+    height: 46px;
+    border-radius: 12px;
+}
+
+/* Empty, error and loading states */
+
+.app-shell .empty-dashboard,
+.app-shell .alerts-empty,
+.app-shell .activity-empty,
+.app-shell .transaction-empty,
+.app-shell .app-error-state {
+    border-radius: 26px;
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .empty-dashboard,
+.app-shell .alerts-empty,
+.app-shell .activity-empty {
+    min-height: 420px;
+}
+
+.app-shell .empty-icon,
+.app-shell .transaction-empty > div {
+    width: 62px;
+    height: 62px;
+    border-radius: 20px;
+    background: var(--premium-accent-soft);
+    color: #91a0ff;
+    box-shadow: inset 0 0 0 1px rgba(91, 109, 248, 0.08);
+}
+
+.app-shell .empty-dashboard h2,
+.app-shell .alerts-empty h2,
+.app-shell .activity-empty h2,
+.app-shell .transaction-empty h2 {
+    font-size: 1.5rem;
+    font-weight: 730;
+    letter-spacing: -0.045em;
+}
+
+.app-shell .empty-dashboard p,
+.app-shell .alerts-empty p,
+.app-shell .activity-empty p,
+.app-shell .transaction-empty p {
+    font-size: 0.78rem;
+    line-height: 1.7;
+}
+
+.app-shell .app-error-state {
+    min-height: 220px;
+    padding: 34px;
+}
+
+.app-shell .state-symbol {
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+}
+
+.app-shell .skeleton-card,
+.app-shell .skeleton-panel,
+.app-shell .bill-card-skeleton,
+.app-shell .detail-heading-skeleton,
+.app-shell .detail-panel-skeleton,
+.app-shell .activity-summary-skeleton > div,
+.app-shell .alert-loading-row,
+.app-shell .activity-skeleton,
+.app-shell .transaction-skeleton,
+.app-shell .transaction-list-skeleton {
+    border-color: var(--bw-border);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 58%), var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+/* Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+    .app-shell *,
+    .app-shell *::before,
+    .app-shell *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* Responsive */
+
+@media (max-width: 1120px) {
+    .app-shell .bill-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .app-shell .app-content {
+        width: min(100% - 48px, 1180px);
+    }
+}
+
+@media (max-width: 900px) {
+    .app-shell {
+        display: block;
+    }
+
+    .app-shell .app-sidebar {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        width: auto;
+        height: 70px;
+        padding: 8px;
+        border: 1px solid var(--bw-border);
+        border-radius: 22px;
+        background: var(--bw-header-bg);
+        box-shadow: var(--premium-shadow-lg);
+        backdrop-filter: blur(30px) saturate(150%);
+        -webkit-backdrop-filter: blur(30px) saturate(150%);
+    }
+
+    .app-shell .app-nav {
+        height: 52px;
+        gap: 4px;
+    }
+
+    .app-shell .app-nav-link {
+        min-height: 52px;
+        padding: 5px 8px;
+        border-radius: 15px;
+        font-size: 0.58rem;
+    }
+
+    .app-shell .app-nav-link:hover {
+        transform: none;
+    }
+
+    .app-shell .app-nav-link.active::before {
+        display: none;
+    }
+
+    .app-shell .app-topbar {
+        height: 68px;
+        padding: 0 20px;
+    }
+
+    .app-shell .app-content {
+        width: min(100% - 32px, 1180px);
+        padding: 36px 0 116px;
+    }
+
+    .app-shell .dashboard-grid,
+    .app-shell .account-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .app-shell .privacy-panel {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 720px) {
+    .app-shell .page-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .app-shell .page-heading h1 {
+        font-size: clamp(2.2rem, 12vw, 3rem);
+    }
+
+    .app-shell .metric-grid,
+    .app-shell .dashboard-loading,
+    .app-shell .transaction-summary-grid,
+    .app-shell .activity-summary-skeleton {
+        grid-template-columns: 1fr;
+    }
+
+    .app-shell .metric-card,
+    .app-shell .transaction-summary-grid article {
+        min-height: 124px;
+    }
+
+    .app-shell .bill-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .app-shell .bill-card {
+        min-height: 255px;
+    }
+
+    .app-shell .bill-detail-header,
+    .app-shell .detected-change-card {
+        align-items: flex-start;
+        grid-template-columns: 1fr;
+        flex-direction: column;
+    }
+
+    .app-shell .current-bill-amount {
+        align-items: flex-start;
+    }
+
+    .app-shell .change-impact-stack {
+        width: 100%;
+    }
+
+    .app-shell .activity-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .app-shell .transaction-toolbar {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .app-shell .app-sidebar {
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+    }
+
+    .app-shell .app-content {
+        width: min(100% - 24px, 1180px);
+        padding-top: 28px;
+    }
+
+    .app-shell .topbar-status {
+        display: none;
+    }
+
+    .app-shell .bills-panel,
+    .app-shell .insight-panel,
+    .app-shell .detail-panel,
+    .app-shell .account-panel,
+    .app-shell .connect-bank-card,
+    .app-shell .privacy-management-card,
+    .app-shell .privacy-explanation-card,
+    .app-shell .danger-zone {
+        padding: 20px;
+        border-radius: 20px;
+    }
+
+    .app-shell .metric-card,
+    .app-shell .transaction-summary-grid article {
+        padding: 20px;
+    }
+
+    .app-shell .bill-card {
+        padding: 20px;
+        border-radius: 21px;
+    }
+
+    .app-shell .alert-card,
+    .app-shell .activity-item {
+        padding: 17px;
+        border-radius: 19px;
+    }
+
+    .app-shell .transaction-row {
+        padding: 14px;
+    }
+}

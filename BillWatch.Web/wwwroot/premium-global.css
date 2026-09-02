@@ -1,0 +1,174 @@
+/* BillWatch global polish shared by public and authenticated surfaces. */
+
+:root {
+    accent-color: #5b6df8;
+}
+
+html {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+::selection {
+    background: rgba(91, 109, 248, 0.28);
+    color: var(--bw-text);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(112, 126, 165, 0.35) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: rgba(112, 126, 165, 0.32);
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: rgba(112, 126, 165, 0.48);
+    background-clip: padding-box;
+}
+
+.bw-sprite {
+    width: 1em;
+    height: 1em;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.nav-icon .bw-sprite,
+.logout-button .bw-sprite {
+    width: 19px;
+    height: 19px;
+}
+
+.theme-icon.bw-sprite {
+    width: 18px;
+    height: 18px;
+}
+
+.bill-provider-avatar .bill-category-sprite {
+    width: 19px;
+    height: 19px;
+}
+
+.bill-provider-avatar.bill-category-internet {
+    background: linear-gradient(145deg, rgba(65, 154, 255, 0.18), rgba(65, 154, 255, 0.07));
+    color: #66aefb;
+}
+
+.bill-provider-avatar.bill-category-phone {
+    background: linear-gradient(145deg, rgba(151, 103, 255, 0.18), rgba(151, 103, 255, 0.07));
+    color: #a88aff;
+}
+
+.bill-provider-avatar.bill-category-electricity {
+    background: linear-gradient(145deg, rgba(239, 181, 61, 0.2), rgba(239, 181, 61, 0.07));
+    color: #e8b64b;
+}
+
+.bill-provider-avatar.bill-category-gas {
+    background: linear-gradient(145deg, rgba(239, 127, 68, 0.2), rgba(239, 127, 68, 0.07));
+    color: #ea8b58;
+}
+
+.bill-provider-avatar.bill-category-utility {
+    background: linear-gradient(145deg, rgba(53, 185, 120, 0.18), rgba(53, 185, 120, 0.07));
+    color: #55bf86;
+}
+
+.bill-provider-avatar.bill-category-other {
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.16), rgba(91, 109, 248, 0.06));
+    color: #91a0ff;
+}
+
+body .theme-toggle {
+    width: 41px;
+    height: 41px;
+    border-radius: 13px;
+    background: var(--bw-surface-soft);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body .theme-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 11px 30px rgba(15, 23, 42, 0.1);
+}
+
+#components-reconnect-modal {
+    width: min(92vw, 390px);
+    margin: 18vh auto;
+    padding: 30px;
+    border: 1px solid var(--bw-border);
+    border-radius: 24px;
+    background: var(--bw-surface);
+    color: var(--bw-text);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+}
+
+#components-reconnect-modal::backdrop {
+    background: rgba(4, 7, 13, 0.58);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#components-reconnect-modal .components-reconnect-container {
+    gap: 17px;
+}
+
+#components-reconnect-modal p {
+    color: var(--bw-text-muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+#components-reconnect-modal button {
+    min-height: 42px;
+    padding: 0 17px;
+    border: 0;
+    border-radius: 13px;
+    background: linear-gradient(145deg, #435ef1, #697aff);
+    color: white;
+    box-shadow: 0 12px 30px rgba(70, 96, 242, 0.25);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 740;
+    cursor: pointer;
+}
+
+#components-reconnect-modal button:hover {
+    background: linear-gradient(145deg, #4a65f5, #7283ff);
+}
+
+#components-reconnect-modal .components-rejoining-animation div {
+    border-color: #697aff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}

@@ -1,6 +1,9 @@
 ﻿<article class="@GetCardClass()">
-    <div class="@GetIconClass()">
-        @GetIconText()
+    <div class="@GetIconClass()"
+         aria-hidden="true">
+        <svg class="bw-sprite alert-sprite">
+            <use href="@GetIconSpriteHref()"></use>
+        </svg>
     </div>
 
     <div class="alert-card-content">
@@ -190,34 +193,38 @@
             $"alert-card-icon {GetTypeClass(Alert.AlertType)}";
     }
 
-    private string GetIconText()
+    private string GetIconSpriteHref()
     {
-        return Alert.AlertType switch
-        {
-            "BillIncrease" =>
-                "↑",
+        var sprite =
+            Alert.AlertType switch
+            {
+                "BillIncrease" =>
+                    "trend-up",
 
-            "BillDecrease" =>
-                "↓",
+                "BillDecrease" =>
+                    "trend-down",
 
-            "NewFee" =>
-                "+",
+                "NewFee" =>
+                    "bill",
 
-            "RemovedDiscount" =>
-                "−",
+                "RemovedDiscount" =>
+                    "alert",
 
-            "PaymentDue" =>
-                "$",
+                "PaymentDue" =>
+                    "document",
 
-            "ConnectionIssue" =>
-                "!",
+                "ConnectionIssue" =>
+                    "bank",
 
-            "NewBill" =>
-                "N",
+                "NewBill" =>
+                    "bill",
 
-            _ =>
-                "•"
-        };
+                _ =>
+                    "alert"
+            };
+
+        return
+            $"/assets/billwatch-sprites.svg#{sprite}";
     }
 
     private string GetSeverityClass()
