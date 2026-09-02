@@ -143,9 +143,8 @@ public sealed class SubscriptionAccessKeyGenerator
              index < normalizedBuffer.Length;
              index++)
         {
-            if (!Alphabet.Contains(
-                    normalizedBuffer[index],
-                    StringComparison.Ordinal))
+            if (Alphabet.IndexOf(
+                    normalizedBuffer[index]) < 0)
             {
                 throw new ArgumentException(
                     "The access key format is invalid.",
