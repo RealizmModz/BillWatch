@@ -1,4 +1,4 @@
-﻿@page "/app/account"
+@page "/app/account"
 
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
@@ -293,7 +293,7 @@
                                         item.InstitutionName))
                         {
                             <article class="@GetConnectionRowClass(
-                                                                                connection.Status)">
+                                connection.Status)">
 
                                 <div class="connection-logo">
                                     @GetInitial(
@@ -306,21 +306,19 @@
                                     </strong>
 
                                     <span>
-                                        Added @FormatConnectionDate(
-                                            connection.CreatedAtUtc)
+                                        Added @connection.CreatedDisplayText
                                     </span>
                                 </div>
 
                                 <div class="connection-status">
                                     <span class="@GetConnectionStatusClass(
-                                                                                              connection.Status)">
+                                        connection.Status)">
                                         @GetConnectionStatusText(
                                             connection.Status)
                                     </span>
 
                                     <small>
-                                        @GetSyncText(
-                                            connection.LastSuccessfulSyncAtUtc)
+                                        @connection.LastSyncDisplayText
                                     </small>
                                 </div>
 
@@ -328,7 +326,7 @@
                                     @if (connection.Status == 1)
                                     {
                                         <button id="@GetReconnectButtonId(
-                                                                                                    connection.Id)"
+                                            connection.Id)"
                                                 type="button"
                                                 class="reconnect-button">
 
@@ -351,7 +349,7 @@
                                 @if (connection.Status == 1)
                                 {
                                     <div id="@GetReconnectStatusId(
-                                                                                            connection.Id)"
+                                        connection.Id)"
                                          class="connection-reconnect-status"
                                          aria-live="polite">
 
@@ -510,6 +508,9 @@
     private IJSObjectReference?
         _bffModule;
 
+    private IJSObjectReference?
+        _localTimeModule;
+
     private List<BankConnectionViewModel>
         _connections = [];
 
@@ -603,6 +604,18 @@
         return _bffModule;
     }
 
+    private async Task<IJSObjectReference>
+        GetLocalTimeModuleAsync()
+    {
+        _localTimeModule ??=
+            await JS.InvokeAsync<
+                IJSObjectReference>(
+                "import",
+                "./js/local-time.js");
+
+        return _localTimeModule;
+    }
+
     private async Task
         WireReconnectButtonsAsync(
             IJSObjectReference module)
@@ -668,6 +681,8 @@
                             account.IsActive)
                     .ToList()
                 ?? [];
+
+            await PopulateConnectionDisplayTimesAsync();
         }
         catch (JSException)
         {
@@ -683,6 +698,84 @@
         {
             _isLoading =
                 false;
+        }
+    }
+
+    private async Task
+        PopulateConnectionDisplayTimesAsync()
+    {
+        ApplyUtcDisplayTimeFallbacks();
+
+        if (_connections.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var module =
+                await GetLocalTimeModuleAsync();
+
+            foreach (var connection
+                in _connections)
+            {
+                var createdText =
+                    await module.InvokeAsync<
+                        string?>(
+                        "formatLocalDate",
+                        connection.CreatedAtUtc);
+
+                if (!string.IsNullOrWhiteSpace(
+                    createdText))
+                {
+                    connection.CreatedDisplayText =
+                        createdText;
+                }
+
+                if (connection.LastSuccessfulSyncAtUtc
+                    is not DateTimeOffset lastSync)
+                {
+                    connection.LastSyncDisplayText =
+                        "Not synced yet";
+
+                    continue;
+                }
+
+                var lastSyncText =
+                    await module.InvokeAsync<
+                        string?>(
+                        "formatLocalDateTime",
+                        lastSync);
+
+                if (!string.IsNullOrWhiteSpace(
+                    lastSyncText))
+                {
+                    connection.LastSyncDisplayText =
+                        $"Last sync {lastSyncText}";
+                }
+            }
+        }
+        catch (JSException)
+        {
+            // UTC fallback text is already applied.
+            // Timestamp formatting should never prevent
+            // account data from loading.
+        }
+    }
+
+    private void ApplyUtcDisplayTimeFallbacks()
+    {
+        foreach (var connection
+            in _connections)
+        {
+            connection.CreatedDisplayText =
+                $"{connection.CreatedAtUtc.ToUniversalTime():MMM d, yyyy} UTC";
+
+            connection.LastSyncDisplayText =
+                connection.LastSuccessfulSyncAtUtc
+                    is DateTimeOffset lastSync
+                    ? $"Last sync {lastSync.ToUniversalTime():MMM d, yyyy h:mm tt} UTC"
+                    : "Not synced yet";
         }
     }
 
@@ -867,37 +960,18 @@
         };
     }
 
-    private static string FormatConnectionDate(
-        DateTimeOffset createdAt)
-    {
-        return createdAt.LocalDateTime.ToString(
-            "MMM d, yyyy");
-    }
-
-    private static string GetSyncText(
-        DateTimeOffset? lastSync)
-    {
-        if (lastSync is null)
-        {
-            return "Not synced yet";
-        }
-
-        return
-            $"Last sync {lastSync.Value.LocalDateTime:MMM d, yyyy h:mm tt}";
-    }
-
     private static string
         GetAccountDisplayName(
             BankAccountViewModel account)
     {
         if (!string.IsNullOrWhiteSpace(
-                account.OfficialName))
+            account.OfficialName))
         {
             return account.OfficialName;
         }
 
         if (!string.IsNullOrWhiteSpace(
-                account.Name))
+            account.Name))
         {
             return account.Name;
         }
@@ -915,7 +989,7 @@
                 type);
 
         if (string.IsNullOrWhiteSpace(
-                subtype))
+            subtype))
         {
             return formattedType;
         }
@@ -929,7 +1003,7 @@
             string? accountType)
     {
         if (string.IsNullOrWhiteSpace(
-                accountType))
+            accountType))
         {
             return "$";
         }
@@ -946,7 +1020,7 @@
         string? value)
     {
         if (string.IsNullOrWhiteSpace(
-                value))
+            value))
         {
             return "Account";
         }
@@ -961,14 +1035,25 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (_bffModule is null)
+        await DisposeModuleAsync(
+            _localTimeModule);
+
+        await DisposeModuleAsync(
+            _bffModule);
+    }
+
+    private static async ValueTask
+        DisposeModuleAsync(
+            IJSObjectReference? module)
+    {
+        if (module is null)
         {
             return;
         }
 
         try
         {
-            await _bffModule.DisposeAsync();
+            await module.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
@@ -999,6 +1084,18 @@
             get;
             set;
         }
+
+        public string CreatedDisplayText
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        public string LastSyncDisplayText
+        {
+            get;
+            set;
+        } = "Not synced yet";
     }
 
     public sealed class BankAccountViewModel
