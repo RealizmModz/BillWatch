@@ -7,6 +7,7 @@ using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Infrastructure;
 using BillWatch.API.Services.Bills;
+using BillWatch.API.Services.Admin;
 using BillWatch.API.Services.Plaid;
 using BillWatch.API.Services.Statements;
 using BillWatch.API.Services.Subscriptions;
@@ -191,6 +192,9 @@ builder.Services.AddScoped<
 
 builder.Services.AddScoped<
     AdminSubscriptionAccessKeyService>();
+
+builder.Services.AddScoped<
+    AdminUserManagementService>();
 
 /*
  * Rate limiting is intentionally fail-closed.
