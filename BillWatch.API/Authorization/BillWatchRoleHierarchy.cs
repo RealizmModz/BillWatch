@@ -26,15 +26,18 @@ public static class BillWatchRoleHierarchy
             return false;
         }
 
+        /*
+         * Owner is a bootstrap/recovery role, not a role that the normal
+         * admin console may mint. This prevents a compromised staff account
+         * from creating another top-level principal through ordinary UI/API
+         * flows. Owner changes require the explicit owner-recovery path.
+         */
         if (string.Equals(
                 targetRole,
                 BillWatchRoles.Owner,
                 StringComparison.Ordinal))
         {
-            return string.Equals(
-                actorRole,
-                BillWatchRoles.Owner,
-                StringComparison.Ordinal);
+            return false;
         }
 
         return GetRank(actorRole) >
