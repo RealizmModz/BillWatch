@@ -1,0 +1,416 @@
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<div class="admin-user-controls-shell">
+    @if (IsOwner)
+    {
+        <span class="admin-user-protected">
+            Owner is protected from normal staff and entitlement mutations.
+        </span>
+    }
+    else if (_pending is not null)
+    {
+        <div class="admin-user-confirm">
+            <span>
+                Confirm: @_pending.Label
+            </span>
+
+            <button type="button"
+                    class="admin-user-control danger"
+                    disabled="@_isBusy"
+                    @onclick="ConfirmAsync">
+                @(_isBusy ? "Working…" : "Confirm")
+            </button>
+
+            <button type="button"
+                    class="admin-user-control"
+                    disabled="@_isBusy"
+                    @onclick="Cancel">
+                Cancel
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="admin-user-controls">
+            <button type="button"
+                    class="admin-user-control"
+                    disabled="@_isBusy"
+                    @onclick="QueueAdminRole">
+                @(HasRole(AdminRole)
+                    ? "Remove admin"
+                    : "Make admin")
+            </button>
+
+            <button type="button"
+                    class="admin-user-control"
+                    disabled="@_isBusy"
+                    @onclick="QueueModeratorRole">
+                @(HasRole(ModeratorRole)
+                    ? "Remove moderator"
+                    : "Make moderator")
+            </button>
+
+            <button type="button"
+                    class="admin-user-control"
+                    disabled="@_isBusy"
+                    @onclick="QueueBetaProgram">
+                @(HasProgram(BetaProgram)
+                    ? "Remove beta tester"
+                    : "Add beta tester")
+            </button>
+
+            <button type="button"
+                    class="admin-user-control"
+                    disabled="@_isBusy"
+                    @onclick="QueueInternalProgram">
+                @(HasProgram(InternalProgram)
+                    ? "Remove internal tester"
+                    : "Add internal tester")
+            </button>
+
+            <button type="button"
+                    class="admin-user-control accent"
+                    disabled="@_isBusy"
+                    @onclick="QueueThirtyDayGrant">
+                Grant 30 days
+            </button>
+
+            <button type="button"
+                    class="admin-user-control accent"
+                    disabled="@_isBusy"
+                    @onclick="QueueLifetimeGrant">
+                Grant lifetime
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <span class="admin-user-control-error"
+              role="alert">
+            @_errorMessage
+        </span>
+    }
+</div>
+
+@code {
+    private const string OwnerRole = "Owner";
+    private const string AdminRole = "Admin";
+    private const string ModeratorRole = "Moderator";
+    private const string BetaProgram = "BetaTester";
+    private const string InternalProgram = "InternalTester";
+
+    [Parameter]
+    public Guid UserId { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<string> Roles { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<string> Programs { get; set; } = [];
+
+    private IJSObjectReference? _adminModule;
+    private PendingMutation? _pending;
+    private bool _isBusy;
+    private string? _errorMessage;
+
+    private bool IsOwner =>
+        HasRole(OwnerRole);
+
+    private void QueueAdminRole()
+    {
+        QueueRole(
+            AdminRole,
+            !HasRole(AdminRole));
+    }
+
+    private void QueueModeratorRole()
+    {
+        QueueRole(
+            ModeratorRole,
+            !HasRole(ModeratorRole));
+    }
+
+    private void QueueBetaProgram()
+    {
+        QueueProgram(
+            BetaProgram,
+            !HasProgram(BetaProgram));
+    }
+
+    private void QueueInternalProgram()
+    {
+        QueueProgram(
+            InternalProgram,
+            !HasProgram(InternalProgram));
+    }
+
+    private void QueueThirtyDayGrant()
+    {
+        _errorMessage = null;
+        _pending = new PendingMutation(
+            AdminMutationKind.Entitlement,
+            "Grant Standard access for 30 days",
+            null,
+            true,
+            30,
+            false);
+    }
+
+    private void QueueLifetimeGrant()
+    {
+        _errorMessage = null;
+        _pending = new PendingMutation(
+            AdminMutationKind.Entitlement,
+            "Grant lifetime Standard access",
+            null,
+            true,
+            null,
+            true);
+    }
+
+    private void QueueRole(
+        string role,
+        bool makeActive)
+    {
+        _errorMessage = null;
+        _pending = new PendingMutation(
+            AdminMutationKind.Role,
+            makeActive
+                ? $"Assign {role} role"
+                : $"Remove {role} role",
+            role,
+            makeActive,
+            null,
+            false);
+    }
+
+    private void QueueProgram(
+        string program,
+        bool makeActive)
+    {
+        _errorMessage = null;
+        _pending = new PendingMutation(
+            AdminMutationKind.Program,
+            makeActive
+                ? $"Add {FormatProgram(program)} membership"
+                : $"Remove {FormatProgram(program)} membership",
+            program,
+            makeActive,
+            null,
+            false);
+    }
+
+    private void Cancel()
+    {
+        if (!_isBusy)
+        {
+            _pending = null;
+            _errorMessage = null;
+        }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_isBusy ||
+            _pending is null ||
+            UserId == Guid.Empty)
+        {
+            return;
+        }
+
+        _isBusy = true;
+        _errorMessage = null;
+
+        try
+        {
+            var module = await GetAdminModuleAsync();
+            var result = _pending.Kind switch
+            {
+                AdminMutationKind.Role =>
+                    await MutateRoleAsync(
+                        module,
+                        _pending),
+
+                AdminMutationKind.Program =>
+                    await MutateProgramAsync(
+                        module,
+                        _pending),
+
+                AdminMutationKind.Entitlement =>
+                    await GrantEntitlementAsync(
+                        module,
+                        _pending),
+
+                _ =>
+                    throw new InvalidOperationException()
+            };
+
+            if (result.AccessDenied)
+            {
+                _errorMessage =
+                    "BillWatch blocked that change because your staff role cannot manage this account.";
+                return;
+            }
+
+            _pending = null;
+
+            Navigation.NavigateTo(
+                "/app/admin",
+                forceLoad: true);
+        }
+        catch (JSException)
+        {
+            _errorMessage =
+                "BillWatch could not complete that administrative change.";
+        }
+        catch (Exception)
+        {
+            _errorMessage =
+                "BillWatch could not complete that administrative change.";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task<AdminFetchResult<object>> MutateRoleAsync(
+        IJSObjectReference module,
+        PendingMutation mutation)
+    {
+        var functionName = mutation.MakeActive
+            ? "assignAdminRole"
+            : "removeAdminRole";
+
+        return await module.InvokeAsync<
+            AdminFetchResult<object>>(
+            functionName,
+            UserId.ToString("D"),
+            mutation.Name);
+    }
+
+    private async Task<AdminFetchResult<object>> MutateProgramAsync(
+        IJSObjectReference module,
+        PendingMutation mutation)
+    {
+        return await module.InvokeAsync<
+            AdminFetchResult<object>>(
+            "setAdminProgram",
+            UserId.ToString("D"),
+            mutation.Name,
+            new AdminProgramRequest
+            {
+                IsActive = mutation.MakeActive,
+                EndsAtUtc = null
+            });
+    }
+
+    private async Task<AdminFetchResult<object>> GrantEntitlementAsync(
+        IJSObjectReference module,
+        PendingMutation mutation)
+    {
+        return await module.InvokeAsync<
+            AdminFetchResult<object>>(
+            "grantAdminEntitlement",
+            UserId.ToString("D"),
+            new AdminEntitlementRequest
+            {
+                Tier = "Standard",
+                DurationDays = mutation.DurationDays,
+                GrantsLifetimeAccess =
+                    mutation.GrantsLifetimeAccess
+            });
+    }
+
+    private async Task<IJSObjectReference> GetAdminModuleAsync()
+    {
+        _adminModule ??=
+            await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/admin-bff.js");
+
+        return _adminModule;
+    }
+
+    private bool HasRole(string roleName)
+    {
+        return Roles.Any(
+            role => string.Equals(
+                role,
+                roleName,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool HasProgram(string programName)
+    {
+        return Programs.Any(
+            program => string.Equals(
+                program,
+                programName,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string FormatProgram(string program)
+    {
+        return program switch
+        {
+            BetaProgram => "beta tester",
+            InternalProgram => "internal tester",
+            _ => program
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_adminModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _adminModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    private enum AdminMutationKind
+    {
+        Role,
+        Program,
+        Entitlement
+    }
+
+    private sealed record PendingMutation(
+        AdminMutationKind Kind,
+        string Label,
+        string? Name,
+        bool MakeActive,
+        int? DurationDays,
+        bool GrantsLifetimeAccess);
+
+    private sealed class AdminFetchResult<T>
+    {
+        public bool AccessDenied { get; set; }
+        public T? Value { get; set; }
+    }
+
+    private sealed class AdminProgramRequest
+    {
+        public bool IsActive { get; set; }
+        public DateTimeOffset? EndsAtUtc { get; set; }
+    }
+
+    private sealed class AdminEntitlementRequest
+    {
+        public string Tier { get; set; } = string.Empty;
+        public int? DurationDays { get; set; }
+        public bool GrantsLifetimeAccess { get; set; }
+    }
+}
