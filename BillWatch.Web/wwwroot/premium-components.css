@@ -1,0 +1,338 @@
+/* Premium shared-component and onboarding layer for authenticated BillWatch pages. */
+
+/* Alert summary */
+.app-shell .alert-summary {
+    gap: 16px;
+}
+
+.app-shell .alert-summary article {
+    min-height: 122px;
+    padding: 21px 22px;
+    border-radius: 21px;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.03), transparent 50%), var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.app-shell .alert-summary article:hover {
+    transform: translateY(-1px);
+    border-color: var(--bw-border-strong);
+    box-shadow: var(--premium-shadow-md);
+}
+
+.app-shell .alert-summary article > span {
+    font-size: 0.64rem;
+}
+
+.app-shell .alert-summary article > strong {
+    margin-top: 12px;
+    font-size: 2rem;
+    font-weight: 760;
+    letter-spacing: -0.065em;
+}
+
+.app-shell .alert-summary article > small {
+    padding-top: 12px;
+    font-size: 0.56rem;
+}
+
+.app-shell .alert-summary article.has-unread {
+    border-color: rgba(91, 109, 248, 0.2);
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.11), var(--bw-surface-soft) 62%);
+}
+
+.app-shell .alert-summary article.has-unread > strong {
+    color: #91a0ff;
+}
+
+.app-shell .alert-summary article.has-attention {
+    border-color: rgba(228, 169, 67, 0.2);
+    background: linear-gradient(145deg, rgba(228, 169, 67, 0.1), var(--bw-surface-soft) 62%);
+}
+
+/* Statement upload */
+.app-shell .statement-upload-panel {
+    padding: 27px;
+    gap: 21px;
+    border-color: rgba(91, 109, 248, 0.18);
+    border-radius: 24px;
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.095), var(--bw-surface-soft) 62%);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .statement-upload-heading {
+    gap: 15px;
+}
+
+.app-shell .statement-upload-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: rgba(91, 109, 248, 0.12);
+    color: #91a0ff;
+    box-shadow: inset 0 0 0 1px rgba(91, 109, 248, 0.09);
+}
+
+.app-shell .statement-upload-kicker {
+    color: #8796ff;
+    font-size: 0.59rem;
+    letter-spacing: 0.11em;
+}
+
+.app-shell .statement-upload-heading h2 {
+    margin-top: 6px;
+    font-size: 1.08rem;
+    font-weight: 730;
+}
+
+.app-shell .statement-upload-heading p {
+    font-size: 0.68rem;
+    line-height: 1.65;
+}
+
+.app-shell .statement-upload-body {
+    gap: 13px;
+}
+
+.app-shell .statement-file-picker {
+    min-height: 72px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(105, 121, 164, 0.035);
+}
+
+.app-shell .statement-file-picker:hover {
+    border-color: rgba(91, 109, 248, 0.42);
+    background: rgba(91, 109, 248, 0.055);
+}
+
+.app-shell .picker-symbol,
+.app-shell .selected-file-symbol {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+}
+
+.app-shell .picker-copy strong {
+    font-size: 0.72rem;
+}
+
+.app-shell .statement-upload-button {
+    min-height: 46px;
+    padding: 0 17px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #435ef1, #697aff);
+    box-shadow: 0 12px 30px rgba(70, 96, 242, 0.23);
+    font-size: 0.69rem;
+}
+
+.app-shell .statement-upload-status {
+    padding: 13px 14px;
+    border-radius: 14px;
+}
+
+/* Account tools */
+.app-shell .account-tools-grid {
+    gap: 16px;
+}
+
+.app-shell .account-tool-card {
+    min-height: 136px;
+    padding: 22px;
+    gap: 16px;
+    border-radius: 21px;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.025), transparent 52%), var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .account-tool-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(91, 109, 248, 0.2);
+    background: linear-gradient(145deg, rgba(91, 109, 248, 0.07), var(--bw-surface-soft) 60%);
+    box-shadow: var(--premium-shadow-md);
+}
+
+.app-shell .account-tool-icon {
+    width: 47px;
+    height: 47px;
+    border-radius: 15px;
+    background: rgba(91, 109, 248, 0.11);
+    color: #91a0ff;
+}
+
+.app-shell .account-tool-card h2 {
+    margin: 5px 0 6px;
+    font-size: 0.94rem;
+    font-weight: 720;
+}
+
+.app-shell .account-tool-card p {
+    font-size: 0.64rem;
+    line-height: 1.58;
+}
+
+/* Onboarding */
+.app-shell .status-check-button {
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 13px;
+    background: var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-sm);
+}
+
+.app-shell .onboarding-card {
+    min-height: 480px;
+    padding: 52px;
+    gap: 70px;
+    border-radius: 30px;
+    background:
+        radial-gradient(circle at 84% 14%, rgba(91, 109, 248, 0.14), transparent 340px),
+        linear-gradient(155deg, rgba(255, 255, 255, 0.025), transparent 50%),
+        var(--bw-surface-soft);
+    box-shadow: var(--premium-shadow-md);
+}
+
+.app-shell .onboarding-card.attention-state {
+    background:
+        radial-gradient(circle at 84% 14%, rgba(228, 169, 67, 0.13), transparent 340px),
+        var(--bw-surface-soft);
+}
+
+.app-shell .onboarding-copy h2 {
+    margin: 14px 0 18px;
+    font-size: clamp(2.45rem, 5vw, 3.85rem);
+    font-weight: 760;
+    letter-spacing: -0.067em;
+}
+
+.app-shell .onboarding-copy > p {
+    font-size: 0.86rem;
+    line-height: 1.78;
+}
+
+.app-shell .onboarding-trust {
+    margin-top: 27px;
+    gap: 12px 20px;
+}
+
+.app-shell .onboarding-primary-action,
+.app-shell .onboarding-secondary-action {
+    min-height: 46px;
+    margin-top: 30px;
+    padding: 0 18px;
+    border-radius: 14px;
+    font-size: 0.72rem;
+}
+
+.app-shell .onboarding-primary-action {
+    background: linear-gradient(145deg, #435ef1, #697aff);
+    box-shadow: 0 14px 34px rgba(70, 96, 242, 0.25);
+}
+
+.app-shell .onboarding-steps {
+    padding: 28px;
+    border-radius: 22px;
+    background: rgba(105, 121, 164, 0.04);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.app-shell .onboarding-step {
+    gap: 15px;
+}
+
+.app-shell .onboarding-step > span {
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+}
+
+.app-shell .onboarding-step strong {
+    font-size: 0.74rem;
+}
+
+.app-shell .onboarding-line {
+    height: 38px;
+    margin-left: 19px;
+}
+
+.app-shell .automatic-monitoring-note {
+    margin-top: 26px;
+    padding: 15px 16px;
+    border-radius: 14px;
+}
+
+.app-shell .scan-rings {
+    width: 184px;
+    height: 184px;
+    box-shadow: 0 0 0 24px rgba(53, 185, 120, 0.014);
+}
+
+.app-shell .history-symbol,
+.app-shell .attention-symbol {
+    box-shadow: inset 0 0 0 1px var(--bw-border);
+}
+
+.app-shell .connection-warning {
+    padding: 14px 16px;
+    border-radius: 15px;
+}
+
+/* Generic feedback */
+.app-shell .activity-action-error,
+.app-shell .account-action-message,
+.app-shell .privacy-message {
+    padding: 13px 15px;
+    border-radius: 14px;
+    line-height: 1.55;
+}
+
+/* Responsive shared components */
+@media (max-width: 950px) {
+    .app-shell .onboarding-card {
+        padding: 40px;
+        gap: 45px;
+    }
+}
+
+@media (max-width: 700px) {
+    .app-shell .alert-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .app-shell .alert-summary article {
+        min-height: 96px;
+    }
+
+    .app-shell .statement-upload-body {
+        grid-template-columns: 1fr;
+    }
+
+    .app-shell .statement-upload-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 650px) {
+    .app-shell .onboarding-card {
+        min-height: auto;
+        padding: 27px 22px;
+        border-radius: 23px;
+    }
+
+    .app-shell .onboarding-copy h2 {
+        font-size: 2.35rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .app-shell .statement-upload-panel {
+        padding: 20px;
+        border-radius: 20px;
+    }
+
+    .app-shell .account-tool-card {
+        min-height: 122px;
+        padding: 19px;
+        border-radius: 19px;
+    }
+}
