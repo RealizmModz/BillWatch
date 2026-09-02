@@ -1,4 +1,5 @@
 ﻿using BillWatch.API.Data.Entities;
+using BillWatch.API.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -50,10 +51,27 @@ public sealed class BillWatchDbContext
     public DbSet<PlaidLinkSessionEntity> PlaidLinkSessions =>
         Set<PlaidLinkSessionEntity>();
 
+    public DbSet<SubscriptionEntitlementEntity> SubscriptionEntitlements =>
+        Set<SubscriptionEntitlementEntity>();
+
+    public DbSet<UserProgramMembershipEntity> UserProgramMemberships =>
+        Set<UserProgramMembershipEntity>();
+
+    public DbSet<SubscriptionAccessKeyEntity> SubscriptionAccessKeys =>
+        Set<SubscriptionAccessKeyEntity>();
+
+    public DbSet<SubscriptionAccessKeyRedemptionEntity> SubscriptionAccessKeyRedemptions =>
+        Set<SubscriptionAccessKeyRedemptionEntity>();
+
+    public DbSet<AdminAuditLogEntity> AdminAuditLogs =>
+        Set<AdminAuditLogEntity>();
+
     protected override void OnModelCreating(
         ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        SeedStaffRoles(builder);
 
         ConfigureApplicationUser(builder);
         ConfigureBillStream(builder);
@@ -67,6 +85,35 @@ public sealed class BillWatchDbContext
         ConfigureBillStatementUpload(builder);
         ConfigureBillStatementAiEvaluation(builder);
         ConfigurePlaidLinkSession(builder);
+    }
+
+    private static void SeedStaffRoles(
+        ModelBuilder builder)
+    {
+        builder.Entity<IdentityRole<Guid>>()
+            .HasData(
+                CreateRole(
+                    "0f112ee4-1690-4a08-925f-e72721626f51",
+                    BillWatchRoles.Owner),
+                CreateRole(
+                    "db2a4b76-a5a7-4c60-a66e-44630f39ed93",
+                    BillWatchRoles.Admin),
+                CreateRole(
+                    "64cdd793-8aac-4f3b-814f-aa0272a02f28",
+                    BillWatchRoles.Moderator));
+    }
+
+    private static IdentityRole<Guid> CreateRole(
+        string id,
+        string name)
+    {
+        return new IdentityRole<Guid>
+        {
+            Id = Guid.Parse(id),
+            Name = name,
+            NormalizedName = name.ToUpperInvariant(),
+            ConcurrencyStamp = id
+        };
     }
 
     private static void ConfigureApplicationUser(

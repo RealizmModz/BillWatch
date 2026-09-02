@@ -2,14 +2,18 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using System.Net;
+using BillWatch.API.Authorization;
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Infrastructure;
 using BillWatch.API.Services.Bills;
+using BillWatch.API.Services.Admin;
 using BillWatch.API.Services.Plaid;
 using BillWatch.API.Services.Statements;
+using BillWatch.API.Services.Subscriptions;
 using BillWatch.Core.Services;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
@@ -27,6 +31,9 @@ const string AccountExportRateLimitPolicy =
 
 const string StatementDownloadRateLimitPolicy =
     "statement-download";
+
+const string SubscriptionRedemptionRateLimitPolicy =
+    "subscription-redemption";
 
 var builder =
     WebApplication.CreateBuilder(
@@ -140,7 +147,54 @@ builder.Services.Configure<IdentityOptions>(
                 15);
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(
+    options =>
+    {
+        options.AddPolicy(
+            BillWatchPolicies.OwnerOnly,
+            policy => policy.RequireRole(BillWatchRoles.Owner));
+
+        options.AddPolicy(
+            BillWatchPolicies.AdminOrOwner,
+            policy => policy.RequireRole(
+                BillWatchRoles.Owner,
+                BillWatchRoles.Admin));
+
+        options.AddPolicy(
+            BillWatchPolicies.ModeratorOrAbove,
+            policy => policy.RequireRole(
+                BillWatchRoles.Owner,
+                BillWatchRoles.Admin,
+                BillWatchRoles.Moderator));
+
+        options.AddPolicy(
+            BillWatchPolicies.ActiveSubscription,
+            policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.AddRequirements(
+                    new ActiveSubscriptionRequirement());
+            });
+    });
+
+builder.Services.AddScoped<
+    IAuthorizationHandler,
+    ActiveSubscriptionAuthorizationHandler>();
+
+builder.Services.AddSingleton(
+    TimeProvider.System);
+
+builder.Services.AddSingleton<
+    SubscriptionAccessKeyGenerator>();
+
+builder.Services.AddScoped<
+    SubscriptionAccessKeyRedemptionService>();
+
+builder.Services.AddScoped<
+    AdminSubscriptionAccessKeyService>();
+
+builder.Services.AddScoped<
+    AdminUserManagementService>();
 
 /*
  * Rate limiting is intentionally fail-closed.
@@ -256,6 +310,20 @@ builder.Services.AddRateLimiter(
                             true),
                     permitLimit:
                         30,
+                    window:
+                        TimeSpan.FromMinutes(
+                            10)));
+
+        options.AddPolicy(
+            SubscriptionRedemptionRateLimitPolicy,
+            httpContext =>
+                CreateFixedWindowPartition(
+                    GetRateLimitPartitionKey(
+                        httpContext,
+                        preferAuthenticatedUser:
+                            true),
+                    permitLimit:
+                        5,
                     window:
                         TimeSpan.FromMinutes(
                             10)));

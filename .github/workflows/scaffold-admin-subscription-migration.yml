@@ -1,0 +1,49 @@
+name: Scaffold admin subscription migration
+
+on:
+  push:
+    branches:
+      - admin-subscription-foundation
+
+permissions:
+  contents: read
+
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__BillWatchDatabase: Host=localhost;Database=billwatch_scaffold;Username=billwatch;Password=scaffold-only-not-used
+      Plaid__Environment: sandbox
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore API
+        run: dotnet restore BillWatch.API/BillWatch.API.csproj
+
+      - name: Install EF tool
+        run: dotnet tool install --global dotnet-ef --version 10.0.11
+
+      - name: Scaffold migration
+        run: >-
+          dotnet ef migrations add AddAdminSubscriptionFoundation
+          --project BillWatch.API/BillWatch.API.csproj
+          --startup-project BillWatch.API/BillWatch.API.csproj
+          --output-dir Data/Migrations
+
+      - name: Upload migration output
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-subscription-migration
+          path: BillWatch.API/Data/Migrations
+          if-no-files-found: error
+          retention-days: 1

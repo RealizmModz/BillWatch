@@ -101,6 +101,9 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     BillWatchBffProxyService>();
 
+builder.Services.AddScoped<
+    AdminBffWriteProxyService>();
+
 var app =
     builder.Build();
 
@@ -133,6 +136,7 @@ app.MapStaticAssets();
 app.MapBillWatchHealthEndpoints();
 app.MapBillWatchAuthEndpoints();
 app.MapBillWatchBffEndpoints();
+app.MapBillWatchAdminBffEndpoints();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

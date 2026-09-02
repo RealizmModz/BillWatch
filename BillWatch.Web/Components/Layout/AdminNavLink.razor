@@ -1,0 +1,84 @@
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
+@if (_hasAdminAccess)
+{
+    <NavLink href="/app/admin"
+             class="app-nav-link">
+
+        <span class="nav-icon"
+              aria-hidden="true">
+            <svg class="bw-sprite">
+                <use href="/assets/billwatch-sprites.svg#shield"></use>
+            </svg>
+        </span>
+
+        <span>
+            Admin
+        </span>
+    </NavLink>
+}
+
+@code {
+    private IJSObjectReference? _adminModule;
+    private bool _hasAdminAccess;
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _adminModule =
+                await JS.InvokeAsync<IJSObjectReference>(
+                    "import",
+                    "./js/admin-bff.js");
+
+            var result =
+                await _adminModule.InvokeAsync<
+                    AdminAccessProbeResult>(
+                    "getAdminUsers",
+                    0,
+                    1);
+
+            _hasAdminAccess =
+                !result.AccessDenied;
+        }
+        catch (JSDisconnectedException)
+        {
+            return;
+        }
+        catch (JSException)
+        {
+            _hasAdminAccess = false;
+        }
+
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_adminModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _adminModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    private sealed class AdminAccessProbeResult
+    {
+        public bool AccessDenied { get; set; }
+    }
+}

@@ -1,0 +1,80 @@
+.admin-user-controls-shell {
+    grid-column: 2 / -1;
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.admin-user-controls,
+.admin-user-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-user-control {
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid var(--border-color, rgba(127, 127, 127, .22));
+    border-radius: 11px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: .75rem;
+    font-weight: 760;
+    cursor: pointer;
+}
+
+.admin-user-control:hover:not(:disabled) {
+    background: rgba(127, 127, 127, .08);
+}
+
+.admin-user-control.accent {
+    background: rgba(93, 95, 239, .1);
+    color: rgb(93, 95, 239);
+}
+
+.admin-user-control.danger {
+    background: rgba(207, 64, 64, .1);
+    color: rgb(188, 52, 52);
+}
+
+.admin-user-control:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.admin-user-confirm > span,
+.admin-user-protected,
+.admin-user-control-error {
+    font-size: .75rem;
+}
+
+.admin-user-confirm > span {
+    font-weight: 750;
+}
+
+.admin-user-protected {
+    opacity: .58;
+    font-weight: 700;
+}
+
+.admin-user-control-error {
+    display: block;
+    margin-top: 8px;
+    color: rgb(188, 52, 52);
+    font-weight: 700;
+}
+
+@media (max-width: 860px) {
+    .admin-user-controls-shell {
+        grid-column: 1 / -1;
+        padding-left: 58px;
+    }
+}
+
+@media (max-width: 620px) {
+    .admin-user-controls-shell {
+        padding-left: 0;
+    }
+}
