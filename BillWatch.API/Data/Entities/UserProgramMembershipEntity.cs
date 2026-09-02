@@ -1,3 +1,6 @@
+using BillWatch.API.Data.Configurations;
+using Microsoft.EntityFrameworkCore;
+
 namespace BillWatch.API.Data.Entities;
 
 public enum UserProgramType
@@ -6,6 +9,8 @@ public enum UserProgramType
     InternalTester
 }
 
+[EntityTypeConfiguration(
+    typeof(UserProgramMembershipEntityConfiguration))]
 public sealed class UserProgramMembershipEntity
 {
     public Guid Id { get; set; } =
