@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using System.Net;
+using BillWatch.API.Authorization;
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Infrastructure;
@@ -10,6 +11,7 @@ using BillWatch.API.Services.Plaid;
 using BillWatch.API.Services.Statements;
 using BillWatch.Core.Services;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
@@ -140,7 +142,42 @@ builder.Services.Configure<IdentityOptions>(
                 15);
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(
+    options =>
+    {
+        options.AddPolicy(
+            BillWatchPolicies.OwnerOnly,
+            policy => policy.RequireRole(BillWatchRoles.Owner));
+
+        options.AddPolicy(
+            BillWatchPolicies.AdminOrOwner,
+            policy => policy.RequireRole(
+                BillWatchRoles.Owner,
+                BillWatchRoles.Admin));
+
+        options.AddPolicy(
+            BillWatchPolicies.ModeratorOrAbove,
+            policy => policy.RequireRole(
+                BillWatchRoles.Owner,
+                BillWatchRoles.Admin,
+                BillWatchRoles.Moderator));
+
+        options.AddPolicy(
+            BillWatchPolicies.ActiveSubscription,
+            policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.AddRequirements(
+                    new ActiveSubscriptionRequirement());
+            });
+    });
+
+builder.Services.AddScoped<
+    IAuthorizationHandler,
+    ActiveSubscriptionAuthorizationHandler>();
+
+builder.Services.AddSingleton(
+    TimeProvider.System);
 
 /*
  * Rate limiting is intentionally fail-closed.
