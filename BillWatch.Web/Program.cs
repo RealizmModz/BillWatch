@@ -101,6 +101,9 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     BillWatchBffProxyService>();
 
+builder.Services.AddScoped<
+    AdminBffWriteProxyService>();
+
 var app =
     builder.Build();
 
