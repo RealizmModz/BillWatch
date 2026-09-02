@@ -4,32 +4,16 @@ Last updated: 2026-09-01
 
 This file is ordered by priority. Do not start lower-priority product expansion while a P0 production defect is open.
 
-## P0 — Current production defect
-
-- [ ] Diagnose `/app` remaining on Overview loading skeletons after successful sign-in.
-- [ ] Inspect production web logs first:
-  `docker compose --env-file .env.production --file compose.production.yml logs --tail 80 web`
-- [ ] If web logs are inconclusive, inspect API logs:
-  `docker compose --env-file .env.production --file compose.production.yml logs --tail 80 api`
-- [ ] Verify the Blazor interactive circuit establishes successfully through Caddy.
-- [ ] Verify `/bff/bank-connections` completes for an authenticated browser session.
-- [ ] Verify `/bff/bill-streams` completes for an authenticated browser session.
-- [ ] Fix the root cause without weakening BFF authentication, antiforgery, HTTPS, ownership checks, token handling, AllowedHosts, or trusted-proxy validation.
-- [ ] Build with 0 errors and 0 warnings when reasonably achievable.
-- [ ] Redeploy through the guarded production deployment script.
-- [ ] Verify all four production containers are healthy.
-- [ ] Verify `https://billbeacon.net/app` fully leaves the loading state.
-
 ## P0 — Production smoke test
 
-- [ ] Landing page loads over HTTPS.
+- [x] Landing page loads over HTTPS.
 - [x] Login works through the public website.
 - [ ] Registration works.
 - [ ] Logout works.
-- [ ] Session survives normal navigation.
+- [x] Session survives normal navigation between Overview and Bills.
 - [ ] Access-token refresh works without exposing tokens to JavaScript.
-- [ ] Overview loads real state.
-- [ ] Bills page loads.
+- [x] Overview loads real state.
+- [x] Bills page loads.
 - [ ] Bill detail loads.
 - [ ] Activity loads actual alerts.
 - [ ] Mark-alert-read works.
@@ -40,6 +24,18 @@ This file is ordered by priority. Do not start lower-priority product expansion 
 - [ ] Bank disconnect works.
 - [ ] Cross-user resource IDs return 404.
 - [ ] Invalid/expired authentication does not leak API/provider details.
+
+### Resolved production incident — Overview loading skeletons
+
+The initial post-login Overview once remained on its loading skeleton state. Follow-up diagnostics showed:
+
+- the Web container could reach the API readiness endpoint successfully;
+- the Blazor Interactive Server WebSocket connected successfully through Caddy;
+- no browser console errors were present;
+- Overview subsequently loaded the correct synchronized-empty state;
+- navigation to Bills and back to Overview remained healthy.
+
+GitHub Issue #1 tracks the incident history. No weakening of authentication, BFF token handling, antiforgery, HTTPS, ownership, AllowedHosts, or trusted-proxy protections was required.
 
 ## P0 — Plaid production verification
 
@@ -160,8 +156,4 @@ This file is ordered by priority. Do not start lower-priority product expansion 
 
 ## Immediate resume point
 
-The next production diagnostic is:
-
-`docker compose --env-file .env.production --file compose.production.yml logs --tail 80 web`
-
-The active issue is the authenticated Overview remaining in its loading state. Fix that before adding another major product feature.
+Continue the production smoke test with the authenticated Activity and Account surfaces before adding another major product feature.
