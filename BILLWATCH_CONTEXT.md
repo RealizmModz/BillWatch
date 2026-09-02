@@ -1,199 +1,388 @@
 # BillWatch Current Context
 
-Last updated: 2026-08-31
+Last updated: 2026-09-01
+
+The newest source files in this repository are the authority for implementation details. If this file and source code disagree, trust the newest source code.
 
 ## Product promise
 
 **Know when your bills change — and why.**
 
-BillWatch is a transaction-first bill-intelligence product. Bank transactions discover recurring bills. Provider statements and other source evidence explain why a bill changed.
+BillWatch is a transaction-first bill-intelligence product.
 
-BillWatch uses a hybrid AI + deterministic architecture:
+- Bank transactions discover recurring bills.
+- Provider statements and other source evidence explain why a bill changed.
+- AI may interpret messy evidence and return structured candidate facts.
+- Deterministic code validates facts, performs financial arithmetic, enforces ownership/security, compares history, applies confidence/alert thresholds, and makes final system decisions.
+- AI output is never evidence by itself.
+- If evidence is insufficient, BillWatch must say that it does not know why rather than inventing an explanation.
 
-- AI understands messy, variable evidence and returns structured candidate facts.
-- Deterministic code validates facts, performs financial arithmetic, enforces security/ownership, compares history, applies confidence/alert thresholds, and makes final system decisions.
-- AI output is never treated as evidence by itself.
-- If evidence is insufficient, BillWatch must say that it does not know why rather than invent an explanation.
+Important recurring increases should be expressed as both monthly and annualized impact.
 
 ## Current architecture
 
 - .NET 10
 - .NET MAUI client
 - ASP.NET Core Web API
+- Blazor Web App (`BillWatch.Web`)
 - PostgreSQL + Entity Framework Core
 - ASP.NET Core Identity bearer authentication
 - Plaid bank connectivity
-- xUnit integration/unit tests
+- xUnit tests
 - PdfPig PDF extraction
-- Local Tesseract OCR
+- local Tesseract OCR
+- Docker / Docker Compose
+- Caddy TLS/reverse proxy
+- Restic encrypted production recovery
+
+Repository:
+
+`C:\Users\brist\source\repos\BillWatch\`
+
+Solution:
+
+`C:\Users\brist\source\repos\BillWatch\BillWatch.slnx`
+
+Projects:
+
+- `BillWatch.csproj`
+- `BillWatch.API\BillWatch.API.csproj`
+- `BillWatch.Core\BillWatch.Core.csproj`
+- `BillWatch.Tests\BillWatch.Tests.csproj`
+- `BillWatch.Web\BillWatch.Web.csproj`
 
 ## Current product surface
 
-Primary navigation:
+Primary authenticated web navigation:
 
-- Home
+- Overview
 - Bills
 - Activity
 - Account
 
 Account contains connected-bank management, transactions, privacy/session controls, data export, and permanent account deletion.
 
-## Statement intelligence architecture
+The public web surface includes landing, registration, and login.
 
-Target pipeline:
+## Security rules
 
-Transaction → recurring Bill Stream discovery → statement/document acquisition → secure storage → document classification → text/OCR extraction → structured extraction → deterministic validation → Bill Stream matching → historical comparison → deterministic change calculation → evidence-backed explanation → confidence validation → alert/action recommendation.
+BillWatch handles sensitive financial data. Security is a first-class design requirement.
 
-The statement-processing pipeline now depends on the vendor-neutral `IBillStatementExtractionService` boundary rather than directly depending on a specific parser strategy.
+- Plaid access tokens stay server-side and are protected at rest.
+- Web API bearer/refresh tokens are stored in the encrypted HttpOnly web authentication ticket and are not exposed to JavaScript.
+- Accurate web security claim: **No API tokens are exposed to JavaScript.**
+- MAUI protected services obtain access tokens through `AuthenticationService.GetValidAccessTokenAsync()`.
+- User-owned database queries are ownership-scoped.
+- Important relationships use `(Id, UserId)` composite ownership foreign keys where implemented.
+- Cross-user resource manipulation should normally return 404 rather than disclose existence.
+- Statement storage uses ownership-scoped secure paths and never returns physical storage paths to clients.
+- Statement uploads validate type/signature and enforce size limits.
+- Financial/authentication API responses are non-cacheable.
+- Production requires persistent Data Protection keys, explicit statement storage, Plaid credentials, explicit AllowedHosts, and explicit trusted proxy configuration.
+- Never log raw statements, full account numbers, credentials, access tokens, refresh tokens, or Plaid secrets.
+- Never route AI-derived facts directly into persisted production truth without the explicit launch gates described below.
 
-The current registered implementation is `DeterministicBillStatementExtractionService`, which composes the existing deterministic statement and line-item parsers. This preserves current behavior while allowing a future server-side AI-assisted extractor or provider adapter to implement the same boundary.
+## Core bill pipeline
 
-Important rules for future AI implementations:
+Bank connection
+→ account/transaction sync
+→ recurring Bill Stream discovery
+→ background monitoring
+→ provider statement upload
+→ secure storage
+→ text/OCR extraction
+→ structured extraction
+→ deterministic validation
+→ Bill Stream matching
+→ persistence
+→ historical comparison
+→ deterministic change detection
+→ evidence-backed explanation
+→ alert
 
-- AI vendor SDKs/configuration stay inside the API implementation layer.
-- No AI keys, prompts, or provider secrets go to the MAUI client.
-- Controllers and UI must not contain prompts/model configuration.
-- Bill Stream/provider context supplied to extraction is a hint, not evidence.
-- Extracted facts must still pass deterministic validation before persistence.
-- Financial arithmetic remains deterministic.
-- Evidence references should be returned where practical; missing evidence must not be fabricated.
-- Prefer one normalized extraction call per document and reuse persisted structured results rather than repeatedly sending the same document to a model.
-- Provider-specific parsers/adapters are optimizations or reliability fallbacks, not the fundamental architecture.
-
-## Implemented core pipeline
-
-Bank connection → account/transaction sync → recurring bill discovery → Bill Stream → background monitoring → provider statement upload → secure storage → text/OCR extraction → structured extraction boundary → deterministic validation → persistence → historical comparison → change detection → explanation → alert.
-
-Implemented alerts include:
+Implemented alert types include:
 
 - Bill increase
 - Bill decrease
 - New fee
 - Removed discount
-- Payment due when explicitly present on provider evidence
+- Payment due when explicitly supported by provider evidence
 - Connection issue
 - Newly discovered recurring bill
 
-## Security rules already represented in code
+## Statement intelligence trust boundary
 
-- Plaid access tokens stay server-side and are protected at rest.
-- MAUI protected services obtain access tokens through `AuthenticationService.GetValidAccessTokenAsync()`.
-- User-owned database queries are ownership-scoped.
-- Important entity relationships use `(Id, UserId)` composite ownership foreign keys where implemented.
-- Cross-user resource manipulation should return 404 rather than disclose existence.
-- Statement storage uses ownership-scoped secure paths and never returns physical storage paths to clients.
-- Statement uploads validate type/signature and enforce size limits.
-- Financial API responses are configured as non-cacheable.
-- Production requires persistent Data Protection keys, explicit statement storage, Plaid credentials, and explicit AllowedHosts.
-- Sensitive document/AI processing remains server-side.
+The statement-processing pipeline depends on vendor-neutral `IBillStatementExtractionService`.
+
+The active runtime implementation remains `DeterministicBillStatementExtractionService`.
+
+AI infrastructure exists behind `IBillStatementAiExtractor`, but AI output is not registered as the runtime persistence extraction strategy.
+
+Existing AI safety/evaluation architecture includes:
+
+- candidate evidence validation
+- candidate conversion into the existing structured statement model only after validation
+- deterministic-first shadow evaluation
+- durable ownership-scoped AI attempt accounting
+- one-attempt-per-user/upload/provider/model/prompt-version cost claims
+- aggregate-only readiness scoring
+- fail-closed shadow configuration
+- private corpus path policy
+- bounded private corpus loader
+- aggregate corpus catalog inspection
+- provider coverage gate
+- deterministic corpus baseline evaluator
+
+The OpenAI adapter remains server-side, uses structured output, bounded document text, explicit prompt/schema versioning, sanitized failure behavior, and `store: false`.
+
+The current runtime must continue to persist deterministic statement results only.
+
+## AI readiness gate
+
+The existing conservative private-beta shadow baseline requires approximately:
+
+- at least 100 statements
+- at least 100 provider attempts
+- at least 5 providers
+- at least 10 statements per provider
+- at least 99% fact precision
+- at least 95% fact recall
+- at least 85% ready-candidate coverage
+- no more than 1% false alerts across a separately evaluated alert population of at least 100 statements
+- no more than 5% provider failures
+
+Missing alert evaluation cannot count as zero false alerts.
+
+Passing these metrics is not authorization to persist AI-derived facts.
 
 ## Background work
 
 - Statement processing uses a hosted background worker.
 - Bank monitoring uses a hosted scheduler.
-- Active connections are refreshed on a conservative cadence.
+- Active bank connections are refreshed on a conservative cadence.
+- The monitoring flow is accounts → transactions → recurring-bill discovery → connection-health reconciliation.
 - Integration tests disable scheduled Plaid monitoring.
 
-## Current beta-hardening work
+## Account and privacy features
 
-Implemented or in progress:
+Implemented API/web capabilities include:
 
-- account registration / login
-- session resume and refresh
+- registration/login
+- session resume/refresh
 - logout
 - account deletion
-- self-service JSON data export excluding protected provider credentials and internal statement paths
-- ownership regression tests across alerts, statements, Bill Streams, bank data, and Plaid resources
-- anonymous access regression tests
+- ownership-scoped JSON account export
+- safe statement-file download
+- ownership regression coverage
+- anonymous-access regression coverage
 - health endpoints
 - production exception handling/security headers
-- per-user/IP rate limiting for statement uploads, account exports, and statement downloads
+- per-user/IP rate limiting for statement uploads, exports, and statement downloads
 
-## Current active checkpoint
+The account export deliberately excludes protected provider credentials, synchronization cursors, password/security data, Plaid internal secrets, and physical statement-storage keys.
 
-The hybrid statement-intelligence foundation now has three explicit trust layers:
+Permanent account deletion removes ownership-scoped AI evaluation metadata as well as ordinary user data and stored statement files.
 
-1. `IBillStatementExtractionService` isolates the statement-processing pipeline from extraction strategy.
-2. `IBillStatementAiExtractor` defines vendor-neutral AI candidate output with source evidence.
-3. `BillStatementAiCandidateValidator` plus `BillStatementAiCandidateConversionService` reject unsupported model facts before mapping accepted candidates into BillWatch's existing structured statement model.
+## Plaid behavior
 
-The active runtime statement extractor is still deterministic. A first server-side OpenAI implementation now exists behind `IBillStatementAiExtractor`, but it is disabled by default and is not part of statement persistence, so current production behavior is unchanged.
+Plaid remains server-side.
 
-The OpenAI provider configuration is validated at startup. When explicitly enabled with a server-side key, the adapter uses strict structured output, bounded document text, explicit prompt/schema versioning, timeout/cancellation, and sanitized failure behavior. Provider credentials and request configuration remain inside the API.
+Reconnect is a real Plaid update-mode flow for owned connections that require attention. Cross-user IDs return not found before provider calls. Disconnected/revoked connections cannot enter update mode.
 
-AI candidate evidence validation now binds each claimed string, date, and monetary value to a verified excerpt from the supplied document text. A real excerpt cannot validate a different claimed amount. Extreme decimal values are rejected without arithmetic overflow, and missing AI currency is no longer silently treated as USD.
+Plaid remains in sandbox until deliberate real-institution/private-beta verification.
 
-`BillStatementAiShadowEvaluationService` now exercises deterministic-first orchestration without implementing `IBillStatementExtractionService` and without returning AI facts to persistence. It skips AI when deterministic extraction is complete, makes at most one provider attempt per evaluation, validates and converts candidates, rejects conflicts with deterministic facts, propagates caller cancellation, and exposes only shadow-review status plus the original deterministic result.
+## BillWatch.Web architecture
 
-The OpenAI provider sends `store: false`, accepts only completed Responses API results, and continues to sanitize provider failures. A host-level regression test proves runtime extraction still resolves to `DeterministicBillStatementExtractionService` and that shadow evaluation is not registered.
+`BillWatch.Web` is a server-rendered Blazor Web App using Interactive Server components and a same-origin BFF.
 
-Durable AI attempt accounting now has an ownership-scoped `BillStatementAiEvaluationEntity`, database mapping, and migration. The table stores metadata only, has a composite `(BillStatementUploadId, UserId)` ownership foreign key, and enforces one unique record per user/upload/provider/model/prompt version. It intentionally contains no document text, prompt, model output, evidence excerpt, account identifier, or provider error body.
+The API remains the business/auth/ownership authority.
 
-`BillStatementAiEvaluationLedger` claims that unique cost key before a future provider call, records one attempt, makes duplicate or restarted work return the existing evaluation, scopes completion by `UserId + evaluation ID`, and exposes cross-user uploads as not found. The database also constrains attempt count to zero or one.
+The web BFF proxies authenticated browser requests to the API while keeping API bearer/refresh tokens out of browser JavaScript.
 
-`BillStatementAiShadowEvaluationCoordinator` now composes the ledger with shadow evaluation. Deterministic extraction runs first; if incomplete, the ownership-scoped durable claim must succeed before the provider can be called. Duplicate, restarted, missing, or cross-user work suppresses the provider call. Terminal shadow status is recorded without storing provider details or extracted facts. If a caller cancels after acquiring the durable claim, the consumed attempt is recorded as `Canceled` before cancellation propagates, so it cannot become a later duplicate charge. The coordinator remains unregistered and disconnected from background processing.
+Main routes include:
 
-`BillStatementAiShadowReadinessEvaluator` now defines a fail-closed, offline accuracy gate over aggregate ground-truth metrics only. The conservative private-beta baseline requires at least 100 statements and 100 provider attempts across 5 providers with at least 10 statements per provider, 99% fact precision, 95% fact recall, 85% ready-candidate coverage, no more than 1% false alerts across at least 100 separately alert-evaluated statements, and no more than 5% provider failures. Missing alert evaluation can never masquerade as zero false alerts. Passing this metric gate is explicitly not authorization to persist AI-derived facts, and the evaluator is not registered at runtime.
+- `/`
+- `/login`
+- `/register`
+- `/app`
+- `/app/bills`
+- `/app/bills/{id}`
+- `/app/activity`
+- `/app/account`
+- `/app/account/transactions`
+- `/app/account/privacy`
 
-`BillStatementAiGroundTruthScorer` now deterministically compares approved in-memory corpus truth with validated extraction results and emits only aggregate readiness counters. Incorrect values count as both a false prediction and a missed true fact, line items are compared as order-independent composite facts, and false alerts cannot be counted without an explicit alert evaluation. The scorer stores and logs nothing, has no corpus bundled with the repository, and remains unregistered.
+Web functionality implemented includes:
 
-Server configuration now has a separate fail-closed `StatementAi:Shadow` section. A future provider attempt requires shadow mode, shadow provider calls, and the provider itself to be explicitly enabled; the coordinator checks this policy before acquiring a durable cost claim. The activation decision can never authorize AI-derived persistence. Shadow orchestration remains unregistered and the default configuration disables both shadow switches.
+- light/dark theme
+- responsive app shell
+- Overview
+- Bills
+- Bill detail
+- real statement upload/status polling
+- real alert center with read/dismiss
+- bank connect/reconnect/disconnect
+- transaction viewer
+- account export
+- permanent deletion
+- production health endpoints
+- production security headers
+- persistent web Data Protection keys
+- explicit reverse-proxy handling
 
-The repository now ignores the only supported temporary in-repo private corpus location, `.private/BillWatch.AiShadowCorpus/`. `BillStatementAiPrivateCorpusPathPolicy` permits a future offline runner to resolve only `statement.txt` and `ground-truth.json` beneath an explicitly configured absolute corpus root and a safe case identifier; traversal and arbitrary file names are rejected before any file read. No corpus loader or corpus data is in the runtime application.
+## Production deployment
 
-`BillStatementAiPrivateCorpusLoader` now provides the offline, bounded read boundary for those fixed files. It rejects case-directory and file links/reparse points, missing or oversized content, invalid encoding, unknown JSON properties, invalid ground-truth values, money beyond cent precision, excessive line items, and cases with no scored facts. Filesystem and parser exceptions are replaced with sanitized failures that do not retain statement text, parser details, or physical paths. The loader retains content only in memory, is explicitly unregistered, and no real corpus data is included in the repository.
+Public web:
 
-`BillStatementAiPrivateCorpusCatalogInspector` now provides a no-provider-call preflight. It discovers at most 1,000 safe, non-linked case directories, validates every case through the bounded loader, and returns only aggregate case/provider coverage. The inspector exposes no case identifiers, provider keys, facts, statement text, or physical paths and remains unregistered.
+`https://billbeacon.net`
 
-`BillStatementAiPrivateCorpusCoverageGate` now prevents an offline provider evaluation from beginning until the validated catalog satisfies the largest required measurement population, provider diversity, and minimum-per-provider sample. Its decision is aggregate-only and can never authorize runtime shadow mode or persistence. The gate remains unregistered.
+Public API:
 
-`BillStatementDeterministicPrivateCorpusEvaluator` now establishes a no-provider-call baseline over an explicit, unique private case list. It runs the existing deterministic extraction service, compares results with approved truth, and returns aggregate ready-statement, precision, recall, and fact counts only. It remains unregistered and cannot be mistaken for AI readiness approval.
+`https://api.billbeacon.net`
 
-Account deletion now explicitly removes ownership-scoped `BillStatementAiEvaluationEntity` rows before statement uploads, rather than relying only on relational cascade behavior. End-to-end regression coverage proves deleting one account removes its identity, Bill Stream, statement upload, stored statement file, and AI attempt metadata while preserving another user's corresponding rows and file.
+VPS deployment repository:
 
-Authenticated users can now download a versioned JSON export from `GET /api/account/export`. The export is ownership-scoped across every BillWatch financial-data category and includes safe Plaid Link and AI-attempt metadata, but deliberately excludes protected Plaid/link tokens, synchronization cursors, Plaid internal record identifiers, password/security fields, and physical statement-storage keys. Security regression coverage seeds every exported category for two users and verifies both cross-user isolation and secret omission.
+`/opt/billwatch`
 
-Each statement-upload entry in that export now includes a safe API download path. `GET /api/bill-streams/{billStreamId}/statement-uploads/{uploadId}/file` streams the original stored document only after user + Bill Stream + upload ownership checks, returns 404 for mismatched or cross-user IDs, uses a generated download filename, disables range processing, and never exposes the physical path or storage key.
+Current production topology:
 
-Authentication now runs before the rate-limiter partition decision, so protected endpoint policies can actually partition by authenticated user while unauthenticated traffic remains globally IP-limited. Account exports are limited to 5 per user per hour, and original statement downloads to 30 per user per 10 minutes. End-to-end tests verify enforcement and that one user's export limit does not consume another user's allowance.
+PostgreSQL
+→ BillWatch.API
+→ BillWatch.Web
+→ Caddy / HTTPS
 
-The MAUI client API origin is now supplied through the `BillWatchApiBaseUrl` build property instead of a runtime hard-coded address. Debug builds default to the existing local HTTPS endpoint. Release builds fail at build time without an explicit HTTPS value, and runtime validation rejects credentials, paths, queries, fragments, loopback/local hosts, and numeric hosts in release mode. Once hosting is selected, build with `-p:BillWatchApiBaseUrl=https://the-deployed-host/`; no API key or other secret belongs in this property.
+Production services:
 
-The repository now contains a single-host production deployment candidate. A multi-stage Linux container publishes the API as a non-root user and supplies the native Tesseract/Leptonica OCR dependencies. The Compose stack exposes only Caddy on ports 80/443, keeps the API and PostgreSQL on a fixed private network, automatically provisions TLS, and gives PostgreSQL, statement files, Data Protection keys, and Caddy state separate persistent volumes. All credentials remain required environment values; `.env.production` is ignored and only a placeholder example is committed. AI remains explicitly disabled.
+- `database`
+- `api`
+- `web`
+- `edge`
 
-Production reverse-proxy handling is opt-in and trusts only explicitly configured proxy IP addresses. The included stack pins Caddy to one private IP and configures that address. Forwarded headers run before HTTPS/HSTS processing, preserving correct public scheme and client-IP behavior without accepting spoofed forwarding headers from arbitrary peers.
+The web deployment was activated on 2026-09-01 after adding the Blazor web container, dual-host Caddy routing, web Data Protection persistence, production web health endpoints, BFF endpoint mappings, and auth endpoint mappings.
 
-The production stack can apply EF Core migrations during startup for the documented single API instance. Readiness now fails unless the database is reachable, every migration is current, statement storage is writable, and the persistent Data Protection key directory is writable. It returns only ready/not-ready status and never exposes connection strings or physical paths.
+Historical deployment milestones:
 
-GitHub Actions builds and tests the Windows backend and independently builds the Linux production container on pushes to `master` and pull requests. Dedicated Plaid regression coverage now exercises credential/header isolation, SSRF rejection, bounded and sanitized provider responses, cryptographic purpose separation and tamper rejection, Hosted Link completion/exit behavior, transaction persistence, and the required pagination restart after Plaid reports a mutation.
+- `2771ac588665b5272cee48aa7be1e002a9e9fcc7` — first VPS deployment against sslip.io
+- `60f0f72583760c8f60a725b485c17d4062c46651` — `api.billbeacon.net` activation
+- `019a5fbe92d545b45d2cdcc26e9a6b5a06f7264b` — first verified API + Web production release
 
-Bank reconnect is now a real Plaid update-mode flow rather than a mislabeled new connection. Only an owned active or requires-attention connection with a valid server-protected access token can create the update session. The provider request includes that access token, omits new-item products as Plaid requires, and persists the selected connection through a composite `(BankConnectionId, UserId)` foreign key on the protected Link session. Successful Hosted Link completion reactivates the same connection without exchanging or replacing its access token. Cross-user IDs return not found before any provider call, disconnected/revoked connections cannot enter update mode, and the MAUI Reconnect action is shown only for connections requiring attention.
+Later Git commits may exist beyond the currently deployed release; always compare `.billwatch-release` on the VPS with `git rev-parse HEAD` before claiming a new commit is deployed.
 
-Production recovery is executable rather than advisory. A capability-dropped, read-only Restic operations container creates a checksum-manifested encrypted recovery point containing a custom-format PostgreSQL dump, the matching Data Protection key ring, and statement files. The host wrapper uses an atomic lock, pauses the single API writer, and guarantees restart through a failure trap. Only snapshots that pass Restic integrity checking receive the completed tag. Restore verification uses a separate disposable PostgreSQL server, validates bundle checksums and migration history, and reconciles every restored statement database row with its restored file and size. CI creates a real authenticated user, Data Protection key, Bill Stream, and statement upload before proving the encrypted round trip.
+Cloudflare should remain DNS-only until trusted Cloudflare client-IP forwarding is intentionally configured and regression-tested.
 
-The deployment network is split so the public Caddy edge cannot reach PostgreSQL, and every container has bounded local JSON logs plus an explicit shutdown grace period. The production backup repository, password, and provider credentials are required but remain outside source control. The password and recovery credentials must also be escrowed outside the host, with immutable provider retention and post-restore deletion reconciliation. A real off-host clean-host recovery drill remains required because CI cannot prove those operator controls or decrypt real protected Plaid data.
+## Production operations
 
-Production configuration now has an executable fail-closed preflight before deployment. It rejects unsafe environment-file ownership/permissions, placeholders, weak database and Restic passwords, non-public hostnames, non-commit release IDs, invalid Plaid environments, and local backup repositories without printing secrets. CI exercises both accepted and rejected configurations.
+Production environment file:
 
-Production deployment is now a guarded one-command operation. It requires a clean Git checkout whose exact commit matches the validated release ID, prevents concurrent deploys with an atomic host lock, validates Compose, builds immutable API and recovery images, creates a verified encrypted recovery point before replacing an existing API, waits for the database/API/edge services, and records the release only after the external HTTPS readiness probe returns BillWatch's exact ready response. It deliberately does not attempt an unsafe automatic database rollback after migrations.
+`/opt/billwatch/.env.production`
 
-The production backup wrapper is tracked as executable so a clean Linux checkout satisfies the guarded deployment precondition without an unsafe host-only permission change. The first hosted deployment completed successfully on 2026-08-31 at release `2771ac588665b5272cee48aa7be1e002a9e9fcc7` against `api.204-168-161-228.sslip.io`. The owned production hostname `api.billbeacon.net` was activated on 2026-08-31 at release `60f0f72583760c8f60a725b485c17d4062c46651`; the guarded deployment, encrypted pre-deployment recovery point, Compose service checks, Let's Encrypt issuance, public HTTPS live probe, and public HTTPS readiness probe all passed. Cloudflare is intentionally DNS-only until trusted Cloudflare client-IP forwarding is configured and regression-tested. Plaid remains in sandbox, AI runtime features remain disabled, and the encrypted off-host Restic repository is initialized.
+Never paste that file or its secrets into chat or Git.
 
-The first custom-hostname activation exposed a bounded readiness race: Caddy obtained the certificate successfully roughly six seconds after startup, but three immediate TLS probes had already failed and withheld the release marker. The readiness monitor now makes six bounded attempts with a five-second delay between failures, preserving fail-closed verification while allowing normal first-certificate issuance time. Regression coverage proves recovery after transient TLS failures and verifies the fixed retry delay.
+Validate production configuration:
 
-An external readiness workflow now probes the deployed HTTPS origin from GitHub Actions every 15 minutes after `BILLWATCH_PRODUCTION_URL` is configured. The bounded probe rejects local/private targets, redirects, credentials, ports, and paths and accepts only the minimal ready response. The hostname still must be selected and a forced-failure notification drill must pass before this launch gate is closed.
+```bash
+sh deploy/validate-production-env.sh .env.production
+```
 
-The next activation checkpoint requires a ground-truth statement corpus, measured accuracy/false-alert thresholds, and explicit shadow-mode configuration. Do not route AI output into persistence before those gates pass.
+Deploy guarded production release:
+
+```bash
+sh deploy/deploy-production.sh .env.production
+```
+
+Check services:
+
+```bash
+docker compose --env-file .env.production --file compose.production.yml ps
+```
+
+The guarded deployment:
+
+- requires a clean checkout
+- requires `BILLWATCH_RELEASE_ID` to match the checked-out commit
+- prevents concurrent deploys
+- validates Compose
+- builds immutable images
+- creates an encrypted recovery point before replacing an existing release
+- waits for service health
+- externally verifies API and web readiness
+- records the release only after readiness succeeds
+- does not attempt unsafe automatic database rollback after migrations
+
+## Production backup/recovery
+
+Production recovery uses an encrypted Restic operations container.
+
+The backup contains the PostgreSQL dump, Data Protection key material, and statement files needed for coherent recovery.
+
+CI proves a synthetic encrypted round trip, but a real off-host clean-host recovery drill is still required because CI cannot prove operator credential escrow, immutable provider retention, or restoration of real protected production-format data.
+
+## Current active checkpoint — production Overview loading
+
+**Do not continue product feature development until this is diagnosed.**
+
+Confirmed production behavior:
+
+- `https://billbeacon.net` resolves and serves valid HTTPS.
+- Landing page renders correctly.
+- Production sign-in succeeds.
+- Authenticated app shell and signed-in identity render.
+- The `/app` Overview remains on its loading skeleton state instead of completing its initial data load.
+
+Current source behavior:
+
+`BillWatch.Web/Components/Pages/App/Overview.razor` starts with `_isLoading = true`. On the first interactive render it imports `./js/bff.js`, then calls `getBankConnections` and `getBillStreams`. `_isLoading` is cleared only after that async load completes or throws.
+
+Therefore the first investigation must establish whether:
+
+1. the Blazor Interactive Server circuit is actually connecting through Caddy, and
+2. the authenticated BFF calls complete.
+
+Immediate VPS diagnostic:
+
+```bash
+docker compose --env-file .env.production --file compose.production.yml logs --tail 80 web
+```
+
+If inconclusive:
+
+```bash
+docker compose --env-file .env.production --file compose.production.yml logs --tail 80 api
+```
+
+Browser network/console inspection should specifically check:
+
+- `/_blazor`
+- `/bff/bank-connections`
+- `/bff/bill-streams`
+
+GitHub issue #1 tracks this production defect.
+
+Do not weaken cookie security, antiforgery, ownership scoping, API-token isolation, HTTPS, AllowedHosts, or trusted-proxy validation to make the page load.
 
 ## Remaining private-beta launch gates
 
-1. Enable the daily encrypted backup timer and perform a clean-host recovery drill with real protected data.
-2. Supply `https://api.billbeacon.net` through `BillWatchApiBaseUrl` and produce signed client release artifacts.
-3. Configure `BILLWATCH_PRODUCTION_URL=https://api.billbeacon.net` for external uptime/error monitoring and verify a forced readiness failure raises an alert.
-4. Validate real Plaid institutions and failure/reconnect behavior.
-5. Build a ground-truth provider statement corpus and measure false alerts/extraction accuracy.
-6. Run internal Beta 0 on real bills, then invite 3–5 trusted testers.
+1. Fix and smoke-test the authenticated production web application.
+2. Enable the daily encrypted backup timer and perform a clean-host recovery drill with real protected production-format data.
+3. Configure `BILLWATCH_PRODUCTION_URL=https://api.billbeacon.net` and prove a forced readiness failure raises an external alert.
+4. Validate Plaid sandbox flows thoroughly, then deliberately validate real institutions and reconnect/failure behavior before private beta.
+5. Build the private ground-truth provider statement corpus and measure extraction accuracy and false alerts.
+6. Produce MAUI release artifacts with `BillWatchApiBaseUrl=https://api.billbeacon.net/` when native-client beta is actually needed.
+7. Run internal Beta 0 on real bills.
+8. Invite 3–5 trusted testers only after the P0 launch gates pass.
+
+See `BILLWATCH_TODO.md` for the prioritized operational and product backlog.
 
 ## Development workflow
 
-Use coherent batches of complete files. Stop roadmap progression immediately for compiler/runtime/test failures. Do not guess the contents of large current files; the latest supplied source is authoritative. Aim for 0 errors and 0 warnings when reasonably achievable.
+Work incrementally from the current repository state.
+
+- Use coherent batches of complete files.
+- Stop roadmap progression immediately for compiler/runtime/test failures.
+- Do not guess the contents of large current files; inspect the newest source first.
+- Target 0 errors and 0 warnings when reasonably achievable.
+- If the API is running locally, stop it before rebuilding to avoid locked binaries.
+- Do not claim a security feature exists unless the code actually implements it.
+- Only recommend a Git checkpoint after a coherent milestone and clean build/test.
+
+When resuming this project, start with the active production Overview defect, not a new feature.
