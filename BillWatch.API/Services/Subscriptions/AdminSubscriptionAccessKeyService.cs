@@ -17,6 +17,7 @@ public sealed class AdminSubscriptionAccessKeyService(
         bool grantsLifetimeAccess,
         int maxRedemptions,
         DateTimeOffset? expiresAtUtc,
+        string? label = null,
         CancellationToken cancellationToken = default)
     {
         var nowUtc = timeProvider.GetUtcNow();
@@ -28,6 +29,10 @@ public sealed class AdminSubscriptionAccessKeyService(
                 nameof(purpose),
                 "Purpose and tier must be defined values.");
         }
+
+        var normalizedLabel = NormalizeLabel(
+            label,
+            grantsLifetimeAccess);
 
         ValidateGrant(
             durationDays,
@@ -41,6 +46,7 @@ public sealed class AdminSubscriptionAccessKeyService(
         {
             KeyHash = generated.Hash,
             DisplayPrefix = generated.DisplayPrefix,
+            Label = normalizedLabel,
             Purpose = purpose,
             Tier = tier,
             DurationDays = durationDays,
@@ -68,6 +74,7 @@ public sealed class AdminSubscriptionAccessKeyService(
             accessKey.Id,
             generated.PlaintextKey,
             accessKey.DisplayPrefix,
+            accessKey.Label,
             accessKey.Purpose,
             accessKey.Tier,
             accessKey.DurationDays,
@@ -115,6 +122,34 @@ public sealed class AdminSubscriptionAccessKeyService(
         return true;
     }
 
+    private static string? NormalizeLabel(
+        string? label,
+        bool grantsLifetimeAccess)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return null;
+        }
+
+        if (!grantsLifetimeAccess)
+        {
+            throw new ArgumentException(
+                "Labels are available only for lifetime access keys.",
+                nameof(label));
+        }
+
+        var normalized = label.Trim();
+
+        if (normalized.Length > 120)
+        {
+            throw new ArgumentException(
+                "Access key labels must be 120 characters or fewer.",
+                nameof(label));
+        }
+
+        return normalized;
+    }
+
     private static void ValidateGrant(
         int? durationDays,
         bool grantsLifetimeAccess,
@@ -155,6 +190,7 @@ public sealed record CreatedSubscriptionAccessKey(
     Guid Id,
     string PlaintextKey,
     string DisplayPrefix,
+    string? Label,
     SubscriptionAccessKeyPurpose Purpose,
     BillWatchSubscriptionTier Tier,
     int? DurationDays,
