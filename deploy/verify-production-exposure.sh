@@ -30,36 +30,46 @@ compose()
         "$@"
 }
 
-published_ports="$(compose ps --format json | tr -d '\r')"
+for service in api web database
+do
+    container_id="$(compose ps -q "$service")"
 
-if printf '%s\n' "$published_ports" | grep -Eq '(^|[^0-9])8080([^0-9]|$)'; then
-    fail "A production service appears to publish port 8080. API/Web must remain private behind Caddy." 77
-fi
+    if [ -z "$container_id" ]; then
+        fail "Could not resolve production container: $service" 69
+    fi
 
-if docker ps --format '{{.Names}} {{.Ports}}' |
-   grep -E '^billwatch-(api|web|database)-' |
-   grep -Eq '0\.0\.0\.0:|\[::\]:'; then
-    fail "API, Web, or PostgreSQL is publicly published by Docker." 77
-fi
+    published_bindings="$(
+        docker inspect \
+            --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{printf "%s:%s->%s " .HostIp .HostPort $port}}{{end}}{{end}}' \
+            "$container_id"
+    )"
 
-edge_ports="$(
-    docker ps --format '{{.Names}} {{.Ports}}' |
-    grep '^billwatch-edge-' || true
-)"
+    if [ -n "$published_bindings" ]; then
+        fail "$service unexpectedly publishes a host port: $published_bindings" 77
+    fi
+done
 
-if [ -z "$edge_ports" ]; then
+edge_container_id="$(compose ps -q edge)"
+
+if [ -z "$edge_container_id" ]; then
     fail "BillWatch edge container is not running." 69
 fi
 
-if ! printf '%s\n' "$edge_ports" | grep -q ':80->80/tcp'; then
+edge_ports="$(
+    docker inspect \
+        --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{printf "%s:%s->%s\n" .HostIp .HostPort $port}}{{end}}{{end}}' \
+        "$edge_container_id"
+)"
+
+if ! printf '%s\n' "$edge_ports" | grep -Eq ':(80)->80/tcp$'; then
     fail "Caddy is not publishing TCP port 80." 69
 fi
 
-if ! printf '%s\n' "$edge_ports" | grep -q ':443->443/tcp'; then
+if ! printf '%s\n' "$edge_ports" | grep -Eq ':(443)->443/tcp$'; then
     fail "Caddy is not publishing TCP port 443." 69
 fi
 
-if ! printf '%s\n' "$edge_ports" | grep -q ':443->443/udp'; then
+if ! printf '%s\n' "$edge_ports" | grep -Eq ':(443)->443/udp$'; then
     fail "Caddy is not publishing UDP port 443." 69
 fi
 
