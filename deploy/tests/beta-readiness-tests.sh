@@ -14,6 +14,7 @@ fail()
 }
 
 scripts="
+$root_dir/deploy/backup/backup.sh
 $root_dir/deploy/bootstrap-owner.sh
 $root_dir/deploy/check-backup-snapshot.sh
 $root_dir/deploy/check-backup-timer.sh
@@ -64,6 +65,16 @@ do
         fail "smoke test must not place the bearer token directly in curl argv: $smoke_script"
     fi
 done
+
+grep -q \
+    'snapshot) list_completed_snapshot ;;' \
+    "$root_dir/deploy/backup/backup.sh" ||
+    fail "backup entrypoint must expose the constrained completed-snapshot query."
+
+grep -q \
+    '        snapshot' \
+    "$root_dir/deploy/check-backup-snapshot.sh" ||
+    fail "backup snapshot checker must use the constrained backup snapshot command."
 
 grep -q \
     'current_user_count <> 1' \
