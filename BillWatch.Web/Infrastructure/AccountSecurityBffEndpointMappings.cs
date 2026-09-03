@@ -23,6 +23,11 @@ public static class AccountSecurityBffEndpointMappings
                     "/api/account/security",
                     context.RequestAborted));
 
+        MapSecurePost<UpdateProfileBffRequest>(
+            bff,
+            "/profile",
+            "/api/account/security/profile");
+
         MapSecurePost<ChangePasswordBffRequest>(
             bff,
             "/password",
@@ -86,6 +91,9 @@ public static class AccountSecurityBffEndpointMappings
             });
     }
 }
+
+public sealed record UpdateProfileBffRequest(
+    string? DisplayName);
 
 public sealed record ChangePasswordBffRequest(
     string CurrentPassword,
