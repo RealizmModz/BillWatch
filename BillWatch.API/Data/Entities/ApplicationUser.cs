@@ -2,6 +2,12 @@
 
 namespace BillWatch.API.Data.Entities;
 
+public enum TimestampDisplayMode
+{
+    Local12Hour = 0,
+    Utc = 1
+}
+
 public sealed class ApplicationUser : IdentityUser<Guid>
 {
     public DateTimeOffset CreatedAtUtc { get; set; } =
@@ -10,6 +16,9 @@ public sealed class ApplicationUser : IdentityUser<Guid>
     public DateTimeOffset? LastLoginAtUtc { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    public TimestampDisplayMode TimestampDisplayMode { get; set; } =
+        TimestampDisplayMode.Local12Hour;
 
     public ICollection<SubscriptionEntitlementEntity> SubscriptionEntitlements
     {
