@@ -34,6 +34,21 @@ jobs:
       - name: Build backend
         run: dotnet build BillWatch.Tests/BillWatch.Tests.csproj --configuration Release --no-restore
 
+      - name: Install EF migration verifier
+        run: dotnet tool install --global dotnet-ef --version 10.0.11
+
+      - name: Verify committed migrations match the model
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__BillWatchDatabase: Host=localhost;Database=billwatch_ci_model_check;Username=billwatch;Password=ci-model-check-only
+          Plaid__Environment: sandbox
+        run: >-
+          dotnet ef migrations has-pending-model-changes
+          --project BillWatch.API/BillWatch.API.csproj
+          --startup-project BillWatch.API/BillWatch.API.csproj
+          --no-build
+          --configuration Release
+
       - name: Run tests
         run: dotnet test BillWatch.Tests/BillWatch.Tests.csproj --configuration Release --no-build --no-restore
 
