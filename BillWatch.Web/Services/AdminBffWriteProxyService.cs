@@ -16,6 +16,9 @@ public sealed class AdminBffWriteProxyService(
     private const string AccountPreferencesPath =
         "/api/account/preferences";
 
+    private const string AccountSecurityPath =
+        "/api/account/security";
+
     private static readonly TimeSpan RefreshBuffer =
         TimeSpan.FromMinutes(1);
 
@@ -106,11 +109,11 @@ public sealed class AdminBffWriteProxyService(
 
     private async Task<HttpResponseMessage>
         SendAuthorizedJsonAsync<T>(
-            HttpMethod method,
-            string requestUri,
-            string accessToken,
-            T body,
-            CancellationToken cancellationToken)
+        HttpMethod method,
+        string requestUri,
+        string accessToken,
+        T body,
+        CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient(
             "BillWatchApi");
@@ -337,9 +340,19 @@ public sealed class AdminBffWriteProxyService(
                 AccountPreferencesPath,
                 StringComparison.Ordinal);
 
+        var isAccountSecurityPath =
+            string.Equals(
+                requestUri,
+                AccountSecurityPath,
+                StringComparison.Ordinal) ||
+            requestUri.StartsWith(
+                AccountSecurityPath + "/",
+                StringComparison.Ordinal);
+
         if (!isAdminPath &&
             !isSubscriptionRedemptionPath &&
-            !isAccountPreferencesPath)
+            !isAccountPreferencesPath &&
+            !isAccountSecurityPath)
         {
             return false;
         }
