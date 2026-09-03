@@ -59,6 +59,7 @@ trap cleanup EXIT HUP INT TERM
 
 login_payload="$work_directory/login.json"
 login_response="$work_directory/login-response.json"
+auth_config="$work_directory/auth.curl"
 
 printf '{"email":"%s","password":"%s"}' \
     "$(printf '%s' "$email" | sed 's/\\/\\\\/g; s/"/\\"/g')" \
@@ -95,17 +96,19 @@ if [ -z "$access_token" ]; then
     fail "Authentication response did not contain an access token." 69
 fi
 
+printf 'header = "Authorization: Bearer %s"\n' "$access_token" > "$auth_config"
+chmod 600 "$auth_config"
+unset access_token
+
 code="$(
     curl \
         --silent \
         --show-error \
         --output /dev/null \
         --write-out '%{http_code}' \
-        --header "Authorization: Bearer $access_token" \
+        --config "$auth_config" \
         "$api_base_url/api/admin/access-keys?skip=0&take=1"
 )"
-
-unset access_token
 
 if [ "$code" != "200" ]; then
     fail "Admin authorization probe failed: expected HTTP 200, received $code." 69
