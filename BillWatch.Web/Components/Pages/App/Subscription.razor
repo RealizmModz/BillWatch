@@ -12,35 +12,98 @@
         <div>
             <span class="page-kicker">BillWatch access</span>
             <h1>Subscription</h1>
-            <p>Review your access or redeem a BillWatch access key.</p>
+            <p>Review your BillWatch access or redeem an access key.</p>
         </div>
     </header>
 
     <section class="subscription-card">
         @if (_loading)
         {
-            <p>Checking subscription…</p>
+            <div class="subscription-loading">
+                <span class="subscription-loading-ring" aria-hidden="true"></span>
+                <div>
+                    <strong>Checking your access</strong>
+                    <p>BillWatch is verifying the subscription attached to this account.</p>
+                </div>
+            </div>
         }
         else if (_status?.IsActive == true)
         {
-            <span class="subscription-state active">Active</span>
-            <h2>@_status.Tier access</h2>
-            <p>@FormatExpiration(_status.EndsAtUtc)</p>
-            <a class="subscription-action" href="/app">Continue to BillWatch</a>
+            <div class="subscription-card-heading">
+                <div class="subscription-card-icon active" aria-hidden="true">✓</div>
+
+                <div>
+                    <span class="subscription-state active">Active</span>
+                    <h2>BillWatch access is active</h2>
+                    <p>
+                        @_status.Tier access · @FormatExpiration(_status.EndsAtUtc)
+                    </p>
+                </div>
+            </div>
+
+            <a class="subscription-action" href="/app">
+                Continue to BillWatch
+                <span aria-hidden="true">→</span>
+            </a>
+
+            <div class="subscription-card-footer">
+                <span>Your account and data controls remain available at any time.</span>
+                <a href="/app/account/privacy">Data and privacy options</a>
+            </div>
         }
         else
         {
-            <span class="subscription-state">Access required</span>
-            <h2>Activate BillWatch</h2>
-            <p>Your account and privacy tools remain available while financial features are locked.</p>
+            <div class="subscription-card-heading">
+                <div class="subscription-card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.8"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <circle cx="8" cy="15" r="4" />
+                        <path d="M11 12l8-8" />
+                        <path d="M16 7l2 2" />
+                        <path d="M18 5l2 2" />
+                    </svg>
+                </div>
 
-            <label for="access-key">Access key</label>
-            <input id="access-key" @bind="_accessKey" autocomplete="off"
-                   placeholder="BW-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" />
-            <button class="subscription-action" disabled="@_working" @onclick="RedeemAsync">
-                @(_working ? "Activating…" : "Redeem key")
-            </button>
-            <a href="/app/account/privacy">Data and privacy options</a>
+                <div>
+                    <span class="subscription-state">No active plan</span>
+                    <h2>Activate BillWatch access</h2>
+                    <p>
+                        This account does not currently have an active BillWatch entitlement.
+                        If you received an access key, redeem it below.
+                    </p>
+                </div>
+            </div>
+
+            <div class="subscription-key-panel">
+                <label for="access-key">Access key</label>
+
+                <div class="subscription-key-entry">
+                    <input id="access-key"
+                           @bind="_accessKey"
+                           autocomplete="off"
+                           spellcheck="false"
+                           placeholder="BW-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" />
+
+                    <button class="subscription-action"
+                            disabled="@_working"
+                            @onclick="RedeemAsync">
+                        @(_working ? "Activating…" : "Redeem key")
+                    </button>
+                </div>
+
+                <small>
+                    Access keys are redeemed once and attached securely to your account.
+                </small>
+            </div>
+
+            <div class="subscription-card-footer">
+                <span>Your account and privacy controls do not depend on an active entitlement.</span>
+                <a href="/app/account/privacy">Data and privacy options</a>
+            </div>
         }
 
         @if (!string.IsNullOrWhiteSpace(_message))
@@ -60,38 +123,84 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (!firstRender)
+        {
+            return;
+        }
+
         try
         {
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/subscription-bff.js");
-            _status = await _module.InvokeAsync<SubscriptionStatus>("getSubscription");
+            _module = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/subscription-bff.js");
+
+            _status = await _module.InvokeAsync<SubscriptionStatus>(
+                "getSubscription");
         }
-        catch { _message = "BillWatch could not load your subscription status."; }
-        finally { _loading = false; StateHasChanged(); }
+        catch
+        {
+            _message = "BillWatch could not load your subscription status.";
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task RedeemAsync()
     {
-        if (_working || string.IsNullOrWhiteSpace(_accessKey) || _module is null) return;
+        if (_working ||
+            string.IsNullOrWhiteSpace(_accessKey) ||
+            _module is null)
+        {
+            return;
+        }
+
         _working = true;
         _message = null;
+
         try
         {
-            await _module.InvokeAsync<object>("redeemAccessKey", _accessKey.Trim());
-            _status = await _module.InvokeAsync<SubscriptionStatus>("getSubscription");
+            await _module.InvokeAsync<object>(
+                "redeemAccessKey",
+                _accessKey.Trim());
+
+            _status = await _module.InvokeAsync<SubscriptionStatus>(
+                "getSubscription");
+
             _accessKey = string.Empty;
             _message = "Your BillWatch access is active.";
         }
-        catch { _message = "That access key could not be redeemed."; }
-        finally { _working = false; }
+        catch
+        {
+            _message = "That access key could not be redeemed.";
+        }
+        finally
+        {
+            _working = false;
+        }
     }
 
     private static string FormatExpiration(DateTimeOffset? value) =>
-        value is null ? "Lifetime access" : $"Active through {value.Value:MMMM d, yyyy}";
+        value is null
+            ? "Lifetime access"
+            : $"Active through {value.Value:MMMM d, yyyy}";
 
     public async ValueTask DisposeAsync()
     {
-        if (_module is not null) await _module.DisposeAsync();
+        if (_module is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
     }
 
     private sealed class SubscriptionStatus
