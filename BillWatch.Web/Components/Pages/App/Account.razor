@@ -7,8 +7,9 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<Account> L
 
-<PageTitle>Account — BillWatch</PageTitle>
+<PageTitle>@L["Account — BillWatch"]</PageTitle>
 
 <link rel="stylesheet"
       href="/account-activity.css" />
@@ -20,16 +21,15 @@
     <header class="page-heading">
         <div>
             <span class="page-kicker">
-                BillWatch account
+                @L["BillWatch account"]
             </span>
 
             <h1>
-                Account
+                @L["Account"]
             </h1>
 
             <p>
-                Connections, financial data, privacy,
-                and your BillWatch account.
+                @L["Connections, financial data, privacy, and your BillWatch account."]
             </p>
         </div>
     </header>
@@ -46,7 +46,7 @@
 
         <div class="identity-copy">
             <span>
-                Signed in as
+                @L["Signed in as"]
             </span>
 
             <AuthorizeView>
@@ -61,7 +61,7 @@
 
         <div class="identity-security">
             <span class="security-dot"></span>
-            Authenticated session
+            @L["Authenticated session"]
         </div>
     </section>
 
@@ -75,16 +75,15 @@
 
             <div>
                 <span class="panel-kicker">
-                    Transaction data
+                    @L["Transaction data"]
                 </span>
 
                 <h2>
-                    Transactions
+                    @L["Transactions"]
                 </h2>
 
                 <p>
-                    Review the bank transactions BillWatch uses
-                    to discover recurring bills.
+                    @L["Review the bank transactions BillWatch uses to discover recurring bills."]
                 </p>
             </div>
 
@@ -102,16 +101,15 @@
 
             <div>
                 <span class="panel-kicker">
-                    Ownership & privacy
+                    @L["Ownership & privacy"]
                 </span>
 
                 <h2>
-                    Data & privacy
+                    @L["Data & privacy"]
                 </h2>
 
                 <p>
-                    Export your BillWatch data or permanently
-                    delete your account.
+                    @L["Export your BillWatch data or permanently delete your account."]
                 </p>
             </div>
 
@@ -143,24 +141,21 @@
 
         <div class="connect-bank-copy">
             <span class="panel-kicker">
-                Secure connection
+                @L["Secure connection"]
             </span>
 
             <h2>
-                Connect a bank
+                @L["Connect a bank"]
             </h2>
 
             <p>
-                BillWatch uses Plaid to connect financial
-                accounts and retrieve the transaction history
-                needed to discover recurring bills.
+                @L["BillWatch uses Plaid to connect financial accounts and retrieve the transaction history needed to discover recurring bills."]
             </p>
 
             <div class="plaid-security-note">
                 <span>✓</span>
 
-                Your bank username and password are handled
-                by Plaid, not BillWatch.
+                @L["Your bank username and password are handled by Plaid, not BillWatch."]
             </div>
         </div>
 
@@ -169,7 +164,7 @@
                     class="connect-bank-button"
                     type="button">
 
-                Connect bank
+                @L["Connect bank"]
 
                 <span aria-hidden="true">
                     →
@@ -180,7 +175,7 @@
                  class="connect-bank-status"
                  aria-live="polite">
 
-                Secure connection powered by Plaid
+                @L["Secure connection powered by Plaid"]
             </div>
         </div>
     </section>
@@ -210,7 +205,7 @@
 
             <div>
                 <h2>
-                    We couldn't load your account
+                    @L["We couldn't load your account"]
                 </h2>
 
                 <p>
@@ -221,7 +216,7 @@
             <button type="button"
                     class="secondary-action"
                     @onclick="ReloadAsync">
-                Try again
+                @L["Try again"]
             </button>
         </div>
     }
@@ -232,11 +227,11 @@
                 <div class="account-panel-heading">
                     <div>
                         <span class="panel-kicker">
-                            Connections
+                            @L["Connections"]
                         </span>
 
                         <h2>
-                            Connected banks
+                            @L["Connected banks"]
                         </h2>
                     </div>
 
@@ -258,9 +253,7 @@
                             </strong>
 
                             <span>
-                                Reauthorize the affected connection
-                                through Plaid so BillWatch can resume
-                                reliable automatic monitoring.
+                                @L["Reauthorize the affected connection through Plaid so BillWatch can resume reliable automatic monitoring."]
                             </span>
                         </div>
                     </div>
@@ -270,12 +263,11 @@
                 {
                     <div class="account-empty">
                         <strong>
-                            No banks connected
+                            @L["No banks connected"]
                         </strong>
 
                         <span>
-                            Connect a financial institution above
-                            to begin importing transaction history.
+                            @L["Connect a financial institution above to begin importing transaction history."]
                         </span>
                     </div>
                 }
@@ -306,7 +298,7 @@
                                     </strong>
 
                                     <span>
-                                        Added @connection.CreatedDisplayText
+                                        @L["Added {0}", connection.CreatedDisplayText]
                                     </span>
                                 </div>
 
@@ -330,7 +322,7 @@
                                                 type="button"
                                                 class="reconnect-button">
 
-                                            Reconnect
+                                            @L["Reconnect"]
                                         </button>
                                     }
 
@@ -341,7 +333,7 @@
                                                 disabled="@_isMutating"
                                                 @onclick="() => DisconnectAsync(connection)">
 
-                                            Disconnect
+                                            @L["Disconnect"]
                                         </button>
                                     }
                                 </div>
@@ -353,15 +345,13 @@
                                          class="connection-reconnect-status"
                                          aria-live="polite">
 
-                                        This connection cannot currently
-                                        be relied on for automatic monitoring.
+                                        @L["This connection cannot currently be relied on for automatic monitoring."]
                                     </div>
                                 }
                                 else if (connection.Status == 2)
                                 {
                                     <div class="connection-disconnected-note">
-                                        No longer syncing. Connect again above
-                                        whenever you want to resume monitoring.
+                                        @L["No longer syncing. Connect again above whenever you want to resume monitoring."]
                                     </div>
                                 }
                             </article>
@@ -374,11 +364,11 @@
                 <div class="account-panel-heading">
                     <div>
                         <span class="panel-kicker">
-                            Financial accounts
+                            @L["Financial accounts"]
                         </span>
 
                         <h2>
-                            Available accounts
+                            @L["Available accounts"]
                         </h2>
                     </div>
 
@@ -391,13 +381,11 @@
                 {
                     <div class="account-empty">
                         <strong>
-                            No accounts available
+                            @L["No accounts available"]
                         </strong>
 
                         <span>
-                            Accounts appear here after a
-                            connected institution supplies them
-                            to BillWatch.
+                            @L["Accounts appear here after a connected institution supplies them to BillWatch."]
                         </span>
                     </div>
                 }
@@ -469,35 +457,32 @@
 
             <div class="privacy-copy">
                 <span class="panel-kicker">
-                    Security model
+                    @L["Security model"]
                 </span>
 
                 <h2>
-                    Financial visibility without financial control.
+                    @L["Financial visibility without financial control."]
                 </h2>
 
                 <p>
-                    BillWatch uses connected-account data to
-                    identify recurring bills and changes.
-                    It does not provide bill payment, transfers,
-                    or money movement.
+                    @L["BillWatch uses connected-account data to identify recurring bills and changes. It does not provide bill payment, transfers, or money movement."]
                 </p>
             </div>
 
             <div class="privacy-points">
                 <div>
                     <span>✓</span>
-                    User-scoped records
+                    @L["User-scoped records"]
                 </div>
 
                 <div>
                     <span>✓</span>
-                    Masked account display
+                    @L["Masked account display"]
                 </div>
 
                 <div>
                     <span>✓</span>
-                    API tokens stay server-side
+                    @L["API tokens stay server-side"]
                 </div>
             </div>
         </section>
@@ -572,7 +557,7 @@
                     false;
 
                 _errorMessage =
-                    "BillWatch could not initialize the secure account connection tools.";
+                    L["BillWatch could not initialize the secure account connection tools."].Value;
 
                 StateHasChanged();
             }
@@ -585,7 +570,7 @@
                     false;
 
                 _errorMessage =
-                    "Something went wrong while opening your BillWatch account.";
+                    L["Something went wrong while opening your BillWatch account."].Value;
 
                 StateHasChanged();
             }
@@ -687,12 +672,12 @@
         catch (JSException)
         {
             _errorMessage =
-                "BillWatch could not reach the secure API.";
+                L["BillWatch could not reach the secure API."].Value;
         }
         catch (Exception)
         {
             _errorMessage =
-                "Something went wrong while loading your account information.";
+                L["Something went wrong while loading your account information."].Value;
         }
         finally
         {
@@ -736,7 +721,7 @@
                     is not DateTimeOffset lastSync)
                 {
                     connection.LastSyncDisplayText =
-                        "Not synced yet";
+                        L["Not synced yet"].Value;
 
                     continue;
                 }
@@ -751,7 +736,7 @@
                     lastSyncText))
                 {
                     connection.LastSyncDisplayText =
-                        $"Last sync {lastSyncText}";
+                        L["Last sync {0}", lastSyncText].Value;
                 }
             }
         }
@@ -774,8 +759,8 @@
             connection.LastSyncDisplayText =
                 connection.LastSuccessfulSyncAtUtc
                     is DateTimeOffset lastSync
-                    ? $"Last sync {lastSync.ToUniversalTime():MMM d, yyyy h:mm tt} UTC"
-                    : "Not synced yet";
+                    ? L["Last sync {0}", $"{lastSync.ToUniversalTime():MMM d, yyyy h:mm tt} UTC"].Value
+                    : L["Not synced yet"].Value;
         }
     }
 
@@ -794,7 +779,8 @@
         var confirmed =
             await JS.InvokeAsync<bool>(
                 "confirm",
-                $"Disconnect {connection.InstitutionName}? BillWatch will stop syncing this bank connection.");
+                L["Disconnect {0}? BillWatch will stop syncing this bank connection.",
+                    connection.InstitutionName].Value);
 
         if (!confirmed)
         {
@@ -805,7 +791,8 @@
             true;
 
         _actionMessage =
-            $"Disconnecting {connection.InstitutionName}…";
+            L["Disconnecting {0}…",
+                connection.InstitutionName].Value;
 
         _actionSucceeded =
             false;
@@ -821,7 +808,8 @@
                     "D"));
 
             _actionMessage =
-                $"{connection.InstitutionName} was disconnected.";
+                L["{0} was disconnected.",
+                    connection.InstitutionName].Value;
 
             _actionSucceeded =
                 true;
@@ -831,7 +819,8 @@
         catch
         {
             _actionMessage =
-                $"BillWatch could not disconnect {connection.InstitutionName}.";
+                L["BillWatch could not disconnect {0}.",
+                    connection.InstitutionName].Value;
 
             _actionSucceeded =
                 false;
@@ -855,8 +844,9 @@
     private string GetAttentionHeading()
     {
         return AttentionCount == 1
-            ? "1 bank connection needs attention"
-            : $"{AttentionCount} bank connections need attention";
+            ? L["1 bank connection needs attention"].Value
+            : L["{0} bank connections need attention",
+                AttentionCount].Value;
     }
 
     private static int GetStatusSortOrder(
@@ -918,25 +908,25 @@
             .ToString();
     }
 
-    private static string GetDisplayName(
+    private string GetDisplayName(
         string? value)
     {
         return string.IsNullOrWhiteSpace(
                 value)
-            ? "BillWatch user"
+            ? L["BillWatch user"].Value
             : value;
     }
 
-    private static string
+    private string
         GetConnectionStatusText(
             int status)
     {
         return status switch
         {
-            0 => "Connected",
-            1 => "Needs attention",
-            2 => "Connection ended",
-            _ => "Unknown"
+            0 => L["Connected"].Value,
+            1 => L["Needs attention"].Value,
+            2 => L["Connection ended"].Value,
+            _ => L["Unknown"].Value
         };
     }
 
@@ -960,7 +950,7 @@
         };
     }
 
-    private static string
+    private string
         GetAccountDisplayName(
             BankAccountViewModel account)
     {
@@ -976,10 +966,10 @@
             return account.Name;
         }
 
-        return "Bank account";
+        return L["Bank account"].Value;
     }
 
-    private static string
+    private string
         FormatAccountType(
             string? type,
             string? subtype)
@@ -1016,21 +1006,34 @@
             : "$";
     }
 
-    private static string FormatEnumText(
+    private string FormatEnumText(
         string? value)
     {
         if (string.IsNullOrWhiteSpace(
             value))
         {
-            return "Account";
+            return L["Account"].Value;
         }
 
-        return value
-            .Replace(
-                "_",
-                " ",
-                StringComparison.Ordinal)
-            .Trim();
+        var formatted =
+            value
+                .Replace(
+                    "_",
+                    " ",
+                    StringComparison.Ordinal)
+                .Trim();
+
+        if (formatted.Length == 0)
+        {
+            return L["Account"].Value;
+        }
+
+        var display =
+            char.ToUpperInvariant(
+                formatted[0]) +
+            formatted[1..].ToLowerInvariant();
+
+        return L[display].Value;
     }
 
     public async ValueTask DisposeAsync()
@@ -1095,7 +1098,7 @@
         {
             get;
             set;
-        } = "Not synced yet";
+        } = string.Empty;
     }
 
     public sealed class BankAccountViewModel
