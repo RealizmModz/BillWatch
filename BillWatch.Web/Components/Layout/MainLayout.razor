@@ -1,5 +1,7 @@
 ﻿@inherits LayoutComponentBase
 
+@inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
+
 <link rel="stylesheet"
       href="/theme.css" />
 
@@ -11,7 +13,7 @@
         <div class="header-inner">
             <a class="brand"
                href="/"
-               aria-label="BillWatch home">
+               aria-label="@L["BillWatch home"]">
 
                 <span class="brand-mark">
                     <span class="brand-mark-inner"></span>
@@ -23,18 +25,18 @@
             </a>
 
             <nav class="desktop-nav"
-                 aria-label="Primary navigation">
+                 aria-label="@L["Primary navigation"]">
 
                 <a href="/#how-it-works">
-                    How it works
+                    @L["How it works"]
                 </a>
 
                 <a href="/#example">
-                    Example
+                    @L["Example"]
                 </a>
 
                 <a href="/#security">
-                    Security
+                    @L["Security"]
                 </a>
             </nav>
 
@@ -45,19 +47,19 @@
                     <Authorized>
                         <a class="header-action"
                            href="/app">
-                            Dashboard
+                            @L["Dashboard"]
                         </a>
                     </Authorized>
 
                     <NotAuthorized>
                         <a class="header-action"
                            href="/login">
-                            Sign in
+                            @L["Sign in"]
                         </a>
 
                         <a class="header-action"
                            href="/register">
-                            Get started
+                            @L["Get started"]
                         </a>
                     </NotAuthorized>
                 </AuthorizeView>
@@ -74,7 +76,7 @@
             <div class="footer-brand">
                 <a class="brand"
                    href="/"
-                   aria-label="BillWatch home">
+                   aria-label="@L["BillWatch home"]">
 
                     <span class="brand-mark brand-mark-small">
                         <span class="brand-mark-inner"></span>
@@ -86,7 +88,7 @@
                 </a>
 
                 <p>
-                    Know when your bills change — and why.
+                    @L["Know when your bills change — and why."]
                 </p>
             </div>
 
@@ -94,7 +96,7 @@
                 <span class="status-dot"></span>
 
                 <span>
-                    Built around privacy, clarity, and evidence.
+                    @L["Built around privacy, clarity, and evidence."]
                 </span>
             </div>
 
