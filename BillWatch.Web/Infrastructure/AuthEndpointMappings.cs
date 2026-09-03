@@ -376,11 +376,22 @@ public static class AuthEndpointMappings
                             changedEmail,
                             context.RequestAborted);
 
+                if (result.Succeeded &&
+                    !string.IsNullOrWhiteSpace(
+                        changedEmail))
+                {
+                    await authenticationService
+                        .LogoutAsync(
+                            context);
+                }
+
                 return Results.Redirect(
                     result.Succeeded
                         ? "/login?message=" +
                           Uri.EscapeDataString(
-                              "Your email address is confirmed.")
+                              string.IsNullOrWhiteSpace(changedEmail)
+                                  ? "Your email address is confirmed."
+                                  : "Your email address was changed. Sign in with the new address.")
                         : "/login?error=" +
                           Uri.EscapeDataString(
                               result.ErrorMessage ??
