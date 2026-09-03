@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Overview — BillWatch" xml:space="preserve"><value>Resumen — BillWatch</value></data>
+  <data name="Bill intelligence" xml:space="preserve"><value>Inteligencia de facturas</value></data>
+  <data name="Overview" xml:space="preserve"><value>Resumen</value></data>
+  <data name="Your recurring bills and the changes BillWatch can verify from your data." xml:space="preserve"><value>Tus facturas recurrentes y los cambios que BillWatch puede verificar con tus datos.</value></data>
+  <data name="Checking…" xml:space="preserve"><value>Comprobando…</value></data>
+  <data name="Check status" xml:space="preserve"><value>Comprobar estado</value></data>
+  <data name="We couldn't load your BillWatch overview" xml:space="preserve"><value>No pudimos cargar tu resumen de BillWatch</value></data>
+  <data name="Try again" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="Action needed" xml:space="preserve"><value>Acción necesaria</value></data>
+  <data name="Your bank connection needs attention." xml:space="preserve"><value>Tu conexión bancaria necesita atención.</value></data>
+  <data name="BillWatch has stopped automatic synchronization for the affected connection until it can be reauthorized." xml:space="preserve"><value>BillWatch ha detenido la sincronización automática de la conexión afectada hasta que vuelva a autorizarse.</value></data>
+  <data name="Review connection" xml:space="preserve"><value>Revisar conexión</value></data>
+  <data name="Sync paused" xml:space="preserve"><value>Sincronización en pausa</value></data>
+  <data name="Your existing BillWatch records remain available." xml:space="preserve"><value>Tus registros existentes de BillWatch siguen disponibles.</value></data>
+  <data name="Get started" xml:space="preserve"><value>Comenzar</value></data>
+  <data name="Connect your bank once. BillWatch handles the rest." xml:space="preserve"><value>Conecta tu banco una vez. BillWatch se encarga del resto.</value></data>
+  <data name="BillWatch uses transaction history to discover recurring bills automatically. Your bank credentials are handled by Plaid, not entered into BillWatch." xml:space="preserve"><value>BillWatch usa el historial de transacciones para descubrir facturas recurrentes automáticamente. Plaid gestiona tus credenciales bancarias; no se introducen en BillWatch.</value></data>
+  <data name="Read-only financial visibility" xml:space="preserve"><value>Visibilidad financiera de solo lectura</value></data>
+  <data name="No money movement" xml:space="preserve"><value>Sin movimiento de dinero</value></data>
+  <data name="Disconnect anytime" xml:space="preserve"><value>Desconecta cuando quieras</value></data>
+  <data name="Connect a bank" xml:space="preserve"><value>Conectar un banco</value></data>
+  <data name="Connect" xml:space="preserve"><value>Conectar</value></data>
+  <data name="Securely link your financial institution" xml:space="preserve"><value>Vincula de forma segura tu institución financiera</value></data>
+  <data name="Discover" xml:space="preserve"><value>Descubrir</value></data>
+  <data name="Transaction history reveals recurring bills" xml:space="preserve"><value>El historial de transacciones revela facturas recurrentes</value></data>
+  <data name="Watch" xml:space="preserve"><value>Vigilar</value></data>
+  <data name="BillWatch keeps monitoring automatically" xml:space="preserve"><value>BillWatch sigue monitoreando automáticamente</value></data>
+  <data name="Bank connected" xml:space="preserve"><value>Banco conectado</value></data>
+  <data name="BillWatch is preparing your first scan." xml:space="preserve"><value>BillWatch está preparando tu primer análisis.</value></data>
+  <data name="Your connection is active and immediately eligible for the automatic monitoring pipeline. BillWatch will synchronize accounts and transactions, then run deterministic recurring-bill discovery." xml:space="preserve"><value>Tu conexión está activa y ya puede entrar en el flujo de monitoreo automático. BillWatch sincronizará cuentas y transacciones y luego ejecutará la detección determinista de facturas recurrentes.</value></data>
+  <data name="Automatic monitoring is active" xml:space="preserve"><value>El monitoreo automático está activo</value></data>
+  <data name="You do not need to manually trigger a transaction refresh." xml:space="preserve"><value>No necesitas iniciar manualmente una actualización de transacciones.</value></data>
+  <data name="Checking status…" xml:space="preserve"><value>Comprobando estado…</value></data>
+  <data name="Check for progress" xml:space="preserve"><value>Comprobar progreso</value></data>
+  <data name="Connected" xml:space="preserve"><value>Conectado</value></data>
+  <data name="Waiting for first successful synchronization" xml:space="preserve"><value>Esperando la primera sincronización correcta</value></data>
+  <data name="Monitoring active" xml:space="preserve"><value>Monitoreo activo</value></data>
+  <data name="No supported recurring bills found yet." xml:space="preserve"><value>Aún no se encontraron facturas recurrentes compatibles.</value></data>
+  <data name="BillWatch has successfully synchronized your connection, but the available transaction history does not currently support a recurring Bill Stream. It will keep checking automatically as new transactions arrive." xml:space="preserve"><value>BillWatch sincronizó correctamente tu conexión, pero el historial de transacciones disponible aún no admite un Bill Stream recurrente. Seguirá comprobándolo automáticamente a medida que lleguen nuevas transacciones.</value></data>
+  <data name="Last successful sync" xml:space="preserve"><value>Última sincronización correcta</value></data>
+  <data name="View connected accounts" xml:space="preserve"><value>Ver cuentas conectadas</value></data>
+  <data name="Building history" xml:space="preserve"><value>Creando historial</value></data>
+  <data name="BillWatch only creates a recurring bill when the evidence supports it." xml:space="preserve"><value>BillWatch solo crea una factura recurrente cuando la evidencia la respalda.</value></data>
+  <data name="One of your bank connections needs attention." xml:space="preserve"><value>Una de tus conexiones bancarias necesita atención.</value></data>
+  <data name="BillWatch can continue showing existing data, but that connection will not refresh until it is repaired." xml:space="preserve"><value>BillWatch puede seguir mostrando los datos existentes, pero esa conexión no se actualizará hasta que se repare.</value></data>
+  <data name="Review" xml:space="preserve"><value>Revisar</value></data>
+  <data name="Bills watched" xml:space="preserve"><value>Facturas vigiladas</value></data>
+  <data name="Active recurring Bill Streams" xml:space="preserve"><value>Bill Streams recurrentes activos</value></data>
+  <data name="Current total" xml:space="preserve"><value>Total actual</value></data>
+  <data name="Latest recognized charges" xml:space="preserve"><value>Últimos cargos reconocidos</value></data>
+  <data name="Above prior average" xml:space="preserve"><value>Por encima del promedio anterior</value></data>
+  <data name="Based on transaction history" xml:space="preserve"><value>Basado en el historial de transacciones</value></data>
+  <data name="Recurring bills" xml:space="preserve"><value>Facturas recurrentes</value></data>
+  <data name="Latest amounts" xml:space="preserve"><value>Importes más recientes</value></data>
+  <data name="View all" xml:space="preserve"><value>Ver todo</value></data>
+  <data name="Recurring bill" xml:space="preserve"><value>Factura recurrente</value></data>
+  <data name="Mobile phone" xml:space="preserve"><value>Teléfono móvil</value></data>
+  <data name="Natural gas" xml:space="preserve"><value>Gas natural</value></data>
+  <data name="Internet" xml:space="preserve"><value>Internet</value></data>
+  <data name="Electricity" xml:space="preserve"><value>Electricidad</value></data>
+  <data name="Utility" xml:space="preserve"><value>Servicio público</value></data>
+  <data name="Other" xml:space="preserve"><value>Otro</value></data>
+  <data name="No change" xml:space="preserve"><value>Sin cambios</value></data>
+  <data name="Largest current increase" xml:space="preserve"><value>Mayor aumento actual</value></data>
+  <data name="above its prior transaction average" xml:space="preserve"><value>por encima de su promedio de transacciones anterior</value></data>
+  <data name="Annualized difference" xml:space="preserve"><value>Diferencia anualizada</value></data>
+  <data name="Transaction history confirms that the amount changed. Provider evidence is needed before BillWatch can responsibly explain why." xml:space="preserve"><value>El historial de transacciones confirma que el importe cambió. Se necesita evidencia del proveedor antes de que BillWatch pueda explicar responsablemente por qué.</value></data>
+  <data name="Review bill" xml:space="preserve"><value>Revisar factura</value></data>
+  <data name="Current status" xml:space="preserve"><value>Estado actual</value></data>
+  <data name="No current increases found" xml:space="preserve"><value>No se encontraron aumentos actuales</value></data>
+  <data name="None of the latest recognized bill amounts are above their available prior transaction averages." xml:space="preserve"><value>Ninguno de los importes de factura reconocidos más recientes está por encima de sus promedios de transacciones anteriores disponibles.</value></data>
+  <data name="BillWatch could not reach the secure API. Try again in a moment." xml:space="preserve"><value>BillWatch no pudo comunicarse con la API segura. Inténtalo de nuevo en un momento.</value></data>
+  <data name="Something went wrong while loading your BillWatch overview." xml:space="preserve"><value>Algo salió mal al cargar tu resumen de BillWatch.</value></data>
+</root>
