@@ -1,3 +1,4 @@
+using System.Globalization;
 using BillWatch.Web.Components;
 using BillWatch.Web.Infrastructure;
 using BillWatch.Web.Services;
@@ -6,6 +7,16 @@ using Microsoft.AspNetCore.Http.Features;
 
 const long StatementMultipartBodyLimit =
     16L * 1024 * 1024;
+
+var webCulture =
+    CultureInfo.GetCultureInfo(
+        "en-US");
+
+CultureInfo.DefaultThreadCurrentCulture =
+    webCulture;
+
+CultureInfo.DefaultThreadCurrentUICulture =
+    webCulture;
 
 var builder =
     WebApplication.CreateBuilder(args);
