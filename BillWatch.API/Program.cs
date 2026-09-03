@@ -124,6 +124,7 @@ builder.Services.AddDbContext<BillWatchDbContext>(
 
 builder.Services
     .AddIdentityApiEndpoints<ApplicationUser>()
+    .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<BillWatchDbContext>();
 
 builder.Services.Configure<IdentityOptions>(
