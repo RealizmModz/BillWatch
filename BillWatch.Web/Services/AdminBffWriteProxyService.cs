@@ -13,6 +13,9 @@ public sealed class AdminBffWriteProxyService(
     private const string SubscriptionRedemptionPath =
         "/api/subscription/access-keys/redeem";
 
+    private const string AccountPreferencesPath =
+        "/api/account/preferences";
+
     private static readonly TimeSpan RefreshBuffer =
         TimeSpan.FromMinutes(1);
 
@@ -328,8 +331,15 @@ public sealed class AdminBffWriteProxyService(
                 SubscriptionRedemptionPath,
                 StringComparison.Ordinal);
 
+        var isAccountPreferencesPath =
+            string.Equals(
+                requestUri,
+                AccountPreferencesPath,
+                StringComparison.Ordinal);
+
         if (!isAdminPath &&
-            !isSubscriptionRedemptionPath)
+            !isSubscriptionRedemptionPath &&
+            !isAccountPreferencesPath)
         {
             return false;
         }
