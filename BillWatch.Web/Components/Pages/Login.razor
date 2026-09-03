@@ -2,7 +2,7 @@
 
 @inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
 
-<PageTitle>@L["Sign in — BillWatch"]</PageTitle>
+<PageTitle>@L[TwoFactor ? "Two-factor verification — BillWatch" : "Sign in — BillWatch"]</PageTitle>
 
 <link rel="stylesheet"
       href="/auth.css" />
@@ -26,17 +26,33 @@
         <div class="auth-card">
             <div class="auth-heading">
                 <span class="auth-kicker">
-                    @L["Welcome back"]
+                    @(TwoFactor
+                        ? L["Account security"]
+                        : L["Welcome back"])
                 </span>
 
                 <h1>
-                    @L["Sign in to BillWatch"]
+                    @(TwoFactor
+                        ? L["Two-factor verification"]
+                        : L["Sign in to BillWatch"])
                 </h1>
 
                 <p>
-                    @L["Keep watching the recurring costs that matter."]
+                    @(TwoFactor
+                        ? L["Your password was accepted. Sign in again with your password plus a code from your authenticator app or one recovery code."]
+                        : L["Keep watching the recurring costs that matter."])
                 </p>
             </div>
+
+            @if (!string.IsNullOrWhiteSpace(
+                Message))
+            {
+                <div class="auth-success"
+                     role="status">
+                    <span>✓</span>
+                    @Message
+                </div>
+            }
 
             @if (!string.IsNullOrWhiteSpace(
                 Error))
@@ -53,6 +69,13 @@
                   class="auth-form">
 
                 <AntiforgeryToken />
+
+                @if (TwoFactor)
+                {
+                    <input type="hidden"
+                           name="twoFactor"
+                           value="true" />
+                }
 
                 <label class="field">
                     <span>@L["Email address"]</span>
@@ -75,6 +98,39 @@
                            required />
                 </label>
 
+                @if (TwoFactor)
+                {
+                    <label class="field">
+                        <span>@L["Authenticator code"]</span>
+
+                        <input type="text"
+                               name="twoFactorCode"
+                               autocomplete="one-time-code"
+                               inputmode="numeric"
+                               pattern="[0-9 ]*"
+                               maxlength="12"
+                               placeholder="123456" />
+                    </label>
+
+                    <div class="auth-divider">
+                        <span>@L["or"]</span>
+                    </div>
+
+                    <label class="field">
+                        <span>@L["Recovery code"]</span>
+
+                        <input type="text"
+                               name="recoveryCode"
+                               autocomplete="one-time-code"
+                               maxlength="64"
+                               placeholder="@L["Enter a recovery code"]" />
+                    </label>
+
+                    <p class="auth-switch">
+                        @L["Enter either an authenticator code or one unused recovery code."]
+                    </p>
+                }
+
                 <div class="form-options">
                     <label class="remember-option">
                         <input type="checkbox"
@@ -84,11 +140,20 @@
                             @L["Keep me signed in"]
                         </span>
                     </label>
+
+                    @if (!TwoFactor)
+                    {
+                        <a href="/forgot-password">
+                            @L["Forgot password?"]
+                        </a>
+                    }
                 </div>
 
                 <button class="auth-submit"
                         type="submit">
-                    @L["Sign in"]
+                    @(TwoFactor
+                        ? L["Verify and sign in"]
+                        : L["Sign in"])
 
                     <span aria-hidden="true">
                         →
@@ -100,13 +165,24 @@
                 <span></span>
             </div>
 
-            <p class="auth-switch">
-                @L["New to BillWatch?"]
+            @if (TwoFactor)
+            {
+                <p class="auth-switch">
+                    <a href="/login">
+                        @L["Start sign-in over"]
+                    </a>
+                </p>
+            }
+            else
+            {
+                <p class="auth-switch">
+                    @L["New to BillWatch?"]
 
-                <a href="/register">
-                    @L["Create an account"]
-                </a>
-            </p>
+                    <a href="/register">
+                        @L["Create an account"]
+                    </a>
+                </p>
+            }
         </div>
 
         <a class="back-home"
@@ -120,4 +196,12 @@
     [SupplyParameterFromQuery(
         Name = "error")]
     public string? Error { get; set; }
+
+    [SupplyParameterFromQuery(
+        Name = "message")]
+    public string? Message { get; set; }
+
+    [SupplyParameterFromQuery(
+        Name = "twoFactor")]
+    public bool TwoFactor { get; set; }
 }
