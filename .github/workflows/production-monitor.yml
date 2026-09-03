@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
+    inputs:
+      force_failure:
+        description: "Intentionally fail after successful probes to test alert delivery"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: billwatch-production-readiness
@@ -14,10 +20,18 @@ permissions:
 
 jobs:
   readiness:
-    name: External readiness probe
-    if: ${{ vars.BILLWATCH_PRODUCTION_URL != '' }}
+    name: External readiness — ${{ matrix.target.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: API
+            url: https://api.billbeacon.net
+          - name: Web
+            url: https://billbeacon.net
 
     steps:
       - name: Check out repository
@@ -25,5 +39,11 @@ jobs:
 
       - name: Probe production from outside the deployment host
         env:
-          BILLWATCH_PRODUCTION_URL: ${{ vars.BILLWATCH_PRODUCTION_URL }}
+          BILLWATCH_PRODUCTION_URL: ${{ matrix.target.url }}
         run: sh deploy/monitor-readiness.sh
+
+      - name: Controlled alert-delivery drill
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.force_failure && matrix.target.name == 'API' }}
+        run: |
+          echo "Intentional BillWatch readiness failure drill."
+          exit 1

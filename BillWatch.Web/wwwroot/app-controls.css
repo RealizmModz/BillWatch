@@ -1,0 +1,45 @@
+/* BillWatch authenticated form controls.
+   Keep native controls for accessibility while explicitly styling option
+   surfaces so Chromium/Windows cannot combine a light popup with dark text. */
+
+.app-shell select {
+    color-scheme: dark;
+    background-color: var(--bw-bg-elevated);
+    color: var(--bw-text);
+}
+
+.app-shell select option,
+.app-shell select optgroup {
+    background-color: #101624;
+    color: #f4f7fb;
+}
+
+.app-shell select option:checked {
+    background: #5b6df8 linear-gradient(0deg, #5b6df8 0%, #5b6df8 100%);
+    color: #ffffff;
+}
+
+html[data-theme="light"] .app-shell select {
+    color-scheme: light;
+    background-color: var(--bw-bg-elevated);
+    color: var(--bw-text);
+}
+
+html[data-theme="light"] .app-shell select option,
+html[data-theme="light"] .app-shell select optgroup {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+html[data-theme="light"] .app-shell select option:checked {
+    background: #5b6df8 linear-gradient(0deg, #5b6df8 0%, #5b6df8 100%);
+    color: #ffffff;
+}
+
+@media (forced-colors: active) {
+    .app-shell select,
+    .app-shell select option,
+    .app-shell select optgroup {
+        forced-color-adjust: auto;
+    }
+}
