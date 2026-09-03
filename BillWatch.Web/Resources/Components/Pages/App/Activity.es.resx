@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Activity — BillWatch" xml:space="preserve"><value>Actividad — BillWatch</value></data>
+  <data name="BillWatch alerts" xml:space="preserve"><value>Alertas de BillWatch</value></data>
+  <data name="Activity" xml:space="preserve"><value>Actividad</value></data>
+  <data name="Important bill changes, payment reminders, newly discovered recurring bills, and connection issues that may need your attention." xml:space="preserve"><value>Cambios importantes en facturas, recordatorios de pago, nuevas facturas recurrentes detectadas y problemas de conexión que pueden necesitar tu atención.</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Actualizar</value></data>
+  <data name="We couldn't load your activity" xml:space="preserve"><value>No pudimos cargar tu actividad</value></data>
+  <data name="Try again" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="All" xml:space="preserve"><value>Todas</value></data>
+  <data name="Unread" xml:space="preserve"><value>No leídas</value></data>
+  <data name="Needs attention" xml:space="preserve"><value>Necesitan atención</value></data>
+  <data name="Showing up to 100 recent active alerts" xml:space="preserve"><value>Mostrando hasta 100 alertas activas recientes</value></data>
+  <data name="All quiet" xml:space="preserve"><value>Todo tranquilo</value></data>
+  <data name="No BillWatch alerts yet." xml:space="preserve"><value>Aún no hay alertas de BillWatch.</value></data>
+  <data name="BillWatch will surface meaningful recurring-bill changes and account issues here when evidence supports them." xml:space="preserve"><value>BillWatch mostrará aquí los cambios importantes en facturas recurrentes y los problemas de cuenta cuando la evidencia los respalde.</value></data>
+  <data name="Nothing in this view." xml:space="preserve"><value>No hay nada en esta vista.</value></data>
+  <data name="Try another activity filter." xml:space="preserve"><value>Prueba otro filtro de actividad.</value></data>
+  <data name="BillWatch could not reach the secure API." xml:space="preserve"><value>BillWatch no pudo comunicarse con la API segura.</value></data>
+  <data name="Something went wrong while loading BillWatch activity." xml:space="preserve"><value>Algo salió mal al cargar la actividad de BillWatch.</value></data>
+  <data name="BillWatch could not update that alert. Try again." xml:space="preserve"><value>BillWatch no pudo actualizar esa alerta. Inténtalo de nuevo.</value></data>
+  <data name="Recent activity" xml:space="preserve"><value>Actividad reciente</value></data>
+  <data name="Latest BillWatch alerts" xml:space="preserve"><value>Alertas más recientes de BillWatch</value></data>
+  <data name="Waiting for review" xml:space="preserve"><value>Pendientes de revisión</value></data>
+  <data name="Warning or critical alerts" xml:space="preserve"><value>Alertas de advertencia o críticas</value></data>
+  <data name="Read" xml:space="preserve"><value>Leída</value></data>
+  <data name="Mark read" xml:space="preserve"><value>Marcar como leída</value></data>
+  <data name="Dismiss" xml:space="preserve"><value>Descartar</value></data>
+  <data name="Review" xml:space="preserve"><value>Revisar</value></data>
+  <data name="BillWatch alert" xml:space="preserve"><value>Alerta de BillWatch</value></data>
+  <data name="Bill increase" xml:space="preserve"><value>Aumento de factura</value></data>
+  <data name="Bill decrease" xml:space="preserve"><value>Disminución de factura</value></data>
+  <data name="New fee" xml:space="preserve"><value>Nueva tarifa</value></data>
+  <data name="Removed discount" xml:space="preserve"><value>Descuento eliminado</value></data>
+  <data name="Payment due" xml:space="preserve"><value>Pago pendiente</value></data>
+  <data name="Connection issue" xml:space="preserve"><value>Problema de conexión</value></data>
+  <data name="New recurring bill" xml:space="preserve"><value>Nueva factura recurrente</value></data>
+  <data name="Info" xml:space="preserve"><value>Información</value></data>
+  <data name="Warning" xml:space="preserve"><value>Advertencia</value></data>
+  <data name="Critical" xml:space="preserve"><value>Crítica</value></data>
+  <data name="Today" xml:space="preserve"><value>Hoy</value></data>
+  <data name="Yesterday" xml:space="preserve"><value>Ayer</value></data>
+</root>

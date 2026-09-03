@@ -8,8 +8,9 @@
 
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject Microsoft.Extensions.Localization.IStringLocalizer<Activity> L
 
-<PageTitle>Activity — BillWatch</PageTitle>
+<PageTitle>@L["Activity — BillWatch"]</PageTitle>
 
 <link rel="stylesheet"
       href="/activity-alerts.css" />
@@ -18,17 +19,15 @@
     <header class="page-heading">
         <div>
             <span class="page-kicker">
-                BillWatch alerts
+                @L["BillWatch alerts"]
             </span>
 
             <h1>
-                Activity
+                @L["Activity"]
             </h1>
 
             <p>
-                Important bill changes, payment reminders,
-                newly discovered recurring bills, and connection
-                issues that may need your attention.
+                @L["Important bill changes, payment reminders, newly discovered recurring bills, and connection issues that may need your attention."]
             </p>
         </div>
 
@@ -45,7 +44,7 @@
                     ↻
                 </span>
 
-                Refresh
+                @L["Refresh"]
             </button>
         }
     </header>
@@ -80,7 +79,7 @@
 
             <div>
                 <h2>
-                    We couldn't load your activity
+                    @L["We couldn't load your activity"]
                 </h2>
 
                 <p>
@@ -91,7 +90,7 @@
             <button type="button"
                     class="secondary-action"
                     @onclick="ReloadAsync">
-                Try again
+                @L["Try again"]
             </button>
         </div>
     }
@@ -108,7 +107,7 @@
                                                 ActivityFilter.All)"
                         @onclick="() => SetFilter(ActivityFilter.All)">
 
-                    All
+                    @L["All"]
 
                     <span>
                         @_alerts.Count
@@ -120,7 +119,7 @@
                                                 ActivityFilter.Unread)"
                         @onclick="() => SetFilter(ActivityFilter.Unread)">
 
-                    Unread
+                    @L["Unread"]
 
                     <span>
                         @UnreadCount
@@ -132,7 +131,7 @@
                                                 ActivityFilter.Attention)"
                         @onclick="() => SetFilter(ActivityFilter.Attention)">
 
-                    Needs attention
+                    @L["Needs attention"]
 
                     <span>
                         @NeedsAttentionCount
@@ -141,7 +140,7 @@
             </div>
 
             <span class="activity-retention-note">
-                Showing up to 100 recent active alerts
+                @L["Showing up to 100 recent active alerts"]
             </span>
         </div>
 
@@ -161,17 +160,15 @@
                 </div>
 
                 <span class="page-kicker">
-                    All quiet
+                    @L["All quiet"]
                 </span>
 
                 <h2>
-                    No BillWatch alerts yet.
+                    @L["No BillWatch alerts yet."]
                 </h2>
 
                 <p>
-                    BillWatch will surface meaningful recurring-bill
-                    changes and account issues here when evidence
-                    supports them.
+                    @L["BillWatch will surface meaningful recurring-bill changes and account issues here when evidence supports them."]
                 </p>
             </section>
         }
@@ -179,11 +176,11 @@
         {
             <section class="alerts-filter-empty">
                 <strong>
-                    Nothing in this view.
+                    @L["Nothing in this view."]
                 </strong>
 
                 <span>
-                    Try another activity filter.
+                    @L["Try another activity filter."]
                 </span>
             </section>
         }
@@ -342,12 +339,12 @@
         catch (JSException)
         {
             _errorMessage =
-                "BillWatch could not reach the secure API.";
+                L["BillWatch could not reach the secure API."].Value;
         }
         catch (Exception)
         {
             _errorMessage =
-                "Something went wrong while loading BillWatch activity.";
+                L["Something went wrong while loading BillWatch activity."].Value;
         }
         finally
         {
@@ -545,12 +542,12 @@
         catch (JSException)
         {
             _actionError =
-                "BillWatch could not update that alert. Try again.";
+                L["BillWatch could not update that alert. Try again."].Value;
         }
         catch (Exception)
         {
             _actionError =
-                "BillWatch could not update that alert. Try again.";
+                L["BillWatch could not update that alert. Try again."].Value;
         }
         finally
         {

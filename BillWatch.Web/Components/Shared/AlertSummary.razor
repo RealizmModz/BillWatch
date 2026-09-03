@@ -1,7 +1,9 @@
-﻿<section class="alert-summary">
+﻿@inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.Pages.App.Activity> L
+
+<section class="alert-summary">
     <article>
         <span>
-            Recent activity
+            @L["Recent activity"]
         </span>
 
         <strong>
@@ -9,13 +11,13 @@
         </strong>
 
         <small>
-            Latest BillWatch alerts
+            @L["Latest BillWatch alerts"]
         </small>
     </article>
 
     <article class="@GetUnreadClass()">
         <span>
-            Unread
+            @L["Unread"]
         </span>
 
         <strong>
@@ -23,13 +25,13 @@
         </strong>
 
         <small>
-            Waiting for review
+            @L["Waiting for review"]
         </small>
     </article>
 
     <article class="@GetAttentionClass()">
         <span>
-            Needs attention
+            @L["Needs attention"]
         </span>
 
         <strong>
@@ -37,7 +39,7 @@
         </strong>
 
         <small>
-            Warning or critical alerts
+            @L["Warning or critical alerts"]
         </small>
     </article>
 </section>
