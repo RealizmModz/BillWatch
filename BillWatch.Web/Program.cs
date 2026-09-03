@@ -148,6 +148,7 @@ app.MapBillWatchHealthEndpoints();
 app.MapBillWatchAuthEndpoints();
 app.MapBillWatchBffEndpoints();
 app.MapBillWatchAdminBffEndpoints();
+app.MapBillWatchAccountPreferenceBffEndpoints();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
