@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Profile — BillWatch" xml:space="preserve"><value>Perfil — BillWatch</value></data>
+  <data name="Account" xml:space="preserve"><value>Cuenta</value></data>
+  <data name="Profile" xml:space="preserve"><value>Perfil</value></data>
+  <data name="Manage the personal information BillWatch keeps for your account." xml:space="preserve"><value>Administra la información personal que BillWatch guarda para tu cuenta.</value></data>
+  <data name="Display name" xml:space="preserve"><value>Nombre para mostrar</value></data>
+  <data name="This is the name BillWatch can use to personalize your account. It is optional and does not change your sign-in email." xml:space="preserve"><value>Este es el nombre que BillWatch puede usar para personalizar tu cuenta. Es opcional y no cambia tu correo de inicio de sesión.</value></data>
+  <data name="Loading profile…" xml:space="preserve"><value>Cargando perfil…</value></data>
+  <data name="How should BillWatch address you?" xml:space="preserve"><value>¿Cómo quieres que BillWatch se dirija a ti?</value></data>
+  <data name="Sign-in email" xml:space="preserve"><value>Correo de inicio de sesión</value></data>
+  <data name="Verified" xml:space="preserve"><value>Verificado</value></data>
+  <data name="Not verified" xml:space="preserve"><value>No verificado</value></data>
+  <data name="Save profile" xml:space="preserve"><value>Guardar perfil</value></data>
+  <data name="Manage email &amp; security" xml:space="preserve"><value>Administrar correo y seguridad</value></data>
+  <data name="BillWatch deliberately keeps this profile small. Your bank data remains separate and is not used as profile information." xml:space="preserve"><value>BillWatch mantiene este perfil deliberadamente pequeño. Tus datos bancarios permanecen separados y no se usan como información de perfil.</value></data>
+  <data name="BillWatch could not load your profile." xml:space="preserve"><value>BillWatch no pudo cargar tu perfil.</value></data>
+  <data name="Display name must be 80 characters or fewer." xml:space="preserve"><value>El nombre para mostrar debe tener 80 caracteres o menos.</value></data>
+  <data name="Display name cleared." xml:space="preserve"><value>Nombre para mostrar eliminado.</value></data>
+  <data name="Profile saved." xml:space="preserve"><value>Perfil guardado.</value></data>
+  <data name="BillWatch could not update your profile." xml:space="preserve"><value>BillWatch no pudo actualizar tu perfil.</value></data>
+</root>

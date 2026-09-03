@@ -18,6 +18,7 @@
   <data name="Bills" xml:space="preserve"><value>Facturas</value></data>
   <data name="Activity" xml:space="preserve"><value>Actividad</value></data>
   <data name="Subscription" xml:space="preserve"><value>Suscripción</value></data>
+  <data name="Profile" xml:space="preserve"><value>Perfil</value></data>
   <data name="Settings" xml:space="preserve"><value>Configuración</value></data>
   <data name="Account" xml:space="preserve"><value>Cuenta</value></data>
   <data name="Signed in" xml:space="preserve"><value>Sesión iniciada</value></data>

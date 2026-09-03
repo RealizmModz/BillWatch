@@ -98,6 +98,15 @@ export async function getAccountSecurity() {
     return await response.json();
 }
 
+export function updateProfile(displayName) {
+    return postJson(
+        "/bff/account/security/profile",
+        {
+            displayName: displayName || null
+        },
+        "BillWatch could not update your profile.");
+}
+
 export function changePassword(currentPassword, newPassword, twoFactorCode) {
     return postJson(
         "/bff/account/security/password",

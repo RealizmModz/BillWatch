@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Identity;
@@ -26,6 +27,71 @@ public sealed class AccountSecurityController(
         if (user is null)
         {
             return NotFound();
+        }
+
+        return Ok(await ToResponseAsync(user));
+    }
+
+    [HttpPost("profile")]
+    public async Task<ActionResult<AccountSecurityResponse>> UpdateProfile(
+        UpdateProfileRequest request)
+    {
+        var user = await GetCurrentUserAsync();
+
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        var displayName =
+            request.DisplayName?
+                .Trim() ??
+            string.Empty;
+
+        if (displayName.Length > ApplicationUser.MaxDisplayNameLength)
+        {
+            return ValidationProblem(
+                $"Display name must be {ApplicationUser.MaxDisplayNameLength} characters or fewer.");
+        }
+
+        var claims =
+            await userManager.GetClaimsAsync(user);
+
+        var existingDisplayNameClaims =
+            claims
+                .Where(
+                    claim => string.Equals(
+                        claim.Type,
+                        ApplicationUser.DisplayNameClaimType,
+                        StringComparison.Ordinal))
+                .ToArray();
+
+        if (existingDisplayNameClaims.Length > 0)
+        {
+            var removeResult =
+                await userManager.RemoveClaimsAsync(
+                    user,
+                    existingDisplayNameClaims);
+
+            if (!removeResult.Succeeded)
+            {
+                return IdentityValidationProblem(removeResult);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            var addResult =
+                await userManager.AddClaimAsync(
+                    user,
+                    new Claim(
+                        ApplicationUser.DisplayNameClaimType,
+                        displayName));
+
+            if (!addResult.Succeeded)
+            {
+                return IdentityValidationProblem(addResult);
+            }
         }
 
         return Ok(await ToResponseAsync(user));
@@ -438,7 +504,21 @@ public sealed class AccountSecurityController(
         var authenticatorKey =
             await userManager.GetAuthenticatorKeyAsync(user);
 
+        var claims =
+            await userManager.GetClaimsAsync(user);
+
+        var displayName =
+            claims
+                .FirstOrDefault(
+                    claim => string.Equals(
+                        claim.Type,
+                        ApplicationUser.DisplayNameClaimType,
+                        StringComparison.Ordinal))?
+                .Value ??
+            string.Empty;
+
         return new AccountSecurityResponse(
+            displayName,
             user.Email ?? string.Empty,
             await userManager.IsEmailConfirmedAsync(user),
             await userManager.GetTwoFactorEnabledAsync(user),
@@ -499,11 +579,15 @@ public sealed class AccountSecurityController(
 }
 
 public sealed record AccountSecurityResponse(
+    string DisplayName,
     string Email,
     bool EmailConfirmed,
     bool TwoFactorEnabled,
     bool HasAuthenticatorKey,
     int RecoveryCodesLeft);
+
+public sealed record UpdateProfileRequest(
+    string? DisplayName);
 
 public sealed record ChangePasswordRequest(
     string CurrentPassword,

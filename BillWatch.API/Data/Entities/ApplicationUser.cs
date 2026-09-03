@@ -10,6 +10,11 @@ public enum TimestampDisplayMode
 
 public sealed class ApplicationUser : IdentityUser<Guid>
 {
+    public const string DisplayNameClaimType =
+        "billwatch:display_name";
+
+    public const int MaxDisplayNameLength = 80;
+
     public DateTimeOffset CreatedAtUtc { get; set; } =
         DateTimeOffset.UtcNow;
 

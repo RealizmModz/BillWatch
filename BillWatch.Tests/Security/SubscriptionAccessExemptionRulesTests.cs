@@ -12,6 +12,7 @@ public sealed class SubscriptionAccessExemptionRulesTests
     [InlineData(typeof(AdminSubscriptionController), "AnyAdminAction")]
     [InlineData(typeof(AdminUsersController), "AnyAdminAction")]
     [InlineData(typeof(AccountSecurityController), nameof(AccountSecurityController.Get))]
+    [InlineData(typeof(AccountSecurityController), nameof(AccountSecurityController.UpdateProfile))]
     [InlineData(typeof(AccountSecurityController), nameof(AccountSecurityController.ChangePassword))]
     [InlineData(typeof(AccountSecurityController), nameof(AccountSecurityController.ChangeEmail))]
     [InlineData(typeof(AccountSecurityController), nameof(AccountSecurityController.SetupTwoFactor))]
