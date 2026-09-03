@@ -34,9 +34,7 @@ snapshot_output="$(
     compose --profile operations run \
         --rm \
         backup \
-        snapshots \
-        --tag billwatch-complete \
-        --latest 1
+        snapshot
 )"
 
 if ! printf '%s\n' "$snapshot_output" |
