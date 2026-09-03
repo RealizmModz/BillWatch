@@ -49,6 +49,16 @@ expect_failure()
 
 write_valid_env "$valid_env"
 
+backup_service="$root_dir/deploy/systemd/billwatch-backup.service"
+
+[ -f "$backup_service" ] ||
+    fail "production backup systemd service is missing."
+
+grep -qx \
+    'User=deploy' \
+    "$backup_service" ||
+    fail "production backup systemd service must run as the deploy account."
+
 "$root_dir/deploy/validate-production-env.sh" \
     "$valid_env" >/dev/null
 
