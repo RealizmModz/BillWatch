@@ -17,8 +17,8 @@ public sealed class AdminSubscriptionAccessKeyService(
         bool grantsLifetimeAccess,
         int maxRedemptions,
         DateTimeOffset? expiresAtUtc,
-        string? label = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? label = null)
     {
         var nowUtc = timeProvider.GetUtcNow();
 
