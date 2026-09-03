@@ -7,6 +7,7 @@ ConditionPathExists=/opt/billwatch/.env.production
 
 [Service]
 Type=oneshot
+User=deploy
 WorkingDirectory=/opt/billwatch
 ExecStart=/bin/sh /opt/billwatch/deploy/run-backup.sh /opt/billwatch
 TimeoutStartSec=2h
