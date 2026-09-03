@@ -1,6 +1,8 @@
 ﻿@page "/login"
 
-<PageTitle>Sign in — BillWatch</PageTitle>
+@inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
+
+<PageTitle>@L["Sign in — BillWatch"]</PageTitle>
 
 <link rel="stylesheet"
       href="/auth.css" />
@@ -24,16 +26,15 @@
         <div class="auth-card">
             <div class="auth-heading">
                 <span class="auth-kicker">
-                    Welcome back
+                    @L["Welcome back"]
                 </span>
 
                 <h1>
-                    Sign in to BillWatch
+                    @L["Sign in to BillWatch"]
                 </h1>
 
                 <p>
-                    Keep watching the recurring costs
-                    that matter.
+                    @L["Keep watching the recurring costs that matter."]
                 </p>
             </div>
 
@@ -54,7 +55,7 @@
                 <AntiforgeryToken />
 
                 <label class="field">
-                    <span>Email address</span>
+                    <span>@L["Email address"]</span>
 
                     <input type="email"
                            name="email"
@@ -65,12 +66,12 @@
                 </label>
 
                 <label class="field">
-                    <span>Password</span>
+                    <span>@L["Password"]</span>
 
                     <input type="password"
                            name="password"
                            autocomplete="current-password"
-                           placeholder="Enter your password"
+                           placeholder="@L["Enter your password"]"
                            required />
                 </label>
 
@@ -80,14 +81,14 @@
                                name="rememberMe" />
 
                         <span>
-                            Keep me signed in
+                            @L["Keep me signed in"]
                         </span>
                     </label>
                 </div>
 
                 <button class="auth-submit"
                         type="submit">
-                    Sign in
+                    @L["Sign in"]
 
                     <span aria-hidden="true">
                         →
@@ -100,17 +101,17 @@
             </div>
 
             <p class="auth-switch">
-                New to BillWatch?
+                @L["New to BillWatch?"]
 
                 <a href="/register">
-                    Create an account
+                    @L["Create an account"]
                 </a>
             </p>
         </div>
 
         <a class="back-home"
            href="/">
-            ← Back to BillWatch
+            ← @L["Back to BillWatch"]
         </a>
     </div>
 </div>
