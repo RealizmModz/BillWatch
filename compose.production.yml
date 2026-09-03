@@ -31,6 +31,11 @@ services:
       Plaid__ClientId: ${PLAID_CLIENT_ID:?Set PLAID_CLIENT_ID}
       Plaid__Secret: ${PLAID_SECRET:?Set PLAID_SECRET}
       Plaid__Environment: ${PLAID_ENVIRONMENT:?Set PLAID_ENVIRONMENT}
+      IdentityEmail__Enabled: ${BILLWATCH_IDENTITY_EMAIL_ENABLED:-false}
+      IdentityEmail__ApiKey: ${RESEND_API_KEY:-}
+      IdentityEmail__FromAddress: ${BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS:-security@billbeacon.net}
+      IdentityEmail__FromName: ${BILLWATCH_IDENTITY_EMAIL_FROM_NAME:-BillWatch}
+      IdentityEmail__PublicWebBaseUrl: https://${BILLWATCH_WEB_HOST:?Set BILLWATCH_WEB_HOST}
       ReverseProxy__KnownProxies__0: 172.28.0.10
       StatementAi__OpenAI__Enabled: "false"
       StatementAi__Shadow__Enabled: "false"
