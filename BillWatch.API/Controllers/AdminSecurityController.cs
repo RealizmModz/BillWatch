@@ -36,6 +36,7 @@ public sealed class AdminSecurityController(
             {
                 item.Id,
                 item.DisplayPrefix,
+                item.Label,
                 item.Purpose,
                 item.Tier,
                 item.DurationDays,
@@ -55,6 +56,7 @@ public sealed class AdminSecurityController(
             .Select(item => new AdminAccessKeySummary(
                 item.Id,
                 item.DisplayPrefix,
+                item.Label,
                 item.Purpose.ToString(),
                 item.Tier.ToString(),
                 item.DurationDays,
@@ -158,6 +160,7 @@ public sealed record AdminPage<T>(
 public sealed record AdminAccessKeySummary(
     Guid Id,
     string DisplayPrefix,
+    string? Label,
     string Purpose,
     string Tier,
     int? DurationDays,
