@@ -7,17 +7,18 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<Profile> L
 
-<PageTitle>Profile — BillWatch</PageTitle>
+<PageTitle>@L["Profile — BillWatch"]</PageTitle>
 
 <link rel="stylesheet" href="/account-settings.css" />
 
 <div class="app-page settings-page">
     <header class="page-heading">
         <div>
-            <span class="page-kicker">Account</span>
-            <h1>Profile</h1>
-            <p>Manage the personal information BillWatch keeps for your account.</p>
+            <span class="page-kicker">@L["Account"]</span>
+            <h1>@L["Profile"]</h1>
+            <p>@L["Manage the personal information BillWatch keeps for your account."]</p>
         </div>
     </header>
 
@@ -39,31 +40,31 @@
 
     <section class="settings-card">
         <div class="settings-copy">
-            <span class="panel-kicker">Profile</span>
-            <h2>Display name</h2>
-            <p>This is the name BillWatch can use to personalize your account. It is optional and does not change your sign-in email.</p>
+            <span class="panel-kicker">@L["Profile"]</span>
+            <h2>@L["Display name"]</h2>
+            <p>@L["This is the name BillWatch can use to personalize your account. It is optional and does not change your sign-in email."]</p>
         </div>
 
         @if (_security is null)
         {
-            <p>Loading profile…</p>
+            <p>@L["Loading profile…"]</p>
         }
         else
         {
             <div class="settings-grid two-column">
                 <label class="settings-field">
-                    <span>Display name</span>
+                    <span>@L["Display name"]</span>
                     <input type="text"
                            autocomplete="name"
                            maxlength="80"
-                           placeholder="How should BillWatch address you?"
+                           placeholder="@L["How should BillWatch address you?"]"
                            @bind="_displayName" />
                 </label>
 
                 <div class="settings-field">
-                    <span>Sign-in email</span>
+                    <span>@L["Sign-in email"]</span>
                     <strong>@_security.Email</strong>
-                    <small>@(_security.EmailConfirmed ? "Verified" : "Not verified")</small>
+                    <small>@(_security.EmailConfirmed ? L["Verified"] : L["Not verified"])</small>
                 </div>
             </div>
 
@@ -72,17 +73,17 @@
                         class="primary-action"
                         disabled="@_isBusy"
                         @onclick="SaveProfileAsync">
-                    Save profile
+                    @L["Save profile"]
                 </button>
 
                 <a class="secondary-action"
                    href="/app/account/settings">
-                    Manage email & security
+                    @L["Manage email & security"]
                 </a>
             </div>
 
             <p class="security-note">
-                BillWatch deliberately keeps this profile small. Your bank data remains separate and is not used as profile information.
+                @L["BillWatch deliberately keeps this profile small. Your bank data remains separate and is not used as profile information."]
             </p>
         }
     </section>
@@ -116,7 +117,7 @@
         }
         catch (Exception ex) when (ex is JSException or JSDisconnectedException)
         {
-            _error = "BillWatch could not load your profile.";
+            _error = L["BillWatch could not load your profile."];
         }
         finally
         {
@@ -136,7 +137,7 @@
 
         if (normalizedDisplayName.Length > 80)
         {
-            _error = "Display name must be 80 characters or fewer.";
+            _error = L["Display name must be 80 characters or fewer."];
             _success = null;
             return;
         }
@@ -153,13 +154,13 @@
 
             _displayName = _security.DisplayName;
             _success = string.IsNullOrWhiteSpace(_displayName)
-                ? "Display name cleared."
-                : "Profile saved.";
+                ? L["Display name cleared."]
+                : L["Profile saved."];
         }
         catch (JSException ex)
         {
             _error = string.IsNullOrWhiteSpace(ex.Message)
-                ? "BillWatch could not update your profile."
+                ? L["BillWatch could not update your profile."]
                 : ex.Message;
         }
         finally
