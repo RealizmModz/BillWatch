@@ -25,6 +25,7 @@ services:
       ConnectionStrings__BillWatchDatabase: Host=database;Port=5432;Database=billwatch;Username=billwatch;Password=${BILLWATCH_DATABASE_PASSWORD:?Set BILLWATCH_DATABASE_PASSWORD}
       Database__MigrateOnStartup: "true"
       Subscription__EnforcementEnabled: ${BILLWATCH_SUBSCRIPTION_ENFORCEMENT_ENABLED:-false}
+      Subscription__EnforcementCohort: ${BILLWATCH_SUBSCRIPTION_ENFORCEMENT_COHORT:-All}
       DataProtection__KeysPath: /var/lib/billwatch/keys
       BillStatementStorage__RootPath: /var/lib/billwatch/statements
       Plaid__ClientId: ${PLAID_CLIENT_ID:?Set PLAID_CLIENT_ID}

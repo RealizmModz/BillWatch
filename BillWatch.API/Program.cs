@@ -195,6 +195,9 @@ builder.Services.AddScoped<
     IAuthorizationHandler,
     ActiveSubscriptionAuthorizationHandler>();
 
+builder.Services.AddSingleton<
+    SubscriptionAuthorizationTelemetry>();
+
 builder.Services.AddSingleton(
     TimeProvider.System);
 

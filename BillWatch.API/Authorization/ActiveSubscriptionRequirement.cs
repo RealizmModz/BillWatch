@@ -12,9 +12,22 @@ public sealed class ActiveSubscriptionRequirement
 
 public sealed class ActiveSubscriptionAuthorizationHandler(
     BillWatchDbContext dbContext,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    IConfiguration configuration,
+    SubscriptionAuthorizationTelemetry telemetry)
     : AuthorizationHandler<ActiveSubscriptionRequirement>
 {
+    public ActiveSubscriptionAuthorizationHandler(
+        BillWatchDbContext dbContext,
+        TimeProvider timeProvider)
+        : this(
+            dbContext,
+            timeProvider,
+            new ConfigurationBuilder().Build(),
+            new SubscriptionAuthorizationTelemetry())
+    {
+    }
+
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         ActiveSubscriptionRequirement requirement)
@@ -31,10 +44,19 @@ public sealed class ActiveSubscriptionAuthorizationHandler(
 
         if (!Guid.TryParse(userIdValue, out var userId))
         {
+            telemetry.RecordDenial("missing_user");
             return;
         }
 
         var nowUtc = timeProvider.GetUtcNow();
+
+        if (!await IsTargetedForEnforcementAsync(
+                userId,
+                nowUtc))
+        {
+            context.Succeed(requirement);
+            return;
+        }
 
         var hasActiveEntitlement =
             await dbContext.Set<Data.Entities.SubscriptionEntitlementEntity>()
@@ -50,7 +72,53 @@ public sealed class ActiveSubscriptionAuthorizationHandler(
         if (hasActiveEntitlement)
         {
             context.Succeed(requirement);
+            return;
         }
+
+        telemetry.RecordDenial("inactive_subscription");
+    }
+
+    private async Task<bool> IsTargetedForEnforcementAsync(
+        Guid userId,
+        DateTimeOffset nowUtc)
+    {
+        var cohort = configuration["Subscription:EnforcementCohort"];
+        if (string.IsNullOrWhiteSpace(cohort) ||
+            string.Equals(cohort, "All", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var programs = string.Equals(
+                cohort,
+                "InternalTester",
+                StringComparison.OrdinalIgnoreCase)
+            ? new[] { Data.Entities.UserProgramType.InternalTester }
+            : string.Equals(
+                cohort,
+                "BetaTester",
+                StringComparison.OrdinalIgnoreCase)
+                ? new[]
+                {
+                    Data.Entities.UserProgramType.InternalTester,
+                    Data.Entities.UserProgramType.BetaTester
+                }
+                : null;
+
+        if (programs is null)
+        {
+            return true;
+        }
+
+        return await dbContext.UserProgramMemberships
+            .AsNoTracking()
+            .AnyAsync(
+                membership => membership.UserId == userId &&
+                    programs.Contains(membership.Program) &&
+                    membership.IsActive &&
+                    membership.StartsAtUtc <= nowUtc &&
+                    (membership.EndsAtUtc == null ||
+                     membership.EndsAtUtc > nowUtc));
     }
 
     private static bool IsSubscriptionAccessExempt(object? resource)

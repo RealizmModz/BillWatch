@@ -1,0 +1,10 @@
+.subscription-page { max-width: 760px; }
+.subscription-card { display: grid; gap: 1rem; padding: 2rem; border: 1px solid var(--border-color, #dfe5ec); border-radius: 18px; background: var(--surface, #fff); }
+.subscription-card h2, .subscription-card p { margin: 0; }
+.subscription-card label { font-weight: 700; }
+.subscription-card input { width: 100%; padding: .85rem 1rem; border: 1px solid #aab6c3; border-radius: 10px; font: inherit; text-transform: uppercase; }
+.subscription-action { display: inline-flex; justify-content: center; width: fit-content; padding: .8rem 1.1rem; border: 0; border-radius: 10px; background: #147d64; color: #fff; font-weight: 700; text-decoration: none; cursor: pointer; }
+.subscription-action:disabled { opacity: .6; cursor: wait; }
+.subscription-state { width: fit-content; padding: .3rem .65rem; border-radius: 999px; background: #fff1dd; color: #8a4b00; font-weight: 700; }
+.subscription-state.active { background: #dff7ed; color: #096a50; }
+.subscription-message { padding: .75rem; border-radius: 8px; background: #f4f7fa; }
