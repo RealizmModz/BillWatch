@@ -117,7 +117,7 @@ public sealed class IdentityEmailServiceTests
     }
 
     [Fact]
-    public async Task DisabledSender_FailsBeforeNetworkRequest()
+    public async Task DisabledSender_IsNoOpAndDoesNotUseNetwork()
     {
         var handler =
             new RecordingHandler();
@@ -139,12 +139,15 @@ public sealed class IdentityEmailServiceTests
                         Enabled = false
                     }));
 
-        await Assert.ThrowsAsync<
-            InvalidOperationException>(
-            () => sender.SendPasswordResetCodeAsync(
-                new ApplicationUser(),
-                "person@example.com",
-                "reset-code"));
+        await sender.SendPasswordResetCodeAsync(
+            new ApplicationUser(),
+            "person@example.com",
+            "reset-code");
+
+        await sender.SendConfirmationLinkAsync(
+            new ApplicationUser(),
+            "person@example.com",
+            "https://api.billbeacon.net/api/auth/confirmEmail?userId=example&code=example");
 
         Assert.Null(handler.Request);
     }
