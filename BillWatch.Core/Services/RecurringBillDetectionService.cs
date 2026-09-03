@@ -1,9 +1,13 @@
-﻿using BillWatch.Core.Models;
+using BillWatch.Core.Models;
 
 namespace BillWatch.Core.Services;
 
 public sealed class RecurringBillDetectionService
 {
+    private const int MinimumMonthlyDays = 23;
+    private const int MaximumMonthlyDays = 38;
+    private const decimal ApproximateMonthDays = 30.4375m;
+
     public IReadOnlyList<RecurringBillDetectionResult> Detect(
         IEnumerable<BankTransaction> transactions)
     {
@@ -31,23 +35,19 @@ public sealed class RecurringBillDetectionService
 
             var intervals = new List<int>();
 
-            for (int i = 1; i < merchantTransactions.Count; i++)
+            for (var i = 1; i < merchantTransactions.Count; i++)
             {
-                int daysBetween =
+                var daysBetween =
                     merchantTransactions[i].PostedDate.DayNumber -
                     merchantTransactions[i - 1].PostedDate.DayNumber;
 
-                intervals.Add(daysBetween);
+                if (daysBetween > 0)
+                {
+                    intervals.Add(daysBetween);
+                }
             }
 
-            int monthlyIntervals = intervals.Count(days =>
-                days >= 25 &&
-                days <= 35);
-
-            bool isMonthly =
-                monthlyIntervals >= intervals.Count * 0.75m;
-
-            if (!isMonthly)
+            if (!IsMonthlyCadence(intervals))
             {
                 continue;
             }
@@ -60,18 +60,18 @@ public sealed class RecurringBillDetectionService
                     .Take(merchantTransactions.Count - 1)
                     .ToList();
 
-            decimal historicalAverage = decimal.Round(
+            var historicalAverage = decimal.Round(
                 previousTransactions.Average(
                     transaction => transaction.Amount),
                 2,
                 MidpointRounding.AwayFromZero);
 
-            decimal latestDifference = decimal.Round(
+            var latestDifference = decimal.Round(
                 latestTransaction.Amount - historicalAverage,
                 2,
                 MidpointRounding.AwayFromZero);
 
-            decimal latestPercentageChange =
+            var latestPercentageChange =
                 historicalAverage == 0m
                     ? 0m
                     : decimal.Round(
@@ -81,18 +81,18 @@ public sealed class RecurringBillDetectionService
                         2,
                         MidpointRounding.AwayFromZero);
 
-            decimal minimumAmount =
+            var minimumAmount =
                 merchantTransactions.Min(
                     transaction => transaction.Amount);
 
-            decimal maximumAmount =
+            var maximumAmount =
                 merchantTransactions.Max(
                     transaction => transaction.Amount);
 
-            bool hasVariableAmount =
+            var hasVariableAmount =
                 maximumAmount - minimumAmount > 1.00m;
 
-            bool hasMeaningfulChange =
+            var hasMeaningfulChange =
                 Math.Abs(latestDifference) >= 5.00m &&
                 Math.Abs(latestPercentageChange) >= 10.00m;
 
@@ -114,6 +114,75 @@ public sealed class RecurringBillDetectionService
             .OrderByDescending(result => result.LatestAmount)
             .ToList()
             .AsReadOnly();
+    }
+
+    private static bool IsMonthlyCadence(
+        IReadOnlyCollection<int> intervals)
+    {
+        if (intervals.Count < 2)
+        {
+            return false;
+        }
+
+        var directMonthlyIntervals =
+            intervals.Count(IsDirectMonthlyInterval);
+
+        var monthlyEquivalentIntervals =
+            intervals.Count(IsMonthlyEquivalentInterval);
+
+        var minimumEquivalentIntervals =
+            (int)Math.Ceiling(
+                intervals.Count * 0.75m);
+
+        var minimumDirectMonthlyIntervals =
+            Math.Max(
+                1,
+                (int)Math.Ceiling(
+                    intervals.Count * 0.50m));
+
+        return directMonthlyIntervals >=
+                   minimumDirectMonthlyIntervals &&
+               monthlyEquivalentIntervals >=
+                   minimumEquivalentIntervals;
+    }
+
+    private static bool IsDirectMonthlyInterval(
+        int days)
+    {
+        return days >= MinimumMonthlyDays &&
+               days <= MaximumMonthlyDays;
+    }
+
+    private static bool IsMonthlyEquivalentInterval(
+        int days)
+    {
+        if (IsDirectMonthlyInterval(days))
+        {
+            return true;
+        }
+
+        /*
+         * Allow one skipped/missing monthly observation without turning
+         * genuinely quarterly charges into monthly Bill Streams.
+         *
+         * Example: 30 days followed by 60 days still has evidence of a
+         * monthly cadence. Repeated 90-day intervals do not.
+         */
+        var inferredCycles =
+            (int)Math.Round(
+                days / ApproximateMonthDays,
+                MidpointRounding.AwayFromZero);
+
+        if (inferredCycles != 2)
+        {
+            return false;
+        }
+
+        var daysPerCycle =
+            days / (decimal)inferredCycles;
+
+        return daysPerCycle >= MinimumMonthlyDays &&
+               daysPerCycle <= MaximumMonthlyDays;
     }
 }
 
