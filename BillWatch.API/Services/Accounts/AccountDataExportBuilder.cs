@@ -1,12 +1,13 @@
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace BillWatch.API.Services.Accounts;
 
 public static class AccountDataExportBuilder
 {
-    public const string CurrentSchemaVersion = "1.0";
+    public const string CurrentSchemaVersion = "1.1";
 
     public static async Task<AccountDataExportResult> CreateAsync(
         BillWatchDbContext dbContext,
@@ -17,6 +18,19 @@ public static class AccountDataExportBuilder
         ArgumentNullException.ThrowIfNull(user);
 
         var userId = user.Id;
+
+        var displayName =
+            await dbContext
+                .Set<IdentityUserClaim<Guid>>()
+                .AsNoTracking()
+                .Where(
+                    claim =>
+                        claim.UserId == userId &&
+                        claim.ClaimType == ApplicationUser.DisplayNameClaimType)
+                .OrderBy(claim => claim.Id)
+                .Select(claim => claim.ClaimValue)
+                .FirstOrDefaultAsync(cancellationToken)
+            ?? string.Empty;
 
         var bankConnections =
             await dbContext.BankConnections
@@ -111,6 +125,7 @@ public static class AccountDataExportBuilder
             SchemaVersion: CurrentSchemaVersion,
             ExportedAtUtc: DateTimeOffset.UtcNow,
             Profile: new AccountProfileExport(
+                DisplayName: displayName,
                 Email: user.Email ?? string.Empty,
                 CreatedAtUtc: user.CreatedAtUtc,
                 LastLoginAtUtc: user.LastLoginAtUtc,
@@ -280,6 +295,7 @@ public sealed record AccountDataExportResult(
     IReadOnlyList<PlaidLinkSessionExport> PlaidLinkSessions);
 
 public sealed record AccountProfileExport(
+    string DisplayName,
     string Email,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? LastLoginAtUtc,
