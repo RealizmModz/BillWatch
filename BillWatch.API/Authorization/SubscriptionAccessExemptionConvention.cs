@@ -44,7 +44,8 @@ public static class SubscriptionAccessExemptionRules
         if (controllerType == typeof(SubscriptionController) ||
             controllerType == typeof(AdminSecurityController) ||
             controllerType == typeof(AdminSubscriptionController) ||
-            controllerType == typeof(AdminUsersController))
+            controllerType == typeof(AdminUsersController) ||
+            controllerType == typeof(AccountSecurityController))
         {
             return true;
         }
