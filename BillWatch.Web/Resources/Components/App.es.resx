@@ -12,70 +12,125 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="BillWatch dashboard" xml:space="preserve">
-    <value>Panel de BillWatch</value>
-  </data>
-  <data name="BillWatch navigation" xml:space="preserve">
-    <value>Navegación de BillWatch</value>
-  </data>
-  <data name="Overview" xml:space="preserve">
-    <value>Resumen</value>
-  </data>
-  <data name="Bills" xml:space="preserve">
-    <value>Facturas</value>
-  </data>
-  <data name="Activity" xml:space="preserve">
-    <value>Actividad</value>
-  </data>
-  <data name="Subscription" xml:space="preserve">
-    <value>Suscripción</value>
-  </data>
-  <data name="Settings" xml:space="preserve">
-    <value>Configuración</value>
-  </data>
-  <data name="Account" xml:space="preserve">
-    <value>Cuenta</value>
-  </data>
-  <data name="Signed in" xml:space="preserve">
-    <value>Sesión iniciada</value>
-  </data>
-  <data name="Sign out" xml:space="preserve">
-    <value>Cerrar sesión</value>
-  </data>
-  <data name="Secure session" xml:space="preserve">
-    <value>Sesión segura</value>
-  </data>
-  <data name="BillWatch user" xml:space="preserve">
-    <value>Usuario de BillWatch</value>
-  </data>
-  <data name="BillWatch home" xml:space="preserve">
-    <value>Inicio de BillWatch</value>
-  </data>
-  <data name="Primary navigation" xml:space="preserve">
-    <value>Navegación principal</value>
-  </data>
-  <data name="How it works" xml:space="preserve">
-    <value>Cómo funciona</value>
-  </data>
-  <data name="Example" xml:space="preserve">
-    <value>Ejemplo</value>
-  </data>
-  <data name="Security" xml:space="preserve">
-    <value>Seguridad</value>
-  </data>
-  <data name="Dashboard" xml:space="preserve">
-    <value>Panel</value>
-  </data>
-  <data name="Sign in" xml:space="preserve">
-    <value>Iniciar sesión</value>
-  </data>
-  <data name="Get started" xml:space="preserve">
-    <value>Comenzar</value>
-  </data>
-  <data name="Know when your bills change — and why." xml:space="preserve">
-    <value>Sepa cuándo cambian sus facturas y por qué.</value>
-  </data>
-  <data name="Built around privacy, clarity, and evidence." xml:space="preserve">
-    <value>Diseñado en torno a la privacidad, la claridad y la evidencia.</value>
-  </data>
+  <data name="BillWatch dashboard" xml:space="preserve"><value>Panel de BillWatch</value></data>
+  <data name="BillWatch navigation" xml:space="preserve"><value>Navegación de BillWatch</value></data>
+  <data name="Overview" xml:space="preserve"><value>Resumen</value></data>
+  <data name="Bills" xml:space="preserve"><value>Facturas</value></data>
+  <data name="Activity" xml:space="preserve"><value>Actividad</value></data>
+  <data name="Subscription" xml:space="preserve"><value>Suscripción</value></data>
+  <data name="Settings" xml:space="preserve"><value>Configuración</value></data>
+  <data name="Account" xml:space="preserve"><value>Cuenta</value></data>
+  <data name="Signed in" xml:space="preserve"><value>Sesión iniciada</value></data>
+  <data name="Sign out" xml:space="preserve"><value>Cerrar sesión</value></data>
+  <data name="Secure session" xml:space="preserve"><value>Sesión segura</value></data>
+  <data name="BillWatch user" xml:space="preserve"><value>Usuario de BillWatch</value></data>
+  <data name="BillWatch home" xml:space="preserve"><value>Inicio de BillWatch</value></data>
+  <data name="Primary navigation" xml:space="preserve"><value>Navegación principal</value></data>
+  <data name="How it works" xml:space="preserve"><value>Cómo funciona</value></data>
+  <data name="Example" xml:space="preserve"><value>Ejemplo</value></data>
+  <data name="Security" xml:space="preserve"><value>Seguridad</value></data>
+  <data name="Dashboard" xml:space="preserve"><value>Panel</value></data>
+  <data name="Sign in" xml:space="preserve"><value>Iniciar sesión</value></data>
+  <data name="Get started" xml:space="preserve"><value>Comenzar</value></data>
+  <data name="Know when your bills change — and why." xml:space="preserve"><value>Sepa cuándo cambian sus facturas y por qué.</value></data>
+  <data name="Built around privacy, clarity, and evidence." xml:space="preserve"><value>Diseñado en torno a la privacidad, la claridad y la evidencia.</value></data>
+
+  <data name="Sign in — BillWatch" xml:space="preserve"><value>Iniciar sesión — BillWatch</value></data>
+  <data name="Welcome back" xml:space="preserve"><value>Bienvenido de nuevo</value></data>
+  <data name="Sign in to BillWatch" xml:space="preserve"><value>Inicia sesión en BillWatch</value></data>
+  <data name="Keep watching the recurring costs that matter." xml:space="preserve"><value>Sigue vigilando los gastos recurrentes que importan.</value></data>
+  <data name="Email address" xml:space="preserve"><value>Correo electrónico</value></data>
+  <data name="Password" xml:space="preserve"><value>Contraseña</value></data>
+  <data name="Enter your password" xml:space="preserve"><value>Introduce tu contraseña</value></data>
+  <data name="Keep me signed in" xml:space="preserve"><value>Mantener la sesión iniciada</value></data>
+  <data name="New to BillWatch?" xml:space="preserve"><value>¿Nuevo en BillWatch?</value></data>
+  <data name="Create an account" xml:space="preserve"><value>Crear una cuenta</value></data>
+  <data name="Back to BillWatch" xml:space="preserve"><value>Volver a BillWatch</value></data>
+
+  <data name="Create account — BillWatch" xml:space="preserve"><value>Crear cuenta — BillWatch</value></data>
+  <data name="Create your account" xml:space="preserve"><value>Crea tu cuenta</value></data>
+  <data name="One account for your BillWatch financial history." xml:space="preserve"><value>Una cuenta para tu historial financiero de BillWatch.</value></data>
+  <data name="Create a strong password" xml:space="preserve"><value>Crea una contraseña segura</value></data>
+  <data name="Confirm password" xml:space="preserve"><value>Confirmar contraseña</value></data>
+  <data name="Enter it again" xml:space="preserve"><value>Introdúcela de nuevo</value></data>
+  <data name="Password requirements" xml:space="preserve"><value>Requisitos de la contraseña</value></data>
+  <data name="At least 12 characters" xml:space="preserve"><value>Al menos 12 caracteres</value></data>
+  <data name="Uppercase and lowercase letter" xml:space="preserve"><value>Letra mayúscula y minúscula</value></data>
+  <data name="Number and special character" xml:space="preserve"><value>Número y carácter especial</value></data>
+  <data name="Create account" xml:space="preserve"><value>Crear cuenta</value></data>
+  <data name="BillWatch accounts are used to keep financial records isolated to their owner." xml:space="preserve"><value>Las cuentas de BillWatch mantienen los registros financieros aislados para su propietario.</value></data>
+  <data name="Already have an account?" xml:space="preserve"><value>¿Ya tienes una cuenta?</value></data>
+
+  <data name="BillWatch — Know when your bills change" xml:space="preserve"><value>BillWatch — Sepa cuándo cambian sus facturas</value></data>
+  <data name="Automated bill intelligence" xml:space="preserve"><value>Inteligencia automatizada de facturas</value></data>
+  <data name="Know when your bills" xml:space="preserve"><value>Sepa cuándo sus facturas</value></data>
+  <data name="change — and why." xml:space="preserve"><value>cambian y por qué.</value></data>
+  <data name="BillWatch watches recurring bills, catches meaningful increases, and explains what changed and what it could cost you over time." xml:space="preserve"><value>BillWatch vigila las facturas recurrentes, detecta aumentos importantes y explica qué cambió y cuánto podría costarte con el tiempo.</value></data>
+  <data name="See how BillWatch works" xml:space="preserve"><value>Ver cómo funciona BillWatch</value></data>
+  <data name="View an example" xml:space="preserve"><value>Ver un ejemplo</value></data>
+  <data name="Read-only monitoring" xml:space="preserve"><value>Monitoreo de solo lectura</value></data>
+  <data name="No money movement" xml:space="preserve"><value>Sin movimiento de dinero</value></data>
+  <data name="Evidence-first explanations" xml:space="preserve"><value>Explicaciones basadas primero en evidencia</value></data>
+  <data name="Watching" xml:space="preserve"><value>Vigilando</value></data>
+  <data name="New costs detected" xml:space="preserve"><value>Nuevos costos detectados</value></data>
+  <data name="per year" xml:space="preserve"><value>por año</value></data>
+  <data name="bills monitored" xml:space="preserve"><value>facturas monitoreadas</value></data>
+  <data name="Internet provider" xml:space="preserve"><value>Proveedor de internet</value></data>
+  <data name="Monthly service" xml:space="preserve"><value>Servicio mensual</value></data>
+  <data name="Increase" xml:space="preserve"><value>Aumento</value></data>
+  <data name="Previous" xml:space="preserve"><value>Anterior</value></data>
+  <data name="Current" xml:space="preserve"><value>Actual</value></data>
+  <data name="Monthly change" xml:space="preserve"><value>Cambio mensual</value></data>
+  <data name="Annual impact" xml:space="preserve"><value>Impacto anual</value></data>
+  <data name="Why it changed" xml:space="preserve"><value>Por qué cambió</value></data>
+  <data name="Promotion ended" xml:space="preserve"><value>La promoción terminó</value></data>
+  <data name="Service fee increased" xml:space="preserve"><value>Aumentó la tarifa de servicio</value></data>
+  <data name="Base service" xml:space="preserve"><value>Servicio base</value></data>
+  <data name="No change" xml:space="preserve"><value>Sin cambios</value></data>
+  <data name="Example BillWatch analysis" xml:space="preserve"><value>Ejemplo de análisis de BillWatch</value></data>
+  <data name="BillWatch capabilities" xml:space="preserve"><value>Capacidades de BillWatch</value></data>
+  <data name="Detect recurring bills" xml:space="preserve"><value>Detectar facturas recurrentes</value></data>
+  <data name="Catch meaningful changes" xml:space="preserve"><value>Detectar cambios importantes</value></data>
+  <data name="Explain the evidence" xml:space="preserve"><value>Explicar la evidencia</value></data>
+  <data name="Show the real impact" xml:space="preserve"><value>Mostrar el impacto real</value></data>
+  <data name="Your bills change quietly." xml:space="preserve"><value>Tus facturas cambian en silencio.</value></data>
+  <data name="BillWatch doesn't." xml:space="preserve"><value>BillWatch no.</value></data>
+  <data name="Instead of asking you to maintain another budget, BillWatch focuses on the recurring costs already moving through your financial life." xml:space="preserve"><value>En lugar de pedirte que mantengas otro presupuesto, BillWatch se centra en los costos recurrentes que ya forman parte de tu vida financiera.</value></data>
+  <data name="Find recurring bills" xml:space="preserve"><value>Encontrar facturas recurrentes</value></data>
+  <data name="BillWatch identifies recurring services and watches their history over time." xml:space="preserve"><value>BillWatch identifica servicios recurrentes y vigila su historial con el tiempo.</value></data>
+  <data name="Internet · Mobile · Utilities" xml:space="preserve"><value>Internet · Móvil · Servicios públicos</value></data>
+  <data name="Detect what changed" xml:space="preserve"><value>Detectar qué cambió</value></data>
+  <data name="A meaningful increase, decrease, new charge, or unusual amount gets surfaced instead of disappearing into transaction history." xml:space="preserve"><value>Un aumento, una disminución, un cargo nuevo o un importe inusual se destaca en lugar de perderse en el historial de transacciones.</value></data>
+  <data name="Explain why" xml:space="preserve"><value>Explicar por qué</value></data>
+  <data name="When statement evidence is available, BillWatch connects the total change to the charges that caused it." xml:space="preserve"><value>Cuando hay evidencia de un estado de cuenta, BillWatch conecta el cambio total con los cargos que lo causaron.</value></data>
+  <data name="Evidence first. No guessing." xml:space="preserve"><value>Primero la evidencia. Sin adivinar.</value></data>
+  <data name="The difference" xml:space="preserve"><value>La diferencia</value></data>
+  <data name="A bank tells you" xml:space="preserve"><value>Un banco te dice</value></data>
+  <data name="what was charged." xml:space="preserve"><value>qué se cobró.</value></data>
+  <data name="BillWatch is built to go one level deeper: what changed, why it changed, and what that recurring increase means over a year." xml:space="preserve"><value>BillWatch está diseñado para ir un nivel más allá: qué cambió, por qué cambió y qué significa ese aumento recurrente a lo largo de un año.</value></data>
+  <data name="Meaningful change detection" xml:space="preserve"><value>Detección de cambios importantes</value></data>
+  <data name="Ignore noise and surface increases that matter." xml:space="preserve"><value>Ignora el ruido y destaca los aumentos que importan.</value></data>
+  <data name="Monthly + annual impact" xml:space="preserve"><value>Impacto mensual + anual</value></data>
+  <data name="Turn a small-looking monthly increase into its actual long-term cost." xml:space="preserve"><value>Convierte un pequeño aumento mensual en su costo real a largo plazo.</value></data>
+  <data name="Evidence-backed explanations" xml:space="preserve"><value>Explicaciones respaldadas por evidencia</value></data>
+  <data name="BillWatch should say “we don't know yet” instead of inventing a reason." xml:space="preserve"><value>BillWatch debe decir “aún no lo sabemos” en lugar de inventar una razón.</value></data>
+  <data name="Example change" xml:space="preserve"><value>Cambio de ejemplo</value></data>
+  <data name="Internet" xml:space="preserve"><value>Internet</value></data>
+  <data name="Confirmed" xml:space="preserve"><value>Confirmado</value></data>
+  <data name="Monthly increase" xml:space="preserve"><value>Aumento mensual</value></data>
+  <data name="Annualized impact" xml:space="preserve"><value>Impacto anualizado</value></data>
+  <data name="Promotion expired" xml:space="preserve"><value>La promoción venció</value></data>
+  <data name="New service fee" xml:space="preserve"><value>Nueva tarifa de servicio</value></data>
+  <data name="Example based on transaction + statement evidence" xml:space="preserve"><value>Ejemplo basado en evidencia de transacciones + estados de cuenta</value></data>
+  <data name="Built for sensitive data" xml:space="preserve"><value>Diseñado para datos sensibles</value></data>
+  <data name="Financial visibility without financial control." xml:space="preserve"><value>Visibilidad financiera sin control financiero.</value></data>
+  <data name="BillWatch is designed around monitoring and explanation, not moving money. Sensitive financial information belongs behind authenticated, user-scoped access." xml:space="preserve"><value>BillWatch está diseñado para monitorear y explicar, no para mover dinero. La información financiera sensible debe permanecer detrás de un acceso autenticado y limitado al usuario.</value></data>
+  <data name="Read-only product model" xml:space="preserve"><value>Modelo de producto de solo lectura</value></data>
+  <data name="User-scoped financial records" xml:space="preserve"><value>Registros financieros limitados al usuario</value></data>
+  <data name="Evidence over invented answers" xml:space="preserve"><value>Evidencia antes que respuestas inventadas</value></data>
+  <data name="Bill intelligence, not another budget" xml:space="preserve"><value>Inteligencia de facturas, no otro presupuesto</value></data>
+  <data name="Your bills keep changing." xml:space="preserve"><value>Tus facturas siguen cambiando.</value></data>
+  <data name="BillWatch keeps watching." xml:space="preserve"><value>BillWatch sigue vigilando.</value></data>
+  <data name="Detect the change. Understand the reason. See what it actually costs." xml:space="preserve"><value>Detecta el cambio. Entiende la razón. Mira cuánto cuesta realmente.</value></data>
+  <data name="Explore how it works" xml:space="preserve"><value>Explorar cómo funciona</value></data>
 </root>

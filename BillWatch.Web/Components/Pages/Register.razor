@@ -1,6 +1,8 @@
 ﻿@page "/register"
 
-<PageTitle>Create account — BillWatch</PageTitle>
+@inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
+
+<PageTitle>@L["Create account — BillWatch"]</PageTitle>
 
 <link rel="stylesheet"
       href="/auth.css" />
@@ -24,16 +26,15 @@
         <div class="auth-card">
             <div class="auth-heading">
                 <span class="auth-kicker">
-                    Get started
+                    @L["Get started"]
                 </span>
 
                 <h1>
-                    Create your account
+                    @L["Create your account"]
                 </h1>
 
                 <p>
-                    One account for your BillWatch
-                    financial history.
+                    @L["One account for your BillWatch financial history."]
                 </p>
             </div>
 
@@ -54,7 +55,7 @@
                 <AntiforgeryToken />
 
                 <label class="field">
-                    <span>Email address</span>
+                    <span>@L["Email address"]</span>
 
                     <input type="email"
                            name="email"
@@ -65,48 +66,48 @@
                 </label>
 
                 <label class="field">
-                    <span>Password</span>
+                    <span>@L["Password"]</span>
 
                     <input type="password"
                            name="password"
                            autocomplete="new-password"
-                           placeholder="Create a strong password"
+                           placeholder="@L["Create a strong password"]"
                            minlength="12"
                            required />
                 </label>
 
                 <label class="field">
-                    <span>Confirm password</span>
+                    <span>@L["Confirm password"]</span>
 
                     <input type="password"
                            name="confirmPassword"
                            autocomplete="new-password"
-                           placeholder="Enter it again"
+                           placeholder="@L["Enter it again"]"
                            minlength="12"
                            required />
                 </label>
 
                 <div class="password-rules">
                     <strong>
-                        Password requirements
+                        @L["Password requirements"]
                     </strong>
 
                     <span>
-                        At least 12 characters
+                        @L["At least 12 characters"]
                     </span>
 
                     <span>
-                        Uppercase and lowercase letter
+                        @L["Uppercase and lowercase letter"]
                     </span>
 
                     <span>
-                        Number and special character
+                        @L["Number and special character"]
                     </span>
                 </div>
 
                 <button class="auth-submit"
                         type="submit">
-                    Create account
+                    @L["Create account"]
 
                     <span aria-hidden="true">
                         →
@@ -115,9 +116,7 @@
             </form>
 
             <p class="privacy-note">
-                BillWatch accounts are used to keep
-                financial records isolated to their
-                owner.
+                @L["BillWatch accounts are used to keep financial records isolated to their owner."]
             </p>
 
             <div class="auth-divider">
@@ -125,17 +124,17 @@
             </div>
 
             <p class="auth-switch">
-                Already have an account?
+                @L["Already have an account?"]
 
                 <a href="/login">
-                    Sign in
+                    @L["Sign in"]
                 </a>
             </p>
         </div>
 
         <a class="back-home"
            href="/">
-            ← Back to BillWatch
+            ← @L["Back to BillWatch"]
         </a>
     </div>
 </div>
