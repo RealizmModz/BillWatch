@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Encodings.Web;
 using BillWatch.API.Data.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 
 namespace BillWatch.API.Services.Identity;
@@ -22,12 +23,21 @@ public sealed class ResendIdentityEmailSender(
     {
         ArgumentNullException.ThrowIfNull(user);
 
+        if (!_options.Enabled)
+        {
+            return Task.CompletedTask;
+        }
+
+        var publicConfirmationLink =
+            BuildEmailConfirmationLink(
+                confirmationLink);
+
         return SendSecurityEmailAsync(
             email,
             "Confirm your BillWatch email",
             "Confirm email",
             "Confirm this email address to protect your BillWatch account and enable secure account recovery.",
-            confirmationLink);
+            publicConfirmationLink);
     }
 
     public Task SendPasswordResetLinkAsync(
@@ -91,10 +101,12 @@ public sealed class ResendIdentityEmailSender(
             !string.Equals(
                 actionUri.Scheme,
                 Uri.UriSchemeHttps,
-                StringComparison.OrdinalIgnoreCase))
+                StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrEmpty(
+                actionUri.UserInfo))
         {
             throw new InvalidOperationException(
-                "Identity email action URLs must use HTTPS.");
+                "Identity email action URLs must use HTTPS without embedded credentials.");
         }
 
         var encodedMessage =
@@ -165,18 +177,73 @@ public sealed class ResendIdentityEmailSender(
         }
     }
 
+    private string BuildEmailConfirmationLink(
+        string generatedConfirmationLink)
+    {
+        if (!Uri.TryCreate(
+                generatedConfirmationLink,
+                UriKind.Absolute,
+                out var generatedUri))
+        {
+            throw new InvalidOperationException(
+                "Identity generated an invalid email confirmation URL.");
+        }
+
+        var query =
+            QueryHelpers.ParseQuery(
+                generatedUri.Query);
+
+        var userId =
+            query["userId"]
+                .ToString();
+
+        var code =
+            query["code"]
+                .ToString();
+
+        if (string.IsNullOrWhiteSpace(
+                userId) ||
+            string.IsNullOrWhiteSpace(
+                code))
+        {
+            throw new InvalidOperationException(
+                "Identity generated an incomplete email confirmation URL.");
+        }
+
+        var relative =
+            $"auth/confirm-email?userId={Uri.EscapeDataString(userId)}&code={Uri.EscapeDataString(code)}";
+
+        var changedEmail =
+            query["changedEmail"]
+                .ToString();
+
+        if (!string.IsNullOrWhiteSpace(
+                changedEmail))
+        {
+            relative +=
+                $"&changedEmail={Uri.EscapeDataString(changedEmail)}";
+        }
+
+        return BuildPublicWebLink(
+            relative);
+    }
+
     private string BuildPasswordResetLink(
         string email,
         string resetCode)
+    {
+        return BuildPublicWebLink(
+            $"reset-password?email={Uri.EscapeDataString(email)}&code={Uri.EscapeDataString(resetCode)}");
+    }
+
+    private string BuildPublicWebLink(
+        string relative)
     {
         var baseUri =
             new Uri(
                 EnsureTrailingSlash(
                     _options.PublicWebBaseUrl),
                 UriKind.Absolute);
-
-        var relative =
-            $"reset-password?email={Uri.EscapeDataString(email)}&code={Uri.EscapeDataString(resetCode)}";
 
         return new Uri(
                 baseUri,
@@ -199,7 +266,9 @@ public sealed class ResendIdentityEmailSender(
             !string.Equals(
                 publicWebUri.Scheme,
                 Uri.UriSchemeHttps,
-                StringComparison.OrdinalIgnoreCase))
+                StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrEmpty(
+                publicWebUri.UserInfo))
         {
             throw new InvalidOperationException(
                 "Identity email delivery is not configured securely.");
