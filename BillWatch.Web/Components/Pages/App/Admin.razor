@@ -134,48 +134,6 @@
             </div>
         }
 
-        @if (!string.IsNullOrWhiteSpace(_newPlaintextKey))
-        {
-            <section class="admin-secret-card" aria-live="polite">
-                <div>
-                    <span class="panel-kicker">
-                        One-time access key
-                    </span>
-
-                    <h2>
-                        Copy this key now
-                    </h2>
-
-                    <p>
-                        BillWatch stored only its hash. This plaintext
-                        value cannot be retrieved again after you dismiss
-                        it or leave this page.
-                    </p>
-                </div>
-
-                <code>@_newPlaintextKey</code>
-
-                <div class="admin-secret-actions">
-                    <button type="button"
-                            class="admin-primary-button"
-                            @onclick="CopyNewKeyAsync">
-                        Copy key
-                    </button>
-
-                    <button type="button"
-                            class="admin-secondary-button"
-                            @onclick="DismissNewKey">
-                        Dismiss
-                    </button>
-
-                    @if (!string.IsNullOrWhiteSpace(_copyStatus))
-                    {
-                        <span>@_copyStatus</span>
-                    }
-                </div>
-            </section>
-        }
-
         <section class="admin-panel">
             <div class="admin-panel-heading">
                 <div>
@@ -362,6 +320,59 @@
                 </div>
             </div>
 
+            @if (!string.IsNullOrWhiteSpace(_newPlaintextKey))
+            {
+                <section class="admin-secret-card" aria-live="polite">
+                    <div>
+                        <span class="panel-kicker">
+                            One-time access key
+                        </span>
+
+                        <h2>
+                            Save this key now
+                        </h2>
+
+                        <p>
+                            BillWatch stored only its hash. This plaintext
+                            value exists only in this page session and cannot
+                            be retrieved again after you dismiss it or leave.
+                        </p>
+                    </div>
+
+                    <code aria-label="@(_newKeyRevealed
+                        ? "One-time access key revealed"
+                        : "One-time access key hidden")">
+                        @GetDisplayedNewKey()
+                    </code>
+
+                    <div class="admin-secret-actions">
+                        <button type="button"
+                                class="admin-secondary-button"
+                                aria-pressed="@_newKeyRevealed.ToString().ToLowerInvariant()"
+                                @onclick="ToggleNewKeyVisibility">
+                            @(_newKeyRevealed ? "Hide key" : "Reveal key")
+                        </button>
+
+                        <button type="button"
+                                class="admin-primary-button"
+                                @onclick="CopyNewKeyAsync">
+                            Copy key
+                        </button>
+
+                        <button type="button"
+                                class="admin-secondary-button"
+                                @onclick="DismissNewKey">
+                            Dismiss
+                        </button>
+
+                        @if (!string.IsNullOrWhiteSpace(_copyStatus))
+                        {
+                            <span>@_copyStatus</span>
+                        }
+                    </div>
+                </section>
+            }
+
             @if (_accessKeys is null ||
                  _accessKeys.Items.Count == 0)
             {
@@ -535,6 +546,8 @@
     private string? _mutationError;
 
     private string? _newPlaintextKey;
+
+    private bool _newKeyRevealed;
 
     private string? _copyStatus;
 
@@ -725,6 +738,7 @@
             }
 
             _newPlaintextKey = result.Value.PlaintextKey;
+            _newKeyRevealed = false;
             _copyStatus = null;
 
             await LoadAsync(clearTransientKey: false);
@@ -830,6 +844,42 @@
         }
     }
 
+    private void ToggleNewKeyVisibility()
+    {
+        if (!string.IsNullOrWhiteSpace(_newPlaintextKey))
+        {
+            _newKeyRevealed = !_newKeyRevealed;
+        }
+    }
+
+    private string GetDisplayedNewKey()
+    {
+        if (string.IsNullOrWhiteSpace(_newPlaintextKey))
+        {
+            return string.Empty;
+        }
+
+        if (_newKeyRevealed)
+        {
+            return _newPlaintextKey;
+        }
+
+        var parts = _newPlaintextKey.Split('-');
+
+        if (parts.Length <= 1)
+        {
+            return new string('•', _newPlaintextKey.Length);
+        }
+
+        return parts[0] + "-" +
+               string.Join(
+                   '-',
+                   parts
+                       .Skip(1)
+                       .Select(part =>
+                           new string('•', part.Length)));
+    }
+
     private async Task CopyNewKeyAsync()
     {
         if (string.IsNullOrWhiteSpace(_newPlaintextKey))
@@ -857,6 +907,7 @@
     private void DismissNewKey()
     {
         _newPlaintextKey = null;
+        _newKeyRevealed = false;
         _copyStatus = null;
     }
 
