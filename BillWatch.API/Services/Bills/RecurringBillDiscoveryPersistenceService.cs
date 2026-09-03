@@ -114,9 +114,61 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     ToCoreTransaction)
                 .ToList();
 
-        var discoveredStreams =
+        var detectedStreams =
             _discoveryService.Discover(
                 coreTransactions);
+
+        var acceptedDiscoveries =
+            new List<AcceptedRecurringDiscovery>();
+
+        foreach (var detectedStream in
+                 detectedStreams)
+        {
+            var matchingTransactions =
+                candidateTransactions
+                    .Where(
+                        transaction =>
+                            string.Equals(
+                                GetNormalizedMerchantName(
+                                    transaction),
+                                detectedStream.ProviderName,
+                                StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(
+                        transaction =>
+                            transaction.PostedDate)
+                    .ToList();
+
+            if (matchingTransactions.Count ==
+                0)
+            {
+                continue;
+            }
+
+            var resolvedCategory =
+                ResolveBillCategory(
+                    matchingTransactions);
+
+            if (resolvedCategory ==
+                    BillCategory.Unknown &&
+                IsStrongUnclassifiedRecurringBill(
+                    matchingTransactions))
+            {
+                resolvedCategory =
+                    BillCategory.Other;
+            }
+
+            if (resolvedCategory ==
+                BillCategory.Unknown)
+            {
+                continue;
+            }
+
+            acceptedDiscoveries.Add(
+                new AcceptedRecurringDiscovery(
+                    detectedStream.ProviderName,
+                    matchingTransactions,
+                    resolvedCategory));
+        }
 
         var existingStreams =
             await _dbContext.BillStreams
@@ -128,10 +180,10 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     cancellationToken);
 
         var discoveredProviderNames =
-            discoveredStreams
+            acceptedDiscoveries
                 .Select(
-                    stream =>
-                        stream.ProviderName)
+                    discovery =>
+                        discovery.ProviderName)
                 .ToHashSet(
                     StringComparer.OrdinalIgnoreCase);
 
@@ -205,48 +257,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
             }
         }
 
-        foreach (var discoveredStream in
-                 discoveredStreams)
+        foreach (var discovery in
+                 acceptedDiscoveries)
         {
-            var matchingTransactions =
-                candidateTransactions
-                    .Where(
-                        transaction =>
-                            string.Equals(
-                                GetNormalizedMerchantName(
-                                    transaction),
-                                discoveredStream.ProviderName,
-                                StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(
-                        transaction =>
-                            transaction.PostedDate)
-                    .ToList();
-
-            if (matchingTransactions.Count ==
-                0)
-            {
-                continue;
-            }
-
-            var resolvedCategory =
-                ResolveBillCategory(
-                    matchingTransactions);
-
-            if (resolvedCategory ==
-                    BillCategory.Unknown &&
-                IsStrongUnclassifiedRecurringBill(
-                    matchingTransactions))
-            {
-                resolvedCategory =
-                    BillCategory.Other;
-            }
-
-            if (resolvedCategory ==
-                BillCategory.Unknown)
-            {
-                continue;
-            }
-
             var persistedStream =
                 existingStreams
                     .FirstOrDefault(
@@ -254,7 +267,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                             string.Equals(
                                 _merchantNormalizer.Normalize(
                                     existing.ProviderName),
-                                discoveredStream.ProviderName,
+                                discovery.ProviderName,
                                 StringComparison.OrdinalIgnoreCase));
 
             if (persistedStream is
@@ -268,10 +281,10 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
                         ProviderName =
                             GetMerchantName(
-                                matchingTransactions[0]),
+                                discovery.Transactions[0]),
 
                         Category =
-                            resolvedCategory,
+                            discovery.Category,
 
                         Source =
                             BillStreamSource.AutomaticDiscovery,
@@ -306,7 +319,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                         .EnsureNewBillAlertAsync(
                             userId,
                             persistedStream,
-                            matchingTransactions.Count,
+                            discovery.Transactions.Count,
                             now,
                             cancellationToken);
 
@@ -321,7 +334,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     false;
 
                 var wasAlreadyLinked =
-                    matchingTransactions
+                    discovery.Transactions
                         .Any(
                             transaction =>
                                 transaction.BillStreamId ==
@@ -340,11 +353,11 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
                 if (persistedStream.Category ==
                         BillCategory.Unknown &&
-                    resolvedCategory !=
+                    discovery.Category !=
                         BillCategory.Unknown)
                 {
                     persistedStream.Category =
-                        resolvedCategory;
+                        discovery.Category;
 
                     changed =
                         true;
@@ -369,7 +382,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
             }
 
             foreach (var transaction in
-                     matchingTransactions)
+                     discovery.Transactions)
             {
                 if (transaction.BillStreamId ==
                     persistedStream.Id)
@@ -399,7 +412,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 coreTransactions.Count,
 
             BillsDiscovered:
-                discoveredStreams.Count,
+                acceptedDiscoveries.Count,
 
             BillStreamsCreated:
                 createdCount,
@@ -642,6 +655,11 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
         return merchantName.Trim();
     }
+
+    private sealed record AcceptedRecurringDiscovery(
+        string ProviderName,
+        IReadOnlyList<BankTransactionEntity> Transactions,
+        BillCategory Category);
 }
 
 public sealed record RecurringBillDiscoveryPersistenceResult(
