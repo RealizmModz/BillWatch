@@ -1,4 +1,4 @@
-﻿using BillWatch.API.Data;
+using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.Core.Services;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +13,25 @@ namespace BillWatch.API.Services.Bills;
 
 public sealed class RecurringBillDiscoveryPersistenceService
 {
+    private static readonly HashSet<string>
+        StrongFallbackRejectedPrimaryCategories =
+            new(
+                StringComparer.OrdinalIgnoreCase)
+            {
+                "BANK_FEES",
+                "FOOD_AND_DRINK",
+                "GOVERNMENT_AND_NON_PROFIT",
+                "HOME_IMPROVEMENT",
+                "INCOME",
+                "LOAN_DISBURSEMENTS",
+                "LOAN_PAYMENTS",
+                "MEDICAL",
+                "TRANSPORTATION",
+                "TRAVEL",
+                "TRANSFER_IN",
+                "TRANSFER_OUT"
+            };
+
     private readonly BillWatchDbContext
         _dbContext;
 
@@ -74,14 +93,23 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 .ToListAsync(
                     cancellationToken);
 
-        var eligibleTransactions =
+        /*
+         * Do not discard a transaction merely because Plaid placed it in a
+         * category BillWatch does not currently recognize.
+         *
+         * Cadence is primary evidence that a charge is recurring. Category
+         * evidence is evaluated after recurrence is established so a stable
+         * subscription is not invisible just because its upstream category
+         * is broad or missing.
+         */
+        var candidateTransactions =
             persistedTransactions
                 .Where(
-                    IsEligibleBillTransaction)
+                    IsRecurringCandidateTransaction)
                 .ToList();
 
         var coreTransactions =
-            eligibleTransactions
+            candidateTransactions
                 .Select(
                     ToCoreTransaction)
                 .ToList();
@@ -181,7 +209,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                  discoveredStreams)
         {
             var matchingTransactions =
-                eligibleTransactions
+                candidateTransactions
                     .Where(
                         transaction =>
                             string.Equals(
@@ -189,6 +217,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
                                     transaction),
                                 discoveredStream.ProviderName,
                                 StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(
+                        transaction =>
+                            transaction.PostedDate)
                     .ToList();
 
             if (matchingTransactions.Count ==
@@ -200,6 +231,15 @@ public sealed class RecurringBillDiscoveryPersistenceService
             var resolvedCategory =
                 ResolveBillCategory(
                     matchingTransactions);
+
+            if (resolvedCategory ==
+                    BillCategory.Unknown &&
+                IsStrongUnclassifiedRecurringBill(
+                    matchingTransactions))
+            {
+                resolvedCategory =
+                    BillCategory.Other;
+            }
 
             if (resolvedCategory ==
                 BillCategory.Unknown)
@@ -380,7 +420,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 newBillAlertCount);
     }
 
-    private bool IsEligibleBillTransaction(
+    private bool IsRecurringCandidateTransaction(
         BankTransactionEntity transaction)
     {
         if (transaction.IsPending)
@@ -394,17 +434,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(
-                GetNormalizedMerchantName(
-                    transaction)))
-        {
-            return false;
-        }
-
-        return _categoryClassifier.TryClassify(
-            transaction.CategoryPrimary,
-            transaction.CategoryDetailed,
-            out _);
+        return !string.IsNullOrWhiteSpace(
+            GetNormalizedMerchantName(
+                transaction));
     }
 
     private BillCategory ResolveBillCategory(
@@ -424,6 +456,153 @@ public sealed class RecurringBillDiscoveryPersistenceService
         }
 
         return BillCategory.Unknown;
+    }
+
+    private static bool IsStrongUnclassifiedRecurringBill(
+        IReadOnlyCollection<BankTransactionEntity>
+            transactions)
+    {
+        if (transactions.Count < 3)
+        {
+            return false;
+        }
+
+        foreach (var transaction in
+                 transactions)
+        {
+            if (IsExplicitlyRejectedFallbackCategory(
+                    transaction))
+            {
+                return false;
+            }
+        }
+
+        var averageAmount =
+            transactions.Average(
+                transaction =>
+                    transaction.Amount);
+
+        if (averageAmount <= 0m)
+        {
+            return false;
+        }
+
+        var minimumAmount =
+            transactions.Min(
+                transaction =>
+                    transaction.Amount);
+
+        var maximumAmount =
+            transactions.Max(
+                transaction =>
+                    transaction.Amount);
+
+        var allowedVariation =
+            Math.Max(
+                1.00m,
+                decimal.Round(
+                    averageAmount * 0.05m,
+                    2,
+                    MidpointRounding.AwayFromZero));
+
+        return maximumAmount - minimumAmount <=
+            allowedVariation;
+    }
+
+    private static bool IsExplicitlyRejectedFallbackCategory(
+        BankTransactionEntity transaction)
+    {
+        var primary =
+            transaction.CategoryPrimary?
+                .Trim();
+
+        if (string.IsNullOrWhiteSpace(
+                primary))
+        {
+            return false;
+        }
+
+        if (StrongFallbackRejectedPrimaryCategories.Contains(
+                primary))
+        {
+            return true;
+        }
+
+        if (string.Equals(
+                primary,
+                "GENERAL_MERCHANDISE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return !HasSubscriptionEvidence(
+                transaction);
+        }
+
+        if (string.Equals(
+                primary,
+                "PERSONAL_CARE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return !ContainsAny(
+                transaction.CategoryDetailed,
+                "GYM",
+                "FITNESS",
+                "MEMBERSHIP",
+                "SUBSCRIPTION");
+        }
+
+        if (string.Equals(
+                primary,
+                "GENERAL_SERVICES",
+                StringComparison.OrdinalIgnoreCase) &&
+            ContainsAny(
+                transaction.CategoryDetailed,
+                "AUTOMOTIVE"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool HasSubscriptionEvidence(
+        BankTransactionEntity transaction)
+    {
+        return ContainsAny(
+                   transaction.CategoryDetailed,
+                   "SUBSCRIPTION",
+                   "MEMBERSHIP",
+                   "DIGITAL",
+                   "SOFTWARE",
+                   "CLOUD") ||
+               ContainsAny(
+                   transaction.MerchantName,
+                   "SUBSCRIPTION",
+                   "MEMBERSHIP",
+                   " BILL",
+                   "BILL ") ||
+               ContainsAny(
+                   transaction.Name,
+                   "SUBSCRIPTION",
+                   "MEMBERSHIP",
+                   " BILL",
+                   "BILL ");
+    }
+
+    private static bool ContainsAny(
+        string? value,
+        params string[] candidates)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return false;
+        }
+
+        return candidates.Any(
+            candidate =>
+                value.Contains(
+                    candidate,
+                    StringComparison.OrdinalIgnoreCase));
     }
 
     private CoreBankTransaction ToCoreTransaction(
