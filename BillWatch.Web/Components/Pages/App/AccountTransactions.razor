@@ -84,7 +84,7 @@
                 </strong>
 
                 <small>
-                    Up to the latest 500 transactions
+                    Latest @TransactionLoadLimit transactions
                 </small>
             </article>
 
@@ -155,10 +155,10 @@
                 transaction@(FilteredTransactions.Count == 1 ? "" : "s")
             </span>
 
-            @if (_transactions.Count == 500)
+            @if (_transactions.Count == TransactionLoadLimit)
             {
                 <small>
-                    Showing the newest 500 records
+                    Showing the newest @TransactionLoadLimit records
                 </small>
             }
         </div>
@@ -275,6 +275,8 @@
 </div>
 
 @code {
+    private const int TransactionLoadLimit = 50;
+
     private IJSObjectReference?
         _bffModule;
 
@@ -394,7 +396,7 @@
                     .InvokeAsync<
                         BankTransactionViewModel[]>(
                         "getBankTransactions",
-                        500);
+                        TransactionLoadLimit);
 
             _transactions =
                 result?

@@ -221,11 +221,13 @@
 
                                 <div>
                                     <span>
-                                        annualized
+                                        @GetAnnualizedLabel(
+                                            difference)
                                     </span>
 
                                     <strong>
                                         @FormatAnnualized(
+                                            bill,
                                             difference)
                                     </strong>
                                 </div>
@@ -414,8 +416,11 @@
             return 0m;
         }
 
-        return bill.CurrentAmount -
-            bill.PreviousAverage;
+        return decimal.Round(
+            bill.CurrentAmount -
+                bill.PreviousAverage,
+            2,
+            MidpointRounding.AwayFromZero);
     }
 
     private static string FormatMoney(
@@ -441,23 +446,47 @@
         return "No change";
     }
 
-    private static string FormatAnnualized(
+    private static string GetAnnualizedLabel(
         decimal difference)
     {
-        var annualized =
-            difference * 12m;
+        return difference == 0m
+            ? "est. yearly cost"
+            : "annualized impact";
+    }
 
-        if (annualized > 0m)
+    private static string FormatAnnualized(
+        BillStreamViewModel bill,
+        decimal difference)
+    {
+        if (difference == 0m)
         {
-            return $"+{FormatMoney(annualized)}/yr";
+            var annualizedCost =
+                decimal.Round(
+                    Math.Max(
+                        bill.CurrentAmount,
+                        0m) *
+                    12m,
+                    2,
+                    MidpointRounding.AwayFromZero);
+
+            return
+                $"{FormatMoney(annualizedCost)}/yr";
         }
 
-        if (annualized < 0m)
+        var annualizedImpact =
+            decimal.Round(
+                difference * 12m,
+                2,
+                MidpointRounding.AwayFromZero);
+
+        if (annualizedImpact > 0m)
         {
-            return $"-{FormatMoney(Math.Abs(annualized))}/yr";
+            return
+                $"+{FormatMoney(annualizedImpact)}/yr";
         }
 
-        return "$0.00/yr";
+        return
+            $"-{FormatMoney(Math.Abs(annualizedImpact))}/yr";
     }
 
     private static string GetChangePanelClass(
