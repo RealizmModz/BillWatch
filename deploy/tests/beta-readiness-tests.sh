@@ -63,7 +63,6 @@ do
         "$smoke_script" >/dev/null; then
         fail "smoke test must not place the bearer token directly in curl argv: $smoke_script"
     fi
-
 done
 
 grep -q \
@@ -89,14 +88,14 @@ printf '%s\n' \
     'BILLWATCH_SUBSCRIPTION_ENFORCEMENT_ENABLED=false' \
     > "$subscription_root/.env.production"
 
-"$root_dir/deploy/verify-subscription-safety.sh" \
+sh "$root_dir/deploy/verify-subscription-safety.sh" \
     "$subscription_root" >/dev/null
 
 printf '%s\n' \
     'BILLWATCH_SUBSCRIPTION_ENFORCEMENT_ENABLED=true' \
     > "$subscription_root/.env.production"
 
-if "$root_dir/deploy/verify-subscription-safety.sh" \
+if sh "$root_dir/deploy/verify-subscription-safety.sh" \
     "$subscription_root" >/dev/null 2>&1; then
     fail "subscription safety verifier accepted enabled enforcement."
 fi
