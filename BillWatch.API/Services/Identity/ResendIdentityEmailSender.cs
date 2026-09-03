@@ -206,7 +206,7 @@ public sealed class ResendIdentityEmailSender(
         string value)
     {
         return value.EndsWith(
-                '/',
+                "/",
                 StringComparison.Ordinal)
             ? value
             : value + "/";
