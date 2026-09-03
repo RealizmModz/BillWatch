@@ -19,11 +19,6 @@ public sealed class AccountSecurityController(
     IOptions<IdentityEmailOptions> emailOptions)
     : ControllerBase
 {
-    private const string DisplayNameClaimType =
-        "billwatch:display_name";
-
-    private const int MaxDisplayNameLength = 80;
-
     [HttpGet]
     public async Task<ActionResult<AccountSecurityResponse>> Get()
     {
@@ -53,10 +48,10 @@ public sealed class AccountSecurityController(
                 .Trim() ??
             string.Empty;
 
-        if (displayName.Length > MaxDisplayNameLength)
+        if (displayName.Length > ApplicationUser.MaxDisplayNameLength)
         {
             return ValidationProblem(
-                $"Display name must be {MaxDisplayNameLength} characters or fewer.");
+                $"Display name must be {ApplicationUser.MaxDisplayNameLength} characters or fewer.");
         }
 
         var claims =
@@ -67,7 +62,7 @@ public sealed class AccountSecurityController(
                 .Where(
                     claim => string.Equals(
                         claim.Type,
-                        DisplayNameClaimType,
+                        ApplicationUser.DisplayNameClaimType,
                         StringComparison.Ordinal))
                 .ToArray();
 
@@ -90,7 +85,7 @@ public sealed class AccountSecurityController(
                 await userManager.AddClaimAsync(
                     user,
                     new Claim(
-                        DisplayNameClaimType,
+                        ApplicationUser.DisplayNameClaimType,
                         displayName));
 
             if (!addResult.Succeeded)
@@ -517,7 +512,7 @@ public sealed class AccountSecurityController(
                 .FirstOrDefault(
                     claim => string.Equals(
                         claim.Type,
-                        DisplayNameClaimType,
+                        ApplicationUser.DisplayNameClaimType,
                         StringComparison.Ordinal))?
                 .Value ??
             string.Empty;
