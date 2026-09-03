@@ -1,0 +1,197 @@
+@page "/app/profile"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@layout AppLayout
+
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
+<PageTitle>Profile — BillWatch</PageTitle>
+
+<link rel="stylesheet" href="/account-settings.css" />
+
+<div class="app-page settings-page">
+    <header class="page-heading">
+        <div>
+            <span class="page-kicker">Account</span>
+            <h1>Profile</h1>
+            <p>Manage the personal information BillWatch keeps for your account.</p>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="app-error-state settings-banner" role="alert">
+            <div class="state-symbol">!</div>
+            <div><p>@_error</p></div>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_success))
+    {
+        <div class="settings-success-banner" role="status">
+            <span>✓</span>
+            @_success
+        </div>
+    }
+
+    <section class="settings-card">
+        <div class="settings-copy">
+            <span class="panel-kicker">Profile</span>
+            <h2>Display name</h2>
+            <p>This is the name BillWatch can use to personalize your account. It is optional and does not change your sign-in email.</p>
+        </div>
+
+        @if (_security is null)
+        {
+            <p>Loading profile…</p>
+        }
+        else
+        {
+            <div class="settings-grid two-column">
+                <label class="settings-field">
+                    <span>Display name</span>
+                    <input type="text"
+                           autocomplete="name"
+                           maxlength="80"
+                           placeholder="How should BillWatch address you?"
+                           @bind="_displayName" />
+                </label>
+
+                <div class="settings-field">
+                    <span>Sign-in email</span>
+                    <strong>@_security.Email</strong>
+                    <small>@(_security.EmailConfirmed ? "Verified" : "Not verified")</small>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_isBusy"
+                        @onclick="SaveProfileAsync">
+                    Save profile
+                </button>
+
+                <a class="secondary-action"
+                   href="/app/account/settings">
+                    Manage email & security
+                </a>
+            </div>
+
+            <p class="security-note">
+                BillWatch deliberately keeps this profile small. Your bank data remains separate and is not used as profile information.
+            </p>
+        }
+    </section>
+</div>
+
+@code {
+    private IJSObjectReference? _securityModule;
+    private AccountSecurityViewModel? _security;
+    private string _displayName = string.Empty;
+    private string? _error;
+    private string? _success;
+    private bool _isBusy;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _securityModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/account-security.js");
+
+            _security = await _securityModule.InvokeAsync<AccountSecurityViewModel>(
+                "getAccountSecurity");
+
+            _displayName = _security.DisplayName;
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException)
+        {
+            _error = "BillWatch could not load your profile.";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        if (_securityModule is null || _isBusy)
+        {
+            return;
+        }
+
+        var normalizedDisplayName =
+            _displayName.Trim();
+
+        if (normalizedDisplayName.Length > 80)
+        {
+            _error = "Display name must be 80 characters or fewer.";
+            _success = null;
+            return;
+        }
+
+        _isBusy = true;
+        _error = null;
+        _success = null;
+
+        try
+        {
+            _security = await _securityModule.InvokeAsync<AccountSecurityViewModel>(
+                "updateProfile",
+                normalizedDisplayName);
+
+            _displayName = _security.DisplayName;
+            _success = string.IsNullOrWhiteSpace(_displayName)
+                ? "Display name cleared."
+                : "Profile saved.";
+        }
+        catch (JSException ex)
+        {
+            _error = string.IsNullOrWhiteSpace(ex.Message)
+                ? "BillWatch could not update your profile."
+                : ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_securityModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _securityModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    private sealed class AccountSecurityViewModel
+    {
+        public string DisplayName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public bool EmailConfirmed { get; set; }
+        public bool TwoFactorEnabled { get; set; }
+        public bool HasAuthenticatorKey { get; set; }
+        public int RecoveryCodesLeft { get; set; }
+    }
+}
