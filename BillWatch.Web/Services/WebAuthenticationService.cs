@@ -19,7 +19,7 @@ public sealed class WebAuthenticationService
             httpClientFactory;
     }
 
-    public async Task<AuthOperationResult>
+    public Task<AuthOperationResult>
         LoginAsync(
             HttpContext httpContext,
             string email,
@@ -27,8 +27,36 @@ public sealed class WebAuthenticationService
             bool rememberMe,
             CancellationToken cancellationToken = default)
     {
+        return LoginAsync(
+            httpContext,
+            email,
+            password,
+            rememberMe,
+            twoFactorCode: null,
+            recoveryCode: null,
+            cancellationToken);
+    }
+
+    public async Task<AuthOperationResult>
+        LoginAsync(
+            HttpContext httpContext,
+            string email,
+            string password,
+            bool rememberMe,
+            string? twoFactorCode,
+            string? recoveryCode,
+            CancellationToken cancellationToken = default)
+    {
         email =
             email.Trim();
+
+        twoFactorCode =
+            NormalizeOptionalCode(
+                twoFactorCode);
+
+        recoveryCode =
+            NormalizeOptionalCode(
+                recoveryCode);
 
         var client =
             _httpClientFactory
@@ -41,16 +69,43 @@ public sealed class WebAuthenticationService
                 new
                 {
                     email,
-                    password
+                    password,
+                    twoFactorCode,
+                    twoFactorRecoveryCode =
+                        recoveryCode
                 },
                 cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode ==
+                    HttpStatusCode.Unauthorized &&
+                string.IsNullOrWhiteSpace(
+                    twoFactorCode) &&
+                string.IsNullOrWhiteSpace(
+                    recoveryCode) &&
+                await IsTwoFactorRequiredAsync(
+                    response,
+                    cancellationToken))
+            {
+                return AuthOperationResult
+                    .TwoFactorRequired;
+            }
+
+            var submittedSecondFactor =
+                !string.IsNullOrWhiteSpace(
+                    twoFactorCode) ||
+                !string.IsNullOrWhiteSpace(
+                    recoveryCode);
+
             return new AuthOperationResult(
                 false,
-                GetSafeLoginError(
-                    response.StatusCode));
+                submittedSecondFactor &&
+                response.StatusCode ==
+                    HttpStatusCode.Unauthorized
+                    ? "The authenticator or recovery code is invalid."
+                    : GetSafeLoginError(
+                        response.StatusCode));
         }
 
         var tokenResponse =
@@ -123,6 +178,128 @@ public sealed class WebAuthenticationService
             password,
             rememberMe: false,
             cancellationToken);
+    }
+
+    public async Task<AuthOperationResult>
+        RequestPasswordResetAsync(
+            string email,
+            CancellationToken cancellationToken = default)
+    {
+        email =
+            email.Trim();
+
+        var client =
+            _httpClientFactory
+                .CreateClient(
+                    "BillWatchApi");
+
+        using var response =
+            await client.PostAsJsonAsync(
+                "/api/auth/forgotPassword",
+                new
+                {
+                    email
+                },
+                cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return AuthOperationResult.Success;
+        }
+
+        return new AuthOperationResult(
+            false,
+            response.StatusCode ==
+                HttpStatusCode.TooManyRequests
+                ? "Too many recovery attempts. Wait a minute and try again."
+                : "BillWatch could not send a recovery email right now.");
+    }
+
+    public async Task<AuthOperationResult>
+        ResetPasswordAsync(
+            string email,
+            string resetCode,
+            string newPassword,
+            CancellationToken cancellationToken = default)
+    {
+        email =
+            email.Trim();
+
+        resetCode =
+            resetCode.Trim();
+
+        var client =
+            _httpClientFactory
+                .CreateClient(
+                    "BillWatchApi");
+
+        using var response =
+            await client.PostAsJsonAsync(
+                "/api/auth/resetPassword",
+                new
+                {
+                    email,
+                    resetCode,
+                    newPassword
+                },
+                cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return AuthOperationResult.Success;
+        }
+
+        if (response.StatusCode ==
+            HttpStatusCode.TooManyRequests)
+        {
+            return new AuthOperationResult(
+                false,
+                "Too many recovery attempts. Wait a minute and try again.");
+        }
+
+        var passwordError =
+            await ReadPasswordValidationErrorAsync(
+                response,
+                cancellationToken);
+
+        return new AuthOperationResult(
+            false,
+            passwordError ??
+            "This password reset link is invalid or expired.");
+    }
+
+    public async Task<AuthOperationResult>
+        ConfirmEmailAsync(
+            string userId,
+            string code,
+            string? changedEmail,
+            CancellationToken cancellationToken = default)
+    {
+        var query =
+            $"?userId={Uri.EscapeDataString(userId)}&code={Uri.EscapeDataString(code)}";
+
+        if (!string.IsNullOrWhiteSpace(
+                changedEmail))
+        {
+            query +=
+                $"&changedEmail={Uri.EscapeDataString(changedEmail.Trim())}";
+        }
+
+        var client =
+            _httpClientFactory
+                .CreateClient(
+                    "BillWatchApi");
+
+        using var response =
+            await client.GetAsync(
+                "/api/auth/confirmEmail" + query,
+                cancellationToken);
+
+        return response.IsSuccessStatusCode
+            ? AuthOperationResult.Success
+            : new AuthOperationResult(
+                false,
+                "This email confirmation link is invalid or expired.");
     }
 
     public async Task LogoutAsync(
@@ -235,6 +412,57 @@ public sealed class WebAuthenticationService
             properties);
     }
 
+    private static async Task<bool>
+        IsTwoFactorRequiredAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+    {
+        var body =
+            await response.Content
+                .ReadAsStringAsync(
+                    cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(
+                body))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document =
+                JsonDocument.Parse(
+                    body);
+
+            if (!document.RootElement
+                    .TryGetProperty(
+                        "detail",
+                        out var detail))
+            {
+                return false;
+            }
+
+            return string.Equals(
+                detail.GetString(),
+                "RequiresTwoFactor",
+                StringComparison.Ordinal);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static string?
+        NormalizeOptionalCode(
+            string? value)
+    {
+        return string.IsNullOrWhiteSpace(
+                value)
+            ? null
+            : value.Trim();
+    }
+
     private static string
         GetSafeLoginError(
             HttpStatusCode statusCode)
@@ -256,6 +484,77 @@ public sealed class WebAuthenticationService
             _ =>
                 "BillWatch could not sign you in right now."
         };
+    }
+
+    private static async Task<string?>
+        ReadPasswordValidationErrorAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+    {
+        var body =
+            await response.Content
+                .ReadAsStringAsync(
+                    cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(
+                body))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document =
+                JsonDocument.Parse(
+                    body);
+
+            if (!document.RootElement.TryGetProperty(
+                    "errors",
+                    out var errors) ||
+                errors.ValueKind !=
+                    JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            foreach (var property
+                in errors.EnumerateObject())
+            {
+                if (property.Name.Contains(
+                        "InvalidToken",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                if (property.Value.ValueKind !=
+                    JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var item
+                    in property.Value.EnumerateArray())
+                {
+                    var message =
+                        item.GetString();
+
+                    if (!string.IsNullOrWhiteSpace(
+                            message) &&
+                        !message.Contains(
+                            "token",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return message;
+                    }
+                }
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return null;
     }
 
     private static async Task<string>
@@ -362,12 +661,19 @@ public sealed class WebAuthenticationService
 
 public sealed record AuthOperationResult(
     bool Succeeded,
-    string? ErrorMessage)
+    string? ErrorMessage,
+    bool RequiresTwoFactor = false)
 {
     public static AuthOperationResult Success { get; } =
         new(
             true,
             null);
+
+    public static AuthOperationResult TwoFactorRequired { get; } =
+        new(
+            false,
+            null,
+            true);
 }
 
 public sealed record AccessTokenResponse(
