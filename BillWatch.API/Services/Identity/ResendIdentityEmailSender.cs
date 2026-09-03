@@ -52,6 +52,11 @@ public sealed class ResendIdentityEmailSender(
     {
         ArgumentNullException.ThrowIfNull(user);
 
+        if (!_options.Enabled)
+        {
+            return Task.CompletedTask;
+        }
+
         var resetLink =
             BuildPasswordResetLink(
                 email,
@@ -72,6 +77,11 @@ public sealed class ResendIdentityEmailSender(
         string message,
         string actionUrl)
     {
+        if (!_options.Enabled)
+        {
+            return;
+        }
+
         EnsureConfigured();
 
         if (!Uri.TryCreate(
@@ -176,12 +186,6 @@ public sealed class ResendIdentityEmailSender(
 
     private void EnsureConfigured()
     {
-        if (!_options.Enabled)
-        {
-            throw new InvalidOperationException(
-                "Identity email delivery is disabled.");
-        }
-
         if (string.IsNullOrWhiteSpace(
                 _options.ApiKey) ||
             string.IsNullOrWhiteSpace(
