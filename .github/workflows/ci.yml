@@ -78,6 +78,9 @@ jobs:
       - name: Validate production operation scripts
         run: sh deploy/tests/production-operations-tests.sh
 
+      - name: Validate beta readiness scripts
+        run: sh deploy/tests/beta-readiness-tests.sh
+
       - name: Configure container builder
         uses: docker/setup-buildx-action@v4
 

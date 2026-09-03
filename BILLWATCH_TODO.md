@@ -1,54 +1,59 @@
 # BillWatch Future TODO
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02 local time / 2026-09-03 UTC
 
-This file is ordered by priority. Do not start lower-priority product expansion while a P0 production defect is open.
+This file is ordered by priority. Do not start lower-priority product expansion while a P0 production/security defect is open.
+
+## P0 — Role-aware administration release
+
+- [x] Bootstrap the sole production account as Owner out-of-band.
+- [x] Confirm production DB contains exactly one Owner assignment.
+- [x] Identify why a fresh login still receives 403 from Admin.
+- [x] Add Identity role services to API authentication registration.
+- [x] Add regression coverage for Owner bearer authorization and normal-user denial.
+- [x] Add guarded first-Owner bootstrap tooling for future clean installs.
+- [ ] Run the final full build/test/CI gate for the beta-readiness branch.
+- [ ] Deploy the role-aware release.
+- [ ] Sign out/in and verify `/app/admin` authorizes Owner.
+- [ ] Verify a non-staff authenticated user remains denied.
+- [ ] Create one controlled short-lived access key.
+- [ ] Redeem the key through Subscription and verify the entitlement.
+- [ ] Revoke/retire temporary access-key test material.
+- [ ] Keep global subscription enforcement OFF until its separate rollout gate is approved.
 
 ## P0 — Production smoke test
 
 - [x] Landing page loads over HTTPS.
 - [x] Login works through the public website.
-- [ ] Registration works.
-- [ ] Logout works.
+- [ ] Registration works through the public website.
+- [x] Logout/sign-in cycle works well enough to establish a fresh Web session.
 - [x] Session survives normal navigation between Overview and Bills.
 - [ ] Access-token refresh works without exposing tokens to JavaScript.
-- [x] Overview loads real state.
-- [x] Bills page loads.
+- [x] Overview loads real production state.
+- [x] Bills page loads and displays a real discovered Bill Stream.
 - [ ] Bill detail loads.
 - [ ] Activity loads actual alerts.
 - [ ] Mark-alert-read works.
 - [ ] Dismiss-alert works.
-- [ ] Account page loads.
-- [ ] Transaction page loads.
+- [ ] Account page loads through the current release.
+- [ ] Transaction page loads through the current release.
 - [ ] Account export downloads only user-owned safe JSON.
-- [ ] Bank disconnect works.
+- [ ] Bank disconnect works through the public Web surface.
 - [ ] Cross-user resource IDs return 404.
 - [ ] Invalid/expired authentication does not leak API/provider details.
 
-### Resolved production incident — Overview loading skeletons
-
-The initial post-login Overview once remained on its loading skeleton state. Follow-up diagnostics showed:
-
-- the Web container could reach the API readiness endpoint successfully;
-- the Blazor Interactive Server WebSocket connected successfully through Caddy;
-- no browser console errors were present;
-- Overview subsequently loaded the correct synchronized-empty state;
-- navigation to Bills and back to Overview remained healthy.
-
-GitHub Issue #1 tracks the incident history. No weakening of authentication, BFF token handling, antiforgery, HTTPS, ownership, AllowedHosts, or trusted-proxy protections was required.
-
 ## P0 — Plaid production verification
 
-- [ ] Keep Plaid sandbox until production verification is intentionally scheduled.
-- [ ] Verify Hosted Link launches from `billbeacon.net`.
+- [x] Production Plaid environment is intentionally configured on the VPS.
+- [x] Successful production bank connection exists.
+- [x] Account/transaction sync works: 2 accounts and 518 active transactions were persisted from the active connection.
+- [x] Recurring-bill discovery works against real production history: Spotify was discovered from 3 monthly linked transactions.
+- [ ] Verify Hosted Link launch again as part of the final beta smoke sequence.
 - [ ] Verify popup behavior in major browsers.
-- [ ] Verify successful bank connection.
-- [ ] Verify first account/transaction sync.
-- [ ] Verify recurring-bill discovery.
-- [ ] Verify RequiresAttention state.
+- [ ] Verify `RequiresAttention` state and truthful user guidance.
 - [ ] Verify update-mode reconnect.
 - [ ] Verify disconnect/revocation behavior.
-- [ ] Verify Plaid access tokens never appear in browser JavaScript, HTML, logs, or response bodies.
+- [ ] Verify Plaid access tokens never appear in browser JavaScript, HTML, logs, or response bodies during runtime smoke testing.
 
 ## P0 — Statement intelligence verification
 
@@ -60,18 +65,21 @@ GitHub Issue #1 tracks the incident history. No weakening of authentication, BFF
 - [ ] Verify Uploaded → Processing → terminal status behavior.
 - [ ] Verify OCR path.
 - [ ] Verify ReadyForParsing path.
-- [ ] Verify Processed state updates the Bill Stream.
+- [ ] Verify Processed state updates only the owning Bill Stream.
 - [ ] Verify Failed state is truthful and recoverable.
 - [ ] Verify physical storage paths never leave the API.
 - [ ] Verify another user cannot access upload/status/file IDs.
 
 ## P0 — Production operations
 
-- [ ] Verify `.env.production` remains mode 600 and outside Git.
-- [ ] Verify PostgreSQL is not publicly exposed.
-- [ ] Verify API/Web port 8080 is not publicly exposed.
-- [ ] Verify only Caddy exposes 80/443.
-- [ ] Verify API and Web health endpoints externally and internally.
+- [x] `.env.production` observed as deployment-account owned with mode 600.
+- [x] Public API and Web readiness checks have passed after guarded deployments.
+- [x] Add repeatable production permission/exposure/runtime verification tooling.
+- [x] Add a combined automated private-beta host verifier.
+- [ ] Run the new exposure verifier after the pending role-aware release is deployed.
+- [ ] Prove PostgreSQL has no public host binding.
+- [ ] Prove API/Web port 8080 has no public host binding.
+- [ ] Prove only Caddy exposes 80/443.
 - [ ] Verify restart behavior for API, Web, Caddy, and PostgreSQL.
 - [ ] Perform one controlled VPS reboot and confirm automatic recovery.
 - [ ] Configure `BILLWATCH_PRODUCTION_URL=https://api.billbeacon.net` for the external readiness workflow.
@@ -79,14 +87,17 @@ GitHub Issue #1 tracks the incident history. No weakening of authentication, BFF
 
 ## P0 — Backup and recovery
 
-- [ ] Enable the daily encrypted backup timer.
-- [ ] Confirm the Restic repository is truly off-host.
-- [ ] Verify a fresh encrypted backup manually.
-- [ ] Perform a clean-host restore drill using real protected production-format data.
-- [ ] Verify database, statement files, and Data Protection keys restore together.
-- [ ] Document the operator recovery procedure.
+- [x] Enable the daily encrypted backup timer.
+- [x] Confirm the timer is enabled/active and has a future run scheduled.
+- [x] Verify a fresh encrypted production backup manually.
+- [x] Verify a completed Restic snapshot tagged `billwatch-complete`.
+- [x] Add repeatable timer/snapshot verification tooling.
+- [ ] Independently confirm the Restic backend is operationally off-host, not merely configuration-valid.
+- [ ] Perform a clean-host/off-host restore drill using protected production-format data.
+- [ ] Verify database, statement files, and Data Protection keys restore together on the clean host.
+- [ ] Document the complete operator disaster-recovery procedure after the real drill.
 - [ ] Establish retention/immutability controls.
-- [ ] Add backup-failure alerting.
+- [ ] Add and test backup-failure alerting.
 
 ## P1 — Bill intelligence quality
 
@@ -104,7 +115,7 @@ GitHub Issue #1 tracks the incident history. No weakening of authentication, BFF
 
 ## P1 — AI shadow evaluation
 
-- [ ] Keep AI-derived persistence disabled.
+- [x] Keep AI-derived persistence disabled.
 - [ ] Build a private ground-truth statement corpus.
 - [ ] Cover at least 5 providers and at least 100 statements before evaluating the existing readiness gate.
 - [ ] Include clean PDFs, OCR-heavy scans, utilities, telecom, insurance, subscriptions, promotions, fees, and ambiguous line items.
@@ -137,7 +148,7 @@ GitHub Issue #1 tracks the incident history. No weakening of authentication, BFF
 - [ ] Support meaningful increase, fee, payment-due, and connection-attention notifications.
 - [ ] Add notification preferences and unsubscribe controls.
 - [ ] Run internal Beta 0 on real bills.
-- [ ] Invite 3–5 trusted testers after P0 gates close.
+- [ ] Invite 3–5 trusted testers only after P0 gates close.
 - [ ] Track false positives, missed bills, time-to-first-discovery, and explanation usefulness.
 
 ## P2 — Business / legal
@@ -149,11 +160,11 @@ GitHub Issue #1 tracks the incident history. No weakening of authentication, BFF
 
 ## P2 — MAUI release
 
-- [ ] Keep the MAUI project healthy while web beta is validated.
-- [ ] Build release artifacts with `-p:BillWatchApiBaseUrl=https://api.billbeacon.net/`.
+- [ ] Keep the MAUI project healthy while Web beta is validated.
+- [ ] Build release artifacts with `-p:BillWatchApiBaseUrl=https://api.billbeacon.net/` when native beta is scheduled.
 - [ ] Preserve `AuthenticationService.GetValidAccessTokenAsync()` for protected services.
 - [ ] Do not duplicate API truth in the client.
 
 ## Immediate resume point
 
-Continue the production smoke test with the authenticated Activity and Account surfaces before adding another major product feature.
+Finish the `work/beta-readiness-2026-09-02` batch, run one complete build/test/CI gate, deploy it, and prove the production Owner can enter `/app/admin`. Then continue the remaining P0 browser/Plaid/statement/recovery gates before adding another major feature.
