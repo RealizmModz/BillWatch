@@ -10,6 +10,9 @@ namespace BillWatch.Web.Services;
 public sealed class AdminBffWriteProxyService(
     IHttpClientFactory httpClientFactory)
 {
+    private const string SubscriptionRedemptionPath =
+        "/api/subscription/access-keys/redeem";
+
     private static readonly TimeSpan RefreshBuffer =
         TimeSpan.FromMinutes(1);
 
@@ -309,10 +312,24 @@ public sealed class AdminBffWriteProxyService(
     private static bool IsAllowedApiPath(
         string requestUri)
     {
-        if (string.IsNullOrWhiteSpace(requestUri) ||
-            !requestUri.StartsWith(
+        if (string.IsNullOrWhiteSpace(requestUri))
+        {
+            return false;
+        }
+
+        var isAdminPath =
+            requestUri.StartsWith(
                 "/api/admin/",
-                StringComparison.Ordinal))
+                StringComparison.Ordinal);
+
+        var isSubscriptionRedemptionPath =
+            string.Equals(
+                requestUri,
+                SubscriptionRedemptionPath,
+                StringComparison.Ordinal);
+
+        if (!isAdminPath &&
+            !isSubscriptionRedemptionPath)
         {
             return false;
         }
