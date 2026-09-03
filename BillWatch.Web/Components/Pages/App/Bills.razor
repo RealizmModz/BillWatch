@@ -7,8 +7,9 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<Bills> L
 
-<PageTitle>Bills — BillWatch</PageTitle>
+<PageTitle>@L["Bills — BillWatch"]</PageTitle>
 
 <link rel="stylesheet"
       href="/bills.css" />
@@ -17,16 +18,15 @@
     <header class="page-heading bills-page-heading">
         <div>
             <span class="page-kicker">
-                Recurring expenses
+                @L["Recurring expenses"]
             </span>
 
             <h1>
-                Bills
+                @L["Bills"]
             </h1>
 
             <p>
-                Every recurring bill BillWatch has discovered
-                from your transaction history.
+                @L["Every recurring bill BillWatch has discovered from your transaction history."]
             </p>
         </div>
 
@@ -39,7 +39,7 @@
                 </strong>
 
                 <span>
-                    monitored
+                    @L["monitored"]
                 </span>
 
                 <div class="summary-divider"></div>
@@ -49,7 +49,7 @@
                 </strong>
 
                 <span>
-                    current total
+                    @L["current total"]
                 </span>
             </div>
         }
@@ -76,7 +76,7 @@
 
             <div>
                 <h2>
-                    We couldn't load your bills
+                    @L["We couldn't load your bills"]
                 </h2>
 
                 <p>
@@ -87,7 +87,7 @@
             <button type="button"
                     class="secondary-action"
                     @onclick="ReloadAsync">
-                Try again
+                @L["Try again"]
             </button>
         </div>
     }
@@ -102,16 +102,15 @@
             </div>
 
             <span class="page-kicker">
-                No bills yet
+                @L["No bills yet"]
             </span>
 
             <h2>
-                BillWatch hasn't discovered a recurring bill yet.
+                @L["BillWatch hasn't discovered a recurring bill yet."]
             </h2>
 
             <p>
-                Once recurring charges are matched into Bill Streams,
-                they'll appear here automatically.
+                @L["Once recurring charges are matched into Bill Streams, they'll appear here automatically."]
             </p>
         </div>
     }
@@ -121,28 +120,28 @@
             <button type="button"
                     class="@GetFilterClass(BillFilter.All)"
                     @onclick="() => SetFilter(BillFilter.All)">
-                All
+                @L["All"]
                 <span>@_billStreams.Count</span>
             </button>
 
             <button type="button"
                     class="@GetFilterClass(BillFilter.Increased)"
                     @onclick="() => SetFilter(BillFilter.Increased)">
-                Increased
+                @L["Increased"]
                 <span>@IncreasedCount</span>
             </button>
 
             <button type="button"
                     class="@GetFilterClass(BillFilter.Decreased)"
                     @onclick="() => SetFilter(BillFilter.Decreased)">
-                Decreased
+                @L["Decreased"]
                 <span>@DecreasedCount</span>
             </button>
 
             <button type="button"
                     class="@GetFilterClass(BillFilter.NoHistory)"
                     @onclick="() => SetFilter(BillFilter.NoHistory)">
-                Building history
+                @L["Building history"]
                 <span>@NoHistoryCount</span>
             </button>
         </div>
@@ -150,7 +149,7 @@
         @if (FilteredBills.Count == 0)
         {
             <div class="filtered-empty">
-                No bills match this filter.
+                @L["No bills match this filter."]
             </div>
         }
         else
@@ -188,13 +187,13 @@
 
                             <span class="watching-state">
                                 <span></span>
-                                Watching
+                                @L["Watching"]
                             </span>
                         </div>
 
                         <div class="bill-current">
                             <span>
-                                Current amount
+                                @L["Current amount"]
                             </span>
 
                             <strong>
@@ -210,7 +209,7 @@
 
                                 <div>
                                     <span>
-                                        vs. prior average
+                                        @L["vs. prior average"]
                                     </span>
 
                                     <strong>
@@ -238,14 +237,13 @@
                             <div class="bill-history-state">
                                 <span class="history-dot"></span>
 
-                                More transaction history is needed
-                                before BillWatch can compare this bill.
+                                @L["More transaction history is needed before BillWatch can compare this bill."]
                             </div>
                         }
 
                         <div class="bill-card-footer">
                             <span>
-                                See bill history
+                                @L["See bill history"]
                             </span>
 
                             <span aria-hidden="true">
@@ -394,12 +392,12 @@
         catch (JSException)
         {
             _errorMessage =
-                "BillWatch could not reach the secure API.";
+                L["BillWatch could not reach the secure API."].Value;
         }
         catch (Exception)
         {
             _errorMessage =
-                "Something went wrong while loading your bills.";
+                L["Something went wrong while loading your bills."].Value;
         }
         finally
         {
@@ -430,7 +428,7 @@
             "C2");
     }
 
-    private static string FormatDifference(
+    private string FormatDifference(
         decimal difference)
     {
         if (difference > 0m)
@@ -443,18 +441,18 @@
             return $"-{FormatMoney(Math.Abs(difference))}";
         }
 
-        return "No change";
+        return L["No change"].Value;
     }
 
-    private static string GetAnnualizedLabel(
+    private string GetAnnualizedLabel(
         decimal difference)
     {
         return difference == 0m
-            ? "est. yearly cost"
-            : "annualized impact";
+            ? L["est. yearly cost"].Value
+            : L["annualized impact"].Value;
     }
 
-    private static string FormatAnnualized(
+    private string FormatAnnualized(
         BillStreamViewModel bill,
         decimal difference)
     {
@@ -470,7 +468,7 @@
                     MidpointRounding.AwayFromZero);
 
             return
-                $"{FormatMoney(annualizedCost)}/yr";
+                $"{FormatMoney(annualizedCost)}{L["/yr"].Value}";
         }
 
         var annualizedImpact =
@@ -482,11 +480,11 @@
         if (annualizedImpact > 0m)
         {
             return
-                $"+{FormatMoney(annualizedImpact)}/yr";
+                $"+{FormatMoney(annualizedImpact)}{L["/yr"].Value}";
         }
 
         return
-            $"-{FormatMoney(Math.Abs(annualizedImpact))}/yr";
+            $"-{FormatMoney(Math.Abs(annualizedImpact))}{L["/yr"].Value}";
     }
 
     private static string GetChangePanelClass(
@@ -559,7 +557,7 @@
             $"/assets/billwatch-sprites.svg#{sprite}";
     }
 
-    private static string FormatCategory(
+    private string FormatCategory(
         string category)
     {
         if (string.IsNullOrWhiteSpace(
@@ -569,19 +567,19 @@
                 "Unknown",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return "Recurring bill";
+            return L["Recurring bill"].Value;
         }
 
         return category switch
         {
             "MobilePhone" =>
-                "Mobile phone",
+                L["Mobile phone"].Value,
 
             "NaturalGas" =>
-                "Natural gas",
+                L["Natural gas"].Value,
 
             _ =>
-                category
+                L[category].Value
         };
     }
 

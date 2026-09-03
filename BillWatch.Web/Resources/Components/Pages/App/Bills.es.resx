@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Bills — BillWatch" xml:space="preserve"><value>Facturas — BillWatch</value></data>
+  <data name="Recurring expenses" xml:space="preserve"><value>Gastos recurrentes</value></data>
+  <data name="Bills" xml:space="preserve"><value>Facturas</value></data>
+  <data name="Every recurring bill BillWatch has discovered from your transaction history." xml:space="preserve"><value>Todas las facturas recurrentes que BillWatch ha descubierto en tu historial de transacciones.</value></data>
+  <data name="monitored" xml:space="preserve"><value>monitoreadas</value></data>
+  <data name="current total" xml:space="preserve"><value>total actual</value></data>
+  <data name="We couldn't load your bills" xml:space="preserve"><value>No pudimos cargar tus facturas</value></data>
+  <data name="Try again" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="No bills yet" xml:space="preserve"><value>Aún no hay facturas</value></data>
+  <data name="BillWatch hasn't discovered a recurring bill yet." xml:space="preserve"><value>BillWatch aún no ha descubierto una factura recurrente.</value></data>
+  <data name="Once recurring charges are matched into Bill Streams, they'll appear here automatically." xml:space="preserve"><value>Cuando los cargos recurrentes se agrupen en Bill Streams, aparecerán aquí automáticamente.</value></data>
+  <data name="All" xml:space="preserve"><value>Todas</value></data>
+  <data name="Increased" xml:space="preserve"><value>Aumentaron</value></data>
+  <data name="Decreased" xml:space="preserve"><value>Disminuyeron</value></data>
+  <data name="Building history" xml:space="preserve"><value>Creando historial</value></data>
+  <data name="No bills match this filter." xml:space="preserve"><value>Ninguna factura coincide con este filtro.</value></data>
+  <data name="Recurring bill" xml:space="preserve"><value>Factura recurrente</value></data>
+  <data name="Mobile phone" xml:space="preserve"><value>Teléfono móvil</value></data>
+  <data name="Natural gas" xml:space="preserve"><value>Gas natural</value></data>
+  <data name="Internet" xml:space="preserve"><value>Internet</value></data>
+  <data name="Electricity" xml:space="preserve"><value>Electricidad</value></data>
+  <data name="Utility" xml:space="preserve"><value>Servicio público</value></data>
+  <data name="Other" xml:space="preserve"><value>Otro</value></data>
+  <data name="Watching" xml:space="preserve"><value>Vigilando</value></data>
+  <data name="Current amount" xml:space="preserve"><value>Importe actual</value></data>
+  <data name="vs. prior average" xml:space="preserve"><value>vs. promedio anterior</value></data>
+  <data name="No change" xml:space="preserve"><value>Sin cambios</value></data>
+  <data name="est. yearly cost" xml:space="preserve"><value>costo anual est.</value></data>
+  <data name="annualized impact" xml:space="preserve"><value>impacto anualizado</value></data>
+  <data name="/yr" xml:space="preserve"><value>/año</value></data>
+  <data name="More transaction history is needed before BillWatch can compare this bill." xml:space="preserve"><value>Se necesita más historial de transacciones antes de que BillWatch pueda comparar esta factura.</value></data>
+  <data name="See bill history" xml:space="preserve"><value>Ver historial de la factura</value></data>
+  <data name="BillWatch could not reach the secure API." xml:space="preserve"><value>BillWatch no pudo comunicarse con la API segura.</value></data>
+  <data name="Something went wrong while loading your bills." xml:space="preserve"><value>Algo salió mal al cargar tus facturas.</value></data>
+</root>

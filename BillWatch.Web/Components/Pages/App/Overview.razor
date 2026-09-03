@@ -7,8 +7,9 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<Overview> L
 
-<PageTitle>Overview — BillWatch</PageTitle>
+<PageTitle>@L["Overview — BillWatch"]</PageTitle>
 
 <link rel="stylesheet"
       href="/onboarding.css" />
@@ -17,16 +18,15 @@
     <header class="page-heading">
         <div>
             <span class="page-kicker">
-                Bill intelligence
+                @L["Bill intelligence"]
             </span>
 
             <h1>
-                Overview
+                @L["Overview"]
             </h1>
 
             <p>
-                Your recurring bills and the changes
-                BillWatch can verify from your data.
+                @L["Your recurring bills and the changes BillWatch can verify from your data."]
             </p>
         </div>
 
@@ -41,12 +41,12 @@
                 @if (_isCheckingStatus)
                 {
                     <span class="status-spinner"></span>
-                    <span>Checking…</span>
+                    <span>@L["Checking…"]</span>
                 }
                 else
                 {
                     <span aria-hidden="true">↻</span>
-                    <span>Check status</span>
+                    <span>@L["Check status"]</span>
                 }
             </button>
         }
@@ -72,7 +72,7 @@
 
             <div>
                 <h2>
-                    We couldn't load your BillWatch overview
+                    @L["We couldn't load your BillWatch overview"]
                 </h2>
 
                 <p>
@@ -83,7 +83,7 @@
             <button type="button"
                     class="secondary-action"
                     @onclick="ReloadAsync">
-                Try again
+                @L["Try again"]
             </button>
         </div>
     }
@@ -94,22 +94,20 @@
             <section class="onboarding-card attention-state">
                 <div class="onboarding-copy">
                     <span class="page-kicker">
-                        Action needed
+                        @L["Action needed"]
                     </span>
 
                     <h2>
-                        Your bank connection needs attention.
+                        @L["Your bank connection needs attention."]
                     </h2>
 
                     <p>
-                        BillWatch has stopped automatic synchronization
-                        for the affected connection until it can be
-                        reauthorized.
+                        @L["BillWatch has stopped automatic synchronization for the affected connection until it can be reauthorized."]
                     </p>
 
                     <a class="onboarding-primary-action"
                        href="/app/account">
-                        Review connection
+                        @L["Review connection"]
                         <span aria-hidden="true">→</span>
                     </a>
                 </div>
@@ -120,11 +118,11 @@
                     </div>
 
                     <strong>
-                        Sync paused
+                        @L["Sync paused"]
                     </strong>
 
                     <span>
-                        Your existing BillWatch records remain available.
+                        @L["Your existing BillWatch records remain available."]
                     </span>
                 </div>
             </section>
@@ -134,41 +132,37 @@
             <section class="onboarding-card">
                 <div class="onboarding-copy">
                     <span class="page-kicker">
-                        Get started
+                        @L["Get started"]
                     </span>
 
                     <h2>
-                        Connect your bank once.
-                        BillWatch handles the rest.
+                        @L["Connect your bank once. BillWatch handles the rest."]
                     </h2>
 
                     <p>
-                        BillWatch uses transaction history to
-                        discover recurring bills automatically.
-                        Your bank credentials are handled by Plaid,
-                        not entered into BillWatch.
+                        @L["BillWatch uses transaction history to discover recurring bills automatically. Your bank credentials are handled by Plaid, not entered into BillWatch."]
                     </p>
 
                     <div class="onboarding-trust">
                         <div>
                             <span>✓</span>
-                            Read-only financial visibility
+                            @L["Read-only financial visibility"]
                         </div>
 
                         <div>
                             <span>✓</span>
-                            No money movement
+                            @L["No money movement"]
                         </div>
 
                         <div>
                             <span>✓</span>
-                            Disconnect anytime
+                            @L["Disconnect anytime"]
                         </div>
                     </div>
 
                     <a class="onboarding-primary-action"
                        href="/app/account">
-                        Connect a bank
+                        @L["Connect a bank"]
                         <span aria-hidden="true">→</span>
                     </a>
                 </div>
@@ -179,11 +173,11 @@
 
                         <div>
                             <strong>
-                                Connect
+                                @L["Connect"]
                             </strong>
 
                             <small>
-                                Securely link your financial institution
+                                @L["Securely link your financial institution"]
                             </small>
                         </div>
                     </div>
@@ -195,11 +189,11 @@
 
                         <div>
                             <strong>
-                                Discover
+                                @L["Discover"]
                             </strong>
 
                             <small>
-                                Transaction history reveals recurring bills
+                                @L["Transaction history reveals recurring bills"]
                             </small>
                         </div>
                     </div>
@@ -211,11 +205,11 @@
 
                         <div>
                             <strong>
-                                Watch
+                                @L["Watch"]
                             </strong>
 
                             <small>
-                                BillWatch keeps monitoring automatically
+                                @L["BillWatch keeps monitoring automatically"]
                             </small>
                         </div>
                     </div>
@@ -229,18 +223,15 @@
         <section class="onboarding-card sync-state">
             <div class="onboarding-copy">
                 <span class="page-kicker">
-                    Bank connected
+                    @L["Bank connected"]
                 </span>
 
                 <h2>
-                    BillWatch is preparing your first scan.
+                    @L["BillWatch is preparing your first scan."]
                 </h2>
 
                 <p>
-                    Your connection is active and immediately
-                    eligible for the automatic monitoring pipeline.
-                    BillWatch will synchronize accounts and transactions,
-                    then run deterministic recurring-bill discovery.
+                    @L["Your connection is active and immediately eligible for the automatic monitoring pipeline. BillWatch will synchronize accounts and transactions, then run deterministic recurring-bill discovery."]
                 </p>
 
                 <div class="automatic-monitoring-note">
@@ -248,12 +239,11 @@
 
                     <div>
                         <strong>
-                            Automatic monitoring is active
+                            @L["Automatic monitoring is active"]
                         </strong>
 
                         <span>
-                            You do not need to manually trigger a
-                            transaction refresh.
+                            @L["You do not need to manually trigger a transaction refresh."]
                         </span>
                     </div>
                 </div>
@@ -266,11 +256,11 @@
                     @if (_isCheckingStatus)
                     {
                         <span class="status-spinner"></span>
-                        <span>Checking status…</span>
+                        <span>@L["Checking status…"]</span>
                     }
                     else
                     {
-                        <span>Check for progress</span>
+                        <span>@L["Check for progress"]</span>
                         <span aria-hidden="true">↻</span>
                     }
                 </button>
@@ -301,11 +291,11 @@
                 </div>
 
                 <strong>
-                    Connected
+                    @L["Connected"]
                 </strong>
 
                 <span>
-                    Waiting for first successful synchronization
+                    @L["Waiting for first successful synchronization"]
                 </span>
             </div>
         </section>
@@ -315,26 +305,22 @@
         <section class="onboarding-card history-state">
             <div class="onboarding-copy">
                 <span class="page-kicker">
-                    Monitoring active
+                    @L["Monitoring active"]
                 </span>
 
                 <h2>
-                    No supported recurring bills found yet.
+                    @L["No supported recurring bills found yet."]
                 </h2>
 
                 <p>
-                    BillWatch has successfully synchronized your
-                    connection, but the available transaction history
-                    does not currently support a recurring Bill Stream.
-                    It will keep checking automatically as new
-                    transactions arrive.
+                    @L["BillWatch has successfully synchronized your connection, but the available transaction history does not currently support a recurring Bill Stream. It will keep checking automatically as new transactions arrive."]
                 </p>
 
                 @if (LatestSuccessfulSync is not null)
                 {
                     <div class="last-sync-note">
                         <span>
-                            Last successful sync
+                            @L["Last successful sync"]
                         </span>
 
                         <strong>
@@ -348,7 +334,7 @@
 
                 <a class="onboarding-secondary-action link-action"
                    href="/app/account">
-                    View connected accounts
+                    @L["View connected accounts"]
                     <span aria-hidden="true">→</span>
                 </a>
             </div>
@@ -371,12 +357,11 @@
                 </div>
 
                 <strong>
-                    Building history
+                    @L["Building history"]
                 </strong>
 
                 <span>
-                    BillWatch only creates a recurring bill
-                    when the evidence supports it.
+                    @L["BillWatch only creates a recurring bill when the evidence supports it."]
                 </span>
             </div>
         </section>
@@ -392,18 +377,16 @@
 
                 <div>
                     <strong>
-                        One of your bank connections needs attention.
+                        @L["One of your bank connections needs attention."]
                     </strong>
 
                     <span>
-                        BillWatch can continue showing existing data,
-                        but that connection will not refresh until it
-                        is repaired.
+                        @L["BillWatch can continue showing existing data, but that connection will not refresh until it is repaired."]
                     </span>
                 </div>
 
                 <a href="/app/account">
-                    Review
+                    @L["Review"]
                 </a>
             </div>
         }
@@ -411,7 +394,7 @@
         <section class="metric-grid">
             <article class="metric-card">
                 <span class="metric-label">
-                    Bills watched
+                    @L["Bills watched"]
                 </span>
 
                 <strong class="metric-value">
@@ -419,13 +402,13 @@
                 </strong>
 
                 <span class="metric-footnote">
-                    Active recurring Bill Streams
+                    @L["Active recurring Bill Streams"]
                 </span>
             </article>
 
             <article class="metric-card">
                 <span class="metric-label">
-                    Current total
+                    @L["Current total"]
                 </span>
 
                 <strong class="metric-value">
@@ -434,13 +417,13 @@
                 </strong>
 
                 <span class="metric-footnote">
-                    Latest recognized charges
+                    @L["Latest recognized charges"]
                 </span>
             </article>
 
             <article class="metric-card">
                 <span class="metric-label">
-                    Above prior average
+                    @L["Above prior average"]
                 </span>
 
                 <strong class="metric-value">
@@ -448,7 +431,7 @@
                 </strong>
 
                 <span class="metric-footnote">
-                    Based on transaction history
+                    @L["Based on transaction history"]
                 </span>
             </article>
         </section>
@@ -458,17 +441,17 @@
                 <div class="panel-heading">
                     <div>
                         <span class="panel-kicker">
-                            Recurring bills
+                            @L["Recurring bills"]
                         </span>
 
                         <h2>
-                            Latest amounts
+                            @L["Latest amounts"]
                         </h2>
                     </div>
 
                     <a href="/app/bills"
                        class="text-action">
-                        View all
+                        @L["View all"]
                         <span aria-hidden="true">
                             →
                         </span>
@@ -523,7 +506,7 @@
                                 else
                                 {
                                     <span>
-                                        Building history
+                                        @L["Building history"]
                                     </span>
                                 }
                             </div>
@@ -540,7 +523,7 @@
                             LargestIncrease);
 
                     <span class="panel-kicker">
-                        Largest current increase
+                        @L["Largest current increase"]
                     </span>
 
                     <div class="insight-provider">
@@ -553,12 +536,12 @@
                     </div>
 
                     <span class="insight-period">
-                        above its prior transaction average
+                        @L["above its prior transaction average"]
                     </span>
 
                     <div class="annual-impact">
                         <span>
-                            Annualized difference
+                            @L["Annualized difference"]
                         </span>
 
                         <strong>
@@ -568,15 +551,12 @@
                     </div>
 
                     <p class="evidence-note">
-                        Transaction history confirms that the
-                        amount changed. Provider evidence is
-                        needed before BillWatch can responsibly
-                        explain why.
+                        @L["Transaction history confirms that the amount changed. Provider evidence is needed before BillWatch can responsibly explain why."]
                     </p>
 
                     <a class="primary-action"
                        href="@($"/app/bills/{LargestIncrease.Id}")">
-                        Review bill
+                        @L["Review bill"]
                         <span aria-hidden="true">
                             →
                         </span>
@@ -585,7 +565,7 @@
                 else
                 {
                     <span class="panel-kicker">
-                        Current status
+                        @L["Current status"]
                     </span>
 
                     <div class="steady-state">
@@ -594,13 +574,11 @@
                         </div>
 
                         <h2>
-                            No current increases found
+                            @L["No current increases found"]
                         </h2>
 
                         <p>
-                            None of the latest recognized bill
-                            amounts are above their available
-                            prior transaction averages.
+                            @L["None of the latest recognized bill amounts are above their available prior transaction averages."]
                         </p>
                     </div>
                 }
@@ -752,12 +730,12 @@
         catch (JSException)
         {
             _errorMessage =
-                "BillWatch could not reach the secure API. Try again in a moment.";
+                L["BillWatch could not reach the secure API. Try again in a moment."].Value;
         }
         catch (Exception)
         {
             _errorMessage =
-                "Something went wrong while loading your BillWatch overview.";
+                L["Something went wrong while loading your BillWatch overview."].Value;
         }
         finally
         {
@@ -816,7 +794,7 @@
             "C2");
     }
 
-    private static string FormatDifference(
+    private string FormatDifference(
         decimal difference)
     {
         if (difference > 0m)
@@ -829,7 +807,7 @@
             return $"-{FormatMoney(Math.Abs(difference))}";
         }
 
-        return "No change";
+        return L["No change"].Value;
     }
 
     private static string
@@ -864,7 +842,7 @@
             .ToString();
     }
 
-    private static string FormatCategory(
+    private string FormatCategory(
         string category)
     {
         if (string.IsNullOrWhiteSpace(
@@ -874,19 +852,19 @@
                 "Unknown",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return "Recurring bill";
+            return L["Recurring bill"].Value;
         }
 
         return category switch
         {
             "MobilePhone" =>
-                "Mobile phone",
+                L["Mobile phone"].Value,
 
             "NaturalGas" =>
-                "Natural gas",
+                L["Natural gas"].Value,
 
             _ =>
-                category
+                L[category].Value
         };
     }
 
