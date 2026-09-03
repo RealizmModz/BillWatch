@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BillWatch dashboard" xml:space="preserve">
+    <value>Panel de BillWatch</value>
+  </data>
+  <data name="BillWatch navigation" xml:space="preserve">
+    <value>Navegación de BillWatch</value>
+  </data>
+  <data name="Overview" xml:space="preserve">
+    <value>Resumen</value>
+  </data>
+  <data name="Bills" xml:space="preserve">
+    <value>Facturas</value>
+  </data>
+  <data name="Activity" xml:space="preserve">
+    <value>Actividad</value>
+  </data>
+  <data name="Subscription" xml:space="preserve">
+    <value>Suscripción</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Configuración</value>
+  </data>
+  <data name="Account" xml:space="preserve">
+    <value>Cuenta</value>
+  </data>
+  <data name="Signed in" xml:space="preserve">
+    <value>Sesión iniciada</value>
+  </data>
+  <data name="Sign out" xml:space="preserve">
+    <value>Cerrar sesión</value>
+  </data>
+  <data name="Secure session" xml:space="preserve">
+    <value>Sesión segura</value>
+  </data>
+  <data name="BillWatch user" xml:space="preserve">
+    <value>Usuario de BillWatch</value>
+  </data>
+  <data name="BillWatch home" xml:space="preserve">
+    <value>Inicio de BillWatch</value>
+  </data>
+  <data name="Primary navigation" xml:space="preserve">
+    <value>Navegación principal</value>
+  </data>
+  <data name="How it works" xml:space="preserve">
+    <value>Cómo funciona</value>
+  </data>
+  <data name="Example" xml:space="preserve">
+    <value>Ejemplo</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Seguridad</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Panel</value>
+  </data>
+  <data name="Sign in" xml:space="preserve">
+    <value>Iniciar sesión</value>
+  </data>
+  <data name="Get started" xml:space="preserve">
+    <value>Comenzar</value>
+  </data>
+  <data name="Know when your bills change — and why." xml:space="preserve">
+    <value>Sepa cuándo cambian sus facturas y por qué.</value>
+  </data>
+  <data name="Built around privacy, clarity, and evidence." xml:space="preserve">
+    <value>Diseñado en torno a la privacidad, la claridad y la evidencia.</value>
+  </data>
+</root>
