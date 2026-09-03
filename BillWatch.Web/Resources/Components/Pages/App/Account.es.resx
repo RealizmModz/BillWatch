@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Account — BillWatch" xml:space="preserve"><value>Cuenta — BillWatch</value></data>
+  <data name="BillWatch account" xml:space="preserve"><value>Cuenta de BillWatch</value></data>
+  <data name="Account" xml:space="preserve"><value>Cuenta</value></data>
+  <data name="Connections, financial data, privacy, and your BillWatch account." xml:space="preserve"><value>Conexiones, datos financieros, privacidad y tu cuenta de BillWatch.</value></data>
+  <data name="Signed in as" xml:space="preserve"><value>Sesión iniciada como</value></data>
+  <data name="Authenticated session" xml:space="preserve"><value>Sesión autenticada</value></data>
+  <data name="Transaction data" xml:space="preserve"><value>Datos de transacciones</value></data>
+  <data name="Transactions" xml:space="preserve"><value>Transacciones</value></data>
+  <data name="Review the bank transactions BillWatch uses to discover recurring bills." xml:space="preserve"><value>Revisa las transacciones bancarias que BillWatch usa para descubrir facturas recurrentes.</value></data>
+  <data name="Ownership &amp; privacy" xml:space="preserve"><value>Propiedad y privacidad</value></data>
+  <data name="Data &amp; privacy" xml:space="preserve"><value>Datos y privacidad</value></data>
+  <data name="Export your BillWatch data or permanently delete your account." xml:space="preserve"><value>Exporta tus datos de BillWatch o elimina permanentemente tu cuenta.</value></data>
+  <data name="Secure connection" xml:space="preserve"><value>Conexión segura</value></data>
+  <data name="Connect a bank" xml:space="preserve"><value>Conectar un banco</value></data>
+  <data name="BillWatch uses Plaid to connect financial accounts and retrieve the transaction history needed to discover recurring bills." xml:space="preserve"><value>BillWatch usa Plaid para conectar cuentas financieras y obtener el historial de transacciones necesario para descubrir facturas recurrentes.</value></data>
+  <data name="Your bank username and password are handled by Plaid, not BillWatch." xml:space="preserve"><value>Plaid gestiona tu usuario y contraseña bancarios, no BillWatch.</value></data>
+  <data name="Connect bank" xml:space="preserve"><value>Conectar banco</value></data>
+  <data name="Secure connection powered by Plaid" xml:space="preserve"><value>Conexión segura proporcionada por Plaid</value></data>
+  <data name="We couldn't load your account" xml:space="preserve"><value>No pudimos cargar tu cuenta</value></data>
+  <data name="Try again" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="Connections" xml:space="preserve"><value>Conexiones</value></data>
+  <data name="Connected banks" xml:space="preserve"><value>Bancos conectados</value></data>
+  <data name="Reauthorize the affected connection through Plaid so BillWatch can resume reliable automatic monitoring." xml:space="preserve"><value>Vuelve a autorizar la conexión afectada mediante Plaid para que BillWatch pueda reanudar el monitoreo automático confiable.</value></data>
+  <data name="No banks connected" xml:space="preserve"><value>No hay bancos conectados</value></data>
+  <data name="Connect a financial institution above to begin importing transaction history." xml:space="preserve"><value>Conecta una institución financiera arriba para comenzar a importar el historial de transacciones.</value></data>
+  <data name="Added {0}" xml:space="preserve"><value>Añadido {0}</value></data>
+  <data name="Reconnect" xml:space="preserve"><value>Reconectar</value></data>
+  <data name="Disconnect" xml:space="preserve"><value>Desconectar</value></data>
+  <data name="This connection cannot currently be relied on for automatic monitoring." xml:space="preserve"><value>Actualmente no se puede confiar en esta conexión para el monitoreo automático.</value></data>
+  <data name="No longer syncing. Connect again above whenever you want to resume monitoring." xml:space="preserve"><value>Ya no se sincroniza. Vuelve a conectarla arriba cuando quieras reanudar el monitoreo.</value></data>
+  <data name="Financial accounts" xml:space="preserve"><value>Cuentas financieras</value></data>
+  <data name="Available accounts" xml:space="preserve"><value>Cuentas disponibles</value></data>
+  <data name="No accounts available" xml:space="preserve"><value>No hay cuentas disponibles</value></data>
+  <data name="Accounts appear here after a connected institution supplies them to BillWatch." xml:space="preserve"><value>Las cuentas aparecen aquí después de que una institución conectada las proporcione a BillWatch.</value></data>
+  <data name="Security model" xml:space="preserve"><value>Modelo de seguridad</value></data>
+  <data name="Financial visibility without financial control." xml:space="preserve"><value>Visibilidad financiera sin control financiero.</value></data>
+  <data name="BillWatch uses connected-account data to identify recurring bills and changes. It does not provide bill payment, transfers, or money movement." xml:space="preserve"><value>BillWatch usa datos de cuentas conectadas para identificar facturas recurrentes y cambios. No ofrece pago de facturas, transferencias ni movimiento de dinero.</value></data>
+  <data name="User-scoped records" xml:space="preserve"><value>Registros limitados al usuario</value></data>
+  <data name="Masked account display" xml:space="preserve"><value>Visualización de cuenta enmascarada</value></data>
+  <data name="API tokens stay server-side" xml:space="preserve"><value>Los tokens de API permanecen en el servidor</value></data>
+  <data name="BillWatch could not initialize the secure account connection tools." xml:space="preserve"><value>BillWatch no pudo inicializar las herramientas seguras de conexión de cuentas.</value></data>
+  <data name="Something went wrong while opening your BillWatch account." xml:space="preserve"><value>Algo salió mal al abrir tu cuenta de BillWatch.</value></data>
+  <data name="BillWatch could not reach the secure API." xml:space="preserve"><value>BillWatch no pudo comunicarse con la API segura.</value></data>
+  <data name="Something went wrong while loading your account information." xml:space="preserve"><value>Algo salió mal al cargar la información de tu cuenta.</value></data>
+  <data name="Not synced yet" xml:space="preserve"><value>Aún no sincronizado</value></data>
+  <data name="Last sync {0}" xml:space="preserve"><value>Última sincronización {0}</value></data>
+  <data name="Disconnect {0}? BillWatch will stop syncing this bank connection." xml:space="preserve"><value>¿Desconectar {0}? BillWatch dejará de sincronizar esta conexión bancaria.</value></data>
+  <data name="Disconnecting {0}…" xml:space="preserve"><value>Desconectando {0}…</value></data>
+  <data name="{0} was disconnected." xml:space="preserve"><value>Se desconectó {0}.</value></data>
+  <data name="BillWatch could not disconnect {0}." xml:space="preserve"><value>BillWatch no pudo desconectar {0}.</value></data>
+  <data name="1 bank connection needs attention" xml:space="preserve"><value>1 conexión bancaria necesita atención</value></data>
+  <data name="{0} bank connections need attention" xml:space="preserve"><value>{0} conexiones bancarias necesitan atención</value></data>
+  <data name="BillWatch user" xml:space="preserve"><value>Usuario de BillWatch</value></data>
+  <data name="Connected" xml:space="preserve"><value>Conectado</value></data>
+  <data name="Needs attention" xml:space="preserve"><value>Necesita atención</value></data>
+  <data name="Connection ended" xml:space="preserve"><value>Conexión finalizada</value></data>
+  <data name="Unknown" xml:space="preserve"><value>Desconocido</value></data>
+  <data name="Bank account" xml:space="preserve"><value>Cuenta bancaria</value></data>
+  <data name="Depository" xml:space="preserve"><value>Depósito</value></data>
+  <data name="Credit" xml:space="preserve"><value>Crédito</value></data>
+  <data name="Loan" xml:space="preserve"><value>Préstamo</value></data>
+  <data name="Investment" xml:space="preserve"><value>Inversión</value></data>
+  <data name="Other" xml:space="preserve"><value>Otro</value></data>
+  <data name="Checking" xml:space="preserve"><value>Cuenta corriente</value></data>
+  <data name="Savings" xml:space="preserve"><value>Ahorros</value></data>
+  <data name="Money market" xml:space="preserve"><value>Mercado monetario</value></data>
+  <data name="Certificate of deposit" xml:space="preserve"><value>Certificado de depósito</value></data>
+  <data name="Credit card" xml:space="preserve"><value>Tarjeta de crédito</value></data>
+</root>
