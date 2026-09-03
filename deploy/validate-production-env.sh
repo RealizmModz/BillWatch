@@ -46,6 +46,20 @@ read_value()
     awk -v prefix="$key=" 'index($0, prefix) == 1 { print substr($0, length(prefix) + 1); exit }' "$env_file"
 }
 
+read_optional_value()
+{
+    key=$1
+    count=$(awk -F= -v key="$key" '$1 == key { count++ } END { print count + 0 }' "$env_file")
+    [ "$count" -le 1 ] || fail "$key must not appear more than once."
+
+    if [ "$count" -eq 0 ]; then
+        printf '%s' ""
+        return
+    fi
+
+    awk -v prefix="$key=" 'index($0, prefix) == 1 { print substr($0, length(prefix) + 1); exit }' "$env_file"
+}
+
 reject_placeholder()
 {
     key=$1
@@ -155,6 +169,37 @@ case "$plaid_environment" in
         fail "PLAID_ENVIRONMENT must be sandbox or production."
         ;;
 esac
+
+identity_email_enabled=$(read_optional_value BILLWATCH_IDENTITY_EMAIL_ENABLED)
+[ -n "$identity_email_enabled" ] || identity_email_enabled=false
+
+case "$identity_email_enabled" in
+    true|false) ;;
+    *)
+        fail "BILLWATCH_IDENTITY_EMAIL_ENABLED must be true or false when present."
+        ;;
+esac
+
+if [ "$identity_email_enabled" = "true" ]; then
+    resend_api_key=$(read_optional_value RESEND_API_KEY)
+    identity_from_address=$(read_optional_value BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS)
+    identity_from_name=$(read_optional_value BILLWATCH_IDENTITY_EMAIL_FROM_NAME)
+
+    reject_placeholder RESEND_API_KEY "$resend_api_key"
+    reject_placeholder BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS "$identity_from_address"
+    reject_placeholder BILLWATCH_IDENTITY_EMAIL_FROM_NAME "$identity_from_name"
+
+    reject_unsafe_env_value RESEND_API_KEY "$resend_api_key"
+    reject_unsafe_env_value BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS "$identity_from_address"
+    reject_unsafe_env_value BILLWATCH_IDENTITY_EMAIL_FROM_NAME "$identity_from_name"
+
+    case "$identity_from_address" in
+        *@*.*) ;;
+        *)
+            fail "BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS must be a valid sender email address."
+            ;;
+    esac
+fi
 
 case "$restic_repository" in
     /*|./*|../*|[A-Za-z]:\\*|file:*|local:*)

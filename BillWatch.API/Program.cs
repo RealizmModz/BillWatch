@@ -8,6 +8,7 @@ using BillWatch.API.Data.Entities;
 using BillWatch.API.Infrastructure;
 using BillWatch.API.Services.Bills;
 using BillWatch.API.Services.Admin;
+using BillWatch.API.Services.Identity;
 using BillWatch.API.Services.Plaid;
 using BillWatch.API.Services.Statements;
 using BillWatch.API.Services.Subscriptions;
@@ -161,6 +162,36 @@ builder.Services.Configure<IdentityOptions>(
             TimeSpan.FromMinutes(
                 15);
     });
+
+builder.Services
+    .AddOptions<IdentityEmailOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            IdentityEmailOptions.SectionName))
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<
+    IValidateOptions<IdentityEmailOptions>,
+    IdentityEmailOptionsValidator>();
+
+builder.Services.AddHttpClient<
+    ResendIdentityEmailSender>(
+    client =>
+    {
+        client.BaseAddress =
+            new Uri(
+                "https://api.resend.com/");
+
+        client.Timeout =
+            TimeSpan.FromSeconds(
+                15);
+    });
+
+builder.Services.AddTransient<
+    IEmailSender<ApplicationUser>>(
+    serviceProvider =>
+        serviceProvider.GetRequiredService<
+            ResendIdentityEmailSender>());
 
 builder.Services.AddAuthorization(
     options =>
