@@ -118,6 +118,9 @@ namespace BillWatch.API.Data.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
+                    b.Property<int>("TimestampDisplayMode")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
@@ -835,6 +838,10 @@ namespace BillWatch.API.Data.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character(64)")
                         .IsFixedLength();
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
 
                     b.Property<int>("MaxRedemptions")
                         .HasColumnType("integer");
