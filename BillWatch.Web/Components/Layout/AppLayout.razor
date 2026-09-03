@@ -3,6 +3,7 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
 
 <link rel="stylesheet"
       href="/theme.css" />
@@ -24,7 +25,7 @@
         <div class="sidebar-top">
             <a class="app-brand"
                href="/app"
-               aria-label="BillWatch dashboard">
+               aria-label="@L["BillWatch dashboard"]">
 
                 <span class="app-brand-mark">
                     <span></span>
@@ -36,7 +37,7 @@
             </a>
 
             <nav class="app-nav"
-                 aria-label="BillWatch navigation">
+                 aria-label="@L["BillWatch navigation"]">
 
                 <NavLink href="/app"
                          Match="NavLinkMatch.All"
@@ -50,7 +51,7 @@
                     </span>
 
                     <span>
-                        Overview
+                        @L["Overview"]
                     </span>
                 </NavLink>
 
@@ -65,7 +66,7 @@
                     </span>
 
                     <span>
-                        Bills
+                        @L["Bills"]
                     </span>
                 </NavLink>
 
@@ -80,7 +81,7 @@
                     </span>
 
                     <span>
-                        Activity
+                        @L["Activity"]
                     </span>
                 </NavLink>
 
@@ -89,13 +90,13 @@
                 <NavLink href="/app/subscription"
                          class="app-nav-link">
                     <span class="nav-icon" aria-hidden="true">◆</span>
-                    <span>Subscription</span>
+                    <span>@L["Subscription"]</span>
                 </NavLink>
 
                 <NavLink href="/app/account/settings"
                          class="app-nav-link">
                     <span class="nav-icon" aria-hidden="true">⚙</span>
-                    <span>Settings</span>
+                    <span>@L["Settings"]</span>
                 </NavLink>
 
                 <NavLink href="/app/account"
@@ -109,7 +110,7 @@
                     </span>
 
                     <span>
-                        Account
+                        @L["Account"]
                     </span>
                 </NavLink>
             </nav>
@@ -127,7 +128,7 @@
                 </span>
 
                 <span>
-                    Account
+                    @L["Account"]
                 </span>
             </NavLink>
 
@@ -146,7 +147,7 @@
                             </strong>
 
                             <span>
-                                Signed in
+                                @L["Signed in"]
                             </span>
                         </div>
                     </Authorized>
@@ -159,8 +160,8 @@
 
                     <button class="logout-button"
                             type="submit"
-                            title="Sign out"
-                            aria-label="Sign out">
+                            title="@L["Sign out"]"
+                            aria-label="@L["Sign out"]">
 
                         <svg class="bw-sprite"
                              aria-hidden="true">
@@ -184,7 +185,7 @@
 
             <div class="topbar-status">
                 <span class="watch-dot"></span>
-                Secure session
+                @L["Secure session"]
             </div>
 
             <ThemeToggle />
@@ -236,13 +237,13 @@
             .ToString();
     }
 
-    private static string GetDisplayName(
+    private string GetDisplayName(
         string? value)
     {
         if (string.IsNullOrWhiteSpace(
                 value))
         {
-            return "BillWatch user";
+            return L["BillWatch user"];
         }
 
         return value;
