@@ -1,4 +1,6 @@
-﻿<article class="@GetCardClass()">
+﻿@inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.Pages.App.Activity> L
+
+<article class="@GetCardClass()">
     <div class="@GetIconClass()"
          aria-hidden="true">
         <svg class="bw-sprite alert-sprite">
@@ -13,7 +15,7 @@
                     @if (!Alert.IsRead)
                     {
                         <span class="unread-dot"
-                              title="Unread"></span>
+                              title="@L["Unread"]"></span>
                     }
 
                     <strong>
@@ -40,13 +42,13 @@
         <div class="alert-card-footer">
             <div class="alert-meta">
                 <span class="@GetSeverityClass()">
-                    @Alert.Severity
+                    @FormatSeverity(Alert.Severity)
                 </span>
 
                 <span>
                     @(Alert.IsRead
-                        ? "Read"
-                        : "Unread")
+                        ? L["Read"].Value
+                        : L["Unread"].Value)
                 </span>
             </div>
 
@@ -57,7 +59,7 @@
                             class="alert-secondary-action"
                             disabled="@IsBusy"
                             @onclick="HandleMarkReadAsync">
-                        Mark read
+                        @L["Mark read"]
                     </button>
                 }
 
@@ -65,7 +67,7 @@
                         class="alert-secondary-action dismiss"
                         disabled="@IsBusy"
                         @onclick="HandleDismissAsync">
-                    Dismiss
+                    @L["Dismiss"]
                 </button>
 
                 @if (CanReview)
@@ -74,7 +76,7 @@
                             class="alert-primary-action"
                             disabled="@IsBusy"
                             @onclick="HandleReviewAsync">
-                        Review
+                        @L["Review"]
 
                         <span aria-hidden="true">
                             →
@@ -264,44 +266,55 @@
         };
     }
 
-    private static string FormatAlertType(
+    private string FormatAlertType(
         string? value)
     {
         if (string.IsNullOrWhiteSpace(
                 value))
         {
-            return "BillWatch alert";
+            return L["BillWatch alert"].Value;
         }
 
         return value switch
         {
             "BillIncrease" =>
-                "Bill increase",
+                L["Bill increase"].Value,
 
             "BillDecrease" =>
-                "Bill decrease",
+                L["Bill decrease"].Value,
 
             "NewFee" =>
-                "New fee",
+                L["New fee"].Value,
 
             "RemovedDiscount" =>
-                "Removed discount",
+                L["Removed discount"].Value,
 
             "PaymentDue" =>
-                "Payment due",
+                L["Payment due"].Value,
 
             "ConnectionIssue" =>
-                "Connection issue",
+                L["Connection issue"].Value,
 
             "NewBill" =>
-                "New recurring bill",
+                L["New recurring bill"].Value,
 
             _ =>
                 value
         };
     }
 
-    private static string FormatDate(
+    private string FormatSeverity(
+        string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return L["Info"].Value;
+        }
+
+        return L[value].Value;
+    }
+
+    private string FormatDate(
         DateTimeOffset value)
     {
         var local =
@@ -314,18 +327,19 @@
             today)
         {
             return
-                $"Today · {local:h:mm tt}";
+                $"{L["Today"].Value} · {local:h:mm tt}";
         }
 
         if (local.Date ==
             today.AddDays(-1))
         {
             return
-                $"Yesterday · {local:h:mm tt}";
+                $"{L["Yesterday"].Value} · {local:h:mm tt}";
         }
 
         return local.ToString(
-            "MMM d, yyyy");
+            "MMM d, yyyy",
+            System.Globalization.CultureInfo.CurrentUICulture);
     }
 
     public sealed class AlertCardViewModel
