@@ -145,6 +145,16 @@ create_backup()
     echo "Encrypted backup completed as snapshot $snapshot_id."
 }
 
+list_completed_snapshot()
+{
+    require_repository
+
+    restic snapshots \
+        --host "$backup_host" \
+        --tag "$complete_tag" \
+        --latest 1
+}
+
 verify_restore()
 {
     require_repository
@@ -274,9 +284,10 @@ trap 'cleanup_work; exit 130' HUP INT TERM
 case "${1:-backup}" in
     init) initialize_repository ;;
     backup) create_backup ;;
+    snapshot) list_completed_snapshot ;;
     verify) verify_restore ;;
     *)
-        echo "Supported commands: init, backup, verify." >&2
+        echo "Supported commands: init, backup, snapshot, verify." >&2
         exit 64
         ;;
 esac
