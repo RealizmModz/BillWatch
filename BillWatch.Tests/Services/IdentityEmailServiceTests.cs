@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Identity;
 using Microsoft.Extensions.Options;
@@ -98,9 +99,20 @@ public sealed class IdentityEmailServiceTests
             "test-resend-key",
             handler.Request.Headers.Authorization?.Parameter);
 
+        using var document =
+            JsonDocument.Parse(
+                handler.Body);
+
+        var html =
+            document.RootElement
+                .GetProperty(
+                    "html")
+                .GetString();
+
+        Assert.NotNull(html);
         Assert.Contains(
             "https://billbeacon.net/reset-password?email=person%40example.com&amp;code=code%2B%2F%3D%20value",
-            handler.Body,
+            html!,
             StringComparison.Ordinal);
     }
 
