@@ -1,6 +1,8 @@
 ﻿@page "/"
 
-<PageTitle>BillWatch — Know when your bills change</PageTitle>
+@inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
+
+<PageTitle>@L["BillWatch — Know when your bills change"]</PageTitle>
 
 <div class="landing-page">
     <section class="hero">
@@ -10,46 +12,44 @@
         <div class="hero-content">
             <div class="eyebrow">
                 <span class="eyebrow-pulse"></span>
-                Automated bill intelligence
+                @L["Automated bill intelligence"]
             </div>
 
             <h1>
-                Know when your bills
-                <span>change — and why.</span>
+                @L["Know when your bills"]
+                <span>@L["change — and why."]</span>
             </h1>
 
             <p class="hero-description">
-                BillWatch watches recurring bills, catches meaningful
-                increases, and explains what changed and what it could
-                cost you over time.
+                @L["BillWatch watches recurring bills, catches meaningful increases, and explains what changed and what it could cost you over time."]
             </p>
 
             <div class="hero-actions">
                 <a class="primary-button" href="#how-it-works">
-                    See how BillWatch works
+                    @L["See how BillWatch works"]
 
                     <span aria-hidden="true">→</span>
                 </a>
 
                 <a class="secondary-button" href="#example">
-                    View an example
+                    @L["View an example"]
                 </a>
             </div>
 
             <div class="trust-row">
                 <div class="trust-item">
                     <span class="check-icon">✓</span>
-                    Read-only monitoring
+                    @L["Read-only monitoring"]
                 </div>
 
                 <div class="trust-item">
                     <span class="check-icon">✓</span>
-                    No money movement
+                    @L["No money movement"]
                 </div>
 
                 <div class="trust-item">
                     <span class="check-icon">✓</span>
-                    Evidence-first explanations
+                    @L["Evidence-first explanations"]
                 </div>
             </div>
         </div>
@@ -64,21 +64,21 @@
 
                     <div class="watching-pill">
                         <span></span>
-                        Watching
+                        @L["Watching"]
                     </div>
                 </div>
 
                 <div class="dashboard-preview">
                     <div class="dashboard-heading">
                         <div>
-                            <div class="preview-label">New costs detected</div>
+                            <div class="preview-label">@L["New costs detected"]</div>
                             <div class="impact-amount">$300</div>
-                            <div class="impact-period">per year</div>
+                            <div class="impact-period">@L["per year"]</div>
                         </div>
 
                         <div class="preview-summary">
                             <strong>11</strong>
-                            bills monitored
+                            @L["bills monitored"]
                         </div>
                     </div>
 
@@ -88,111 +88,109 @@
                                 <div class="provider-icon">M</div>
 
                                 <div>
-                                    <strong>Internet provider</strong>
-                                    <span>Monthly service</span>
+                                    <strong>@L["Internet provider"]</strong>
+                                    <span>@L["Monthly service"]</span>
                                 </div>
                             </div>
 
-                            <span class="increase-badge">Increase</span>
+                            <span class="increase-badge">@L["Increase"]</span>
                         </div>
 
                         <div class="price-change">
                             <div>
-                                <span>Previous</span>
+                                <span>@L["Previous"]</span>
                                 <strong>$79.99</strong>
                             </div>
 
                             <span class="price-arrow">→</span>
 
                             <div>
-                                <span>Current</span>
+                                <span>@L["Current"]</span>
                                 <strong>$104.99</strong>
                             </div>
                         </div>
 
                         <div class="impact-grid">
                             <div>
-                                <span>Monthly change</span>
+                                <span>@L["Monthly change"]</span>
                                 <strong>+$25.00</strong>
                             </div>
 
                             <div>
-                                <span>Annual impact</span>
+                                <span>@L["Annual impact"]</span>
                                 <strong>+$300.00</strong>
                             </div>
                         </div>
 
                         <div class="reason-box">
                             <div class="reason-heading">
-                                Why it changed
+                                @L["Why it changed"]
                             </div>
 
                             <div class="reason-line">
-                                <span>Promotion ended</span>
+                                <span>@L["Promotion ended"]</span>
                                 <strong>+$20.00</strong>
                             </div>
 
                             <div class="reason-line">
-                                <span>Service fee increased</span>
+                                <span>@L["Service fee increased"]</span>
                                 <strong>+$5.00</strong>
                             </div>
 
                             <div class="reason-line unchanged">
-                                <span>Base service</span>
-                                <strong>No change</strong>
+                                <span>@L["Base service"]</span>
+                                <strong>@L["No change"]</strong>
                             </div>
                         </div>
                     </div>
 
                     <div class="preview-footer">
-                        Example BillWatch analysis
+                        @L["Example BillWatch analysis"]
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="proof-strip" aria-label="BillWatch capabilities">
+    <section class="proof-strip" aria-label="@L["BillWatch capabilities"]">
         <div class="proof-item">
             <span>01</span>
-            Detect recurring bills
+            @L["Detect recurring bills"]
         </div>
 
         <div class="proof-divider"></div>
 
         <div class="proof-item">
             <span>02</span>
-            Catch meaningful changes
+            @L["Catch meaningful changes"]
         </div>
 
         <div class="proof-divider"></div>
 
         <div class="proof-item">
             <span>03</span>
-            Explain the evidence
+            @L["Explain the evidence"]
         </div>
 
         <div class="proof-divider"></div>
 
         <div class="proof-item">
             <span>04</span>
-            Show the real impact
+            @L["Show the real impact"]
         </div>
     </section>
 
     <section class="section how-section" id="how-it-works">
         <div class="section-heading">
-            <div class="section-kicker">How it works</div>
+            <div class="section-kicker">@L["How it works"]</div>
 
             <h2>
-                Your bills change quietly.
-                <span>BillWatch doesn't.</span>
+                @L["Your bills change quietly."]
+                <span>@L["BillWatch doesn't."]</span>
             </h2>
 
             <p>
-                Instead of asking you to maintain another budget,
-                BillWatch focuses on the recurring costs already moving
-                through your financial life.
+                @L["Instead of asking you to maintain another budget, BillWatch focuses on the recurring costs already moving through your financial life."]
             </p>
         </div>
 
@@ -204,15 +202,14 @@
                     <span class="bank-icon"></span>
                 </div>
 
-                <h3>Find recurring bills</h3>
+                <h3>@L["Find recurring bills"]</h3>
 
                 <p>
-                    BillWatch identifies recurring services and watches
-                    their history over time.
+                    @L["BillWatch identifies recurring services and watches their history over time."]
                 </p>
 
                 <div class="step-detail">
-                    Internet · Mobile · Utilities
+                    @L["Internet · Mobile · Utilities"]
                 </div>
             </article>
 
@@ -223,12 +220,10 @@
                     <span class="pulse-icon"></span>
                 </div>
 
-                <h3>Detect what changed</h3>
+                <h3>@L["Detect what changed"]</h3>
 
                 <p>
-                    A meaningful increase, decrease, new charge, or
-                    unusual amount gets surfaced instead of disappearing
-                    into transaction history.
+                    @L["A meaningful increase, decrease, new charge, or unusual amount gets surfaced instead of disappearing into transaction history."]
                 </p>
 
                 <div class="mini-change">
@@ -245,15 +240,14 @@
                     <span class="document-icon"></span>
                 </div>
 
-                <h3>Explain why</h3>
+                <h3>@L["Explain why"]</h3>
 
                 <p>
-                    When statement evidence is available, BillWatch
-                    connects the total change to the charges that caused it.
+                    @L["When statement evidence is available, BillWatch connects the total change to the charges that caused it."]
                 </p>
 
                 <div class="step-detail">
-                    Evidence first. No guessing.
+                    @L["Evidence first. No guessing."]
                 </div>
             </article>
         </div>
@@ -262,17 +256,15 @@
     <section class="section example-section" id="example">
         <div class="example-layout">
             <div class="example-copy">
-                <div class="section-kicker">The difference</div>
+                <div class="section-kicker">@L["The difference"]</div>
 
                 <h2>
-                    A bank tells you
-                    <span>what was charged.</span>
+                    @L["A bank tells you"]
+                    <span>@L["what was charged."]</span>
                 </h2>
 
                 <p>
-                    BillWatch is built to go one level deeper:
-                    what changed, why it changed, and what that
-                    recurring increase means over a year.
+                    @L["BillWatch is built to go one level deeper: what changed, why it changed, and what that recurring increase means over a year."]
                 </p>
 
                 <div class="comparison-list">
@@ -280,9 +272,9 @@
                         <span class="comparison-check">✓</span>
 
                         <div>
-                            <strong>Meaningful change detection</strong>
+                            <strong>@L["Meaningful change detection"]</strong>
                             <span>
-                                Ignore noise and surface increases that matter.
+                                @L["Ignore noise and surface increases that matter."]
                             </span>
                         </div>
                     </div>
@@ -291,10 +283,9 @@
                         <span class="comparison-check">✓</span>
 
                         <div>
-                            <strong>Monthly + annual impact</strong>
+                            <strong>@L["Monthly + annual impact"]</strong>
                             <span>
-                                Turn a small-looking monthly increase into
-                                its actual long-term cost.
+                                @L["Turn a small-looking monthly increase into its actual long-term cost."]
                             </span>
                         </div>
                     </div>
@@ -303,10 +294,9 @@
                         <span class="comparison-check">✓</span>
 
                         <div>
-                            <strong>Evidence-backed explanations</strong>
+                            <strong>@L["Evidence-backed explanations"]</strong>
                             <span>
-                                BillWatch should say “we don't know yet”
-                                instead of inventing a reason.
+                                @L["BillWatch should say “we don't know yet” instead of inventing a reason."]
                             </span>
                         </div>
                     </div>
@@ -316,12 +306,12 @@
             <div class="change-card">
                 <div class="change-card-header">
                     <div>
-                        <span class="card-label">Example change</span>
-                        <h3>Internet</h3>
+                        <span class="card-label">@L["Example change"]</span>
+                        <h3>@L["Internet"]</h3>
                     </div>
 
                     <div class="confidence-pill">
-                        Confirmed
+                        @L["Confirmed"]
                     </div>
                 </div>
 
@@ -339,27 +329,27 @@
 
                 <div class="annual-callout">
                     <div>
-                        <span>Monthly increase</span>
+                        <span>@L["Monthly increase"]</span>
                         <strong>+$25</strong>
                     </div>
 
                     <div class="annual-divider"></div>
 
                     <div>
-                        <span>Annualized impact</span>
+                        <span>@L["Annualized impact"]</span>
                         <strong>+$300</strong>
                     </div>
                 </div>
 
                 <div class="why-list">
                     <div class="why-title">
-                        Why it changed
+                        @L["Why it changed"]
                     </div>
 
                     <div class="why-row">
                         <div>
                             <span class="reason-dot"></span>
-                            Promotion expired
+                            @L["Promotion expired"]
                         </div>
 
                         <strong>+$20</strong>
@@ -368,7 +358,7 @@
                     <div class="why-row">
                         <div>
                             <span class="reason-dot"></span>
-                            New service fee
+                            @L["New service fee"]
                         </div>
 
                         <strong>+$5</strong>
@@ -377,16 +367,16 @@
                     <div class="why-row muted-row">
                         <div>
                             <span class="reason-dot neutral-dot"></span>
-                            Base service
+                            @L["Base service"]
                         </div>
 
-                        <strong>No change</strong>
+                        <strong>@L["No change"]</strong>
                     </div>
                 </div>
 
                 <div class="source-note">
                     <span class="source-check">✓</span>
-                    Example based on transaction + statement evidence
+                    @L["Example based on transaction + statement evidence"]
                 </div>
             </div>
         </div>
@@ -401,33 +391,31 @@
             </div>
 
             <div class="security-copy">
-                <div class="section-kicker">Built for sensitive data</div>
+                <div class="section-kicker">@L["Built for sensitive data"]</div>
 
                 <h2>
-                    Financial visibility without financial control.
+                    @L["Financial visibility without financial control."]
                 </h2>
 
                 <p>
-                    BillWatch is designed around monitoring and explanation,
-                    not moving money. Sensitive financial information belongs
-                    behind authenticated, user-scoped access.
+                    @L["BillWatch is designed around monitoring and explanation, not moving money. Sensitive financial information belongs behind authenticated, user-scoped access."]
                 </p>
             </div>
 
             <div class="security-points">
                 <div>
                     <span>✓</span>
-                    Read-only product model
+                    @L["Read-only product model"]
                 </div>
 
                 <div>
                     <span>✓</span>
-                    User-scoped financial records
+                    @L["User-scoped financial records"]
                 </div>
 
                 <div>
                     <span>✓</span>
-                    Evidence over invented answers
+                    @L["Evidence over invented answers"]
                 </div>
             </div>
         </div>
@@ -439,21 +427,20 @@
 
             <div class="closing-content">
                 <div class="section-kicker light-kicker">
-                    Bill intelligence, not another budget
+                    @L["Bill intelligence, not another budget"]
                 </div>
 
                 <h2>
-                    Your bills keep changing.
-                    <span>BillWatch keeps watching.</span>
+                    @L["Your bills keep changing."]
+                    <span>@L["BillWatch keeps watching."]</span>
                 </h2>
 
                 <p>
-                    Detect the change. Understand the reason.
-                    See what it actually costs.
+                    @L["Detect the change. Understand the reason. See what it actually costs."]
                 </p>
 
                 <a class="closing-button" href="#how-it-works">
-                    Explore how it works
+                    @L["Explore how it works"]
                     <span aria-hidden="true">→</span>
                 </a>
             </div>
