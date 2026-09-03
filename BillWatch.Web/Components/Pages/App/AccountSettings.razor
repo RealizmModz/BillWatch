@@ -8,18 +8,315 @@
 
 @inject IJSRuntime JS
 
-<PageTitle>Settings — BillWatch</PageTitle>
+<PageTitle>Account & security — BillWatch</PageTitle>
 
 <link rel="stylesheet" href="/account-settings.css" />
 
 <div class="app-page settings-page">
     <header class="page-heading">
         <div>
-            <span class="page-kicker">Preferences</span>
-            <h1>Settings</h1>
-            <p>Choose how BillWatch presents account information to you.</p>
+            <span class="page-kicker">Account</span>
+            <h1>Account & security</h1>
+            <p>Manage your sign-in, recovery protection, and account preferences.</p>
         </div>
     </header>
+
+    @if (!string.IsNullOrWhiteSpace(_pageError))
+    {
+        <div class="app-error-state settings-banner" role="alert">
+            <div class="state-symbol">!</div>
+            <div><p>@_pageError</p></div>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_pageSuccess))
+    {
+        <div class="settings-success-banner" role="status">
+            <span>✓</span>
+            @_pageSuccess
+        </div>
+    }
+
+    <section class="settings-card">
+        <div class="settings-copy">
+            <span class="panel-kicker">Identity</span>
+            <h2>Email address</h2>
+            <p>Your email is your BillWatch sign-in and recovery address.</p>
+        </div>
+
+        @if (_security is null)
+        {
+            <p>Loading account security…</p>
+        }
+        else
+        {
+            <div class="security-summary-row">
+                <div>
+                    <span class="security-label">Current email</span>
+                    <strong>@_security.Email</strong>
+                </div>
+
+                <span class="security-badge @(_security.EmailConfirmed ? "is-good" : "is-warning")">
+                    @(_security.EmailConfirmed ? "Verified" : "Not verified")
+                </span>
+            </div>
+
+            <div class="settings-grid two-column">
+                <label class="settings-field">
+                    <span>New email address</span>
+                    <input type="email"
+                           autocomplete="email"
+                           @bind="_newEmail" />
+                </label>
+
+                <label class="settings-field">
+                    <span>Current password</span>
+                    <input type="password"
+                           autocomplete="current-password"
+                           @bind="_emailCurrentPassword" />
+                </label>
+
+                @if (_security.TwoFactorEnabled)
+                {
+                    <label class="settings-field">
+                        <span>Authenticator code</span>
+                        <input type="text"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               maxlength="12"
+                               @bind="_emailTwoFactorCode" />
+                    </label>
+                }
+            </div>
+
+            <div class="settings-actions">
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_isBusy"
+                        @onclick="ChangeEmailAsync">
+                    Send verification email
+                </button>
+            </div>
+
+            <p class="security-note">
+                The address changes only after the new inbox opens the verification link.
+            </p>
+        }
+    </section>
+
+    <section class="settings-card">
+        <div class="settings-copy">
+            <span class="panel-kicker">Password</span>
+            <h2>Change password</h2>
+            <p>Changing your password invalidates Identity security state and protects future sign-ins.</p>
+        </div>
+
+        <div class="settings-grid two-column">
+            <label class="settings-field">
+                <span>Current password</span>
+                <input type="password"
+                       autocomplete="current-password"
+                       @bind="_passwordCurrent" />
+            </label>
+
+            @if (_security?.TwoFactorEnabled == true)
+            {
+                <label class="settings-field">
+                    <span>Authenticator code</span>
+                    <input type="text"
+                           inputmode="numeric"
+                           autocomplete="one-time-code"
+                           maxlength="12"
+                           @bind="_passwordTwoFactorCode" />
+                </label>
+            }
+
+            <label class="settings-field">
+                <span>New password</span>
+                <input type="password"
+                       autocomplete="new-password"
+                       @bind="_passwordNew" />
+            </label>
+
+            <label class="settings-field">
+                <span>Confirm new password</span>
+                <input type="password"
+                       autocomplete="new-password"
+                       @bind="_passwordConfirm" />
+            </label>
+        </div>
+
+        <div class="password-rules settings-password-rules">
+            <strong>BillWatch password requirements</strong>
+            <span>At least 12 characters</span>
+            <span>Uppercase and lowercase letters</span>
+            <span>At least one number and one symbol</span>
+        </div>
+
+        <div class="settings-actions">
+            <button type="button"
+                    class="primary-action"
+                    disabled="@_isBusy"
+                    @onclick="ChangePasswordAsync">
+                Change password
+            </button>
+        </div>
+    </section>
+
+    <section class="settings-card">
+        <div class="settings-copy security-heading-row">
+            <div>
+                <span class="panel-kicker">Two-factor authentication</span>
+                <h2>Authenticator app</h2>
+                <p>Add a second factor from Microsoft Authenticator, Google Authenticator, 1Password, Authy, or another TOTP app.</p>
+            </div>
+
+            @if (_security is not null)
+            {
+                <span class="security-badge @(_security.TwoFactorEnabled ? "is-good" : "is-neutral")">
+                    @(_security.TwoFactorEnabled ? "Enabled" : "Off")
+                </span>
+            }
+        </div>
+
+        @if (_security is not null)
+        {
+            @if (_security.TwoFactorEnabled)
+            {
+                <div class="security-summary-row">
+                    <div>
+                        <span class="security-label">Recovery codes remaining</span>
+                        <strong>@_security.RecoveryCodesLeft</strong>
+                    </div>
+                </div>
+
+                <div class="settings-grid two-column">
+                    <label class="settings-field">
+                        <span>Current password</span>
+                        <input type="password"
+                               autocomplete="current-password"
+                               @bind="_twoFactorCurrentPassword" />
+                    </label>
+
+                    <label class="settings-field">
+                        <span>Current authenticator code</span>
+                        <input type="text"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               maxlength="12"
+                               @bind="_twoFactorCurrentCode" />
+                    </label>
+                </div>
+
+                <div class="settings-actions">
+                    <button type="button"
+                            class="secondary-action"
+                            disabled="@_isBusy"
+                            @onclick="RegenerateRecoveryCodesAsync">
+                        New recovery codes
+                    </button>
+
+                    <button type="button"
+                            class="secondary-action"
+                            disabled="@_isBusy"
+                            @onclick="ResetTwoFactorAsync">
+                        Replace authenticator
+                    </button>
+
+                    <button type="button"
+                            class="danger-action"
+                            disabled="@_isBusy"
+                            @onclick="DisableTwoFactorAsync">
+                        Disable 2FA
+                    </button>
+                </div>
+            }
+            else
+            {
+                <p class="security-note">
+                    Setup requires your current password. BillWatch never stores the authenticator secret in browser storage.
+                </p>
+
+                <div class="settings-grid two-column">
+                    <label class="settings-field">
+                        <span>Current password</span>
+                        <input type="password"
+                               autocomplete="current-password"
+                               @bind="_twoFactorCurrentPassword" />
+                    </label>
+                </div>
+
+                <div class="settings-actions">
+                    <button type="button"
+                            class="primary-action"
+                            disabled="@_isBusy"
+                            @onclick="SetupTwoFactorAsync">
+                        Set up authenticator
+                    </button>
+                </div>
+            }
+        }
+
+        @if (_twoFactorSetup is not null)
+        {
+            <div class="authenticator-setup">
+                <span class="security-label">Authenticator setup key</span>
+                <code>@_twoFactorSetup.SharedKey</code>
+                <p>In your authenticator app, add a TOTP account named BillWatch and enter the key above.</p>
+
+                <div class="settings-grid two-column">
+                    <label class="settings-field">
+                        <span>Current password</span>
+                        <input type="password"
+                               autocomplete="current-password"
+                               @bind="_twoFactorEnablePassword" />
+                    </label>
+
+                    <label class="settings-field">
+                        <span>6-digit code from the app</span>
+                        <input type="text"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               maxlength="12"
+                               @bind="_twoFactorEnableCode" />
+                    </label>
+                </div>
+
+                <div class="settings-actions">
+                    <button type="button"
+                            class="primary-action"
+                            disabled="@_isBusy"
+                            @onclick="EnableTwoFactorAsync">
+                        Verify and enable 2FA
+                    </button>
+                </div>
+            </div>
+        }
+
+        @if (_recoveryCodes.Count > 0)
+        {
+            <div class="recovery-code-panel" role="status">
+                <div>
+                    <span class="panel-kicker">Save these now</span>
+                    <h3>Recovery codes</h3>
+                    <p>Each code works once. Store them somewhere safe outside BillWatch. They will not be shown again after you leave this page.</p>
+                </div>
+
+                <div class="recovery-code-grid">
+                    @foreach (var recoveryCode in _recoveryCodes)
+                    {
+                        <code>@recoveryCode</code>
+                    }
+                </div>
+
+                <button type="button"
+                        class="secondary-action"
+                        @onclick="DismissRecoveryCodes">
+                    I saved these codes
+                </button>
+            </div>
+        }
+    </section>
 
     <section class="settings-card">
         <div class="settings-copy">
@@ -28,23 +325,16 @@
             <p>This preference follows your BillWatch account across devices.</p>
         </div>
 
-        @if (_isLoading)
+        @if (_isLoadingPreference)
         {
             <p>Loading preference…</p>
-        }
-        else if (!string.IsNullOrWhiteSpace(_errorMessage))
-        {
-            <div class="app-error-state">
-                <div class="state-symbol">!</div>
-                <div><p>@_errorMessage</p></div>
-            </div>
         }
         else
         {
             <div class="settings-field">
                 <label for="timestamp-display-mode">Timestamp format</label>
                 <select id="timestamp-display-mode"
-                        disabled="@_isSaving"
+                        disabled="@_isBusy"
                         @bind="_selectedMode">
                     <option value="Local12Hour">Local — 09/03/2026 12:26 AM</option>
                     <option value="Utc">UTC — 09/03/2026 06:26 UTC</option>
@@ -54,15 +344,10 @@
             <div class="settings-actions">
                 <button type="button"
                         class="primary-action"
-                        disabled="@_isSaving"
-                        @onclick="SaveAsync">
-                    @(_isSaving ? "Saving…" : "Save preference")
+                        disabled="@_isBusy"
+                        @onclick="SaveTimestampAsync">
+                    Save preference
                 </button>
-
-                @if (!string.IsNullOrWhiteSpace(_successMessage))
-                {
-                    <span class="settings-success">@_successMessage</span>
-                }
             </div>
         }
     </section>
@@ -70,11 +355,29 @@
 
 @code {
     private IJSObjectReference? _timeModule;
-    private bool _isLoading = true;
-    private bool _isSaving;
+    private IJSObjectReference? _securityModule;
+    private bool _isBusy;
+    private bool _isLoadingPreference = true;
     private string _selectedMode = "Local12Hour";
-    private string? _errorMessage;
-    private string? _successMessage;
+    private string? _pageError;
+    private string? _pageSuccess;
+    private AccountSecurityViewModel? _security;
+    private TwoFactorSetupViewModel? _twoFactorSetup;
+    private List<string> _recoveryCodes = [];
+
+    private string _newEmail = string.Empty;
+    private string _emailCurrentPassword = string.Empty;
+    private string _emailTwoFactorCode = string.Empty;
+
+    private string _passwordCurrent = string.Empty;
+    private string _passwordNew = string.Empty;
+    private string _passwordConfirm = string.Empty;
+    private string _passwordTwoFactorCode = string.Empty;
+
+    private string _twoFactorCurrentPassword = string.Empty;
+    private string _twoFactorCurrentCode = string.Empty;
+    private string _twoFactorEnablePassword = string.Empty;
+    private string _twoFactorEnableCode = string.Empty;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -89,51 +392,311 @@
                 "import",
                 "./js/local-time.js");
 
-            var preference = await _timeModule.InvokeAsync<AccountPreferenceViewModel>(
-                "getTimestampPreference");
+            _securityModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/account-security.js");
 
-            _selectedMode = NormalizeMode(preference.TimestampDisplayMode);
+            var preferenceTask = _timeModule.InvokeAsync<AccountPreferenceViewModel>(
+                "getTimestampPreference").AsTask();
+
+            var securityTask = _securityModule.InvokeAsync<AccountSecurityViewModel>(
+                "getAccountSecurity").AsTask();
+
+            await Task.WhenAll(preferenceTask, securityTask);
+
+            _selectedMode = NormalizeMode(preferenceTask.Result.TimestampDisplayMode);
+            _security = securityTask.Result;
         }
-        catch (JSException)
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException)
         {
-            _errorMessage = "BillWatch could not load your timestamp preference.";
+            _pageError = "BillWatch could not load account security settings.";
         }
         finally
         {
-            _isLoading = false;
+            _isLoadingPreference = false;
             StateHasChanged();
         }
     }
 
-    private async Task SaveAsync()
+    private async Task ChangeEmailAsync()
     {
-        if (_isSaving || _timeModule is null)
+        if (_securityModule is null || _isBusy)
         {
             return;
         }
 
-        _isSaving = true;
-        _errorMessage = null;
-        _successMessage = null;
+        if (string.IsNullOrWhiteSpace(_newEmail) ||
+            string.IsNullOrWhiteSpace(_emailCurrentPassword))
+        {
+            SetError("Enter the new email address and your current password.");
+            return;
+        }
+
+        await RunActionAsync(
+            async () =>
+            {
+                await _securityModule.InvokeVoidAsync(
+                    "requestEmailChange",
+                    _emailCurrentPassword,
+                    _newEmail,
+                    NullIfBlank(_emailTwoFactorCode));
+
+                _newEmail = string.Empty;
+                _emailCurrentPassword = string.Empty;
+                _emailTwoFactorCode = string.Empty;
+                _pageSuccess = "Verification email sent to the new address.";
+            });
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        if (_securityModule is null || _isBusy)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_passwordCurrent) ||
+            string.IsNullOrWhiteSpace(_passwordNew))
+        {
+            SetError("Enter your current password and a new password.");
+            return;
+        }
+
+        if (!string.Equals(
+                _passwordNew,
+                _passwordConfirm,
+                StringComparison.Ordinal))
+        {
+            SetError("The new passwords do not match.");
+            return;
+        }
+
+        await RunActionAsync(
+            async () =>
+            {
+                await _securityModule.InvokeVoidAsync(
+                    "changePassword",
+                    _passwordCurrent,
+                    _passwordNew,
+                    NullIfBlank(_passwordTwoFactorCode));
+
+                _passwordCurrent = string.Empty;
+                _passwordNew = string.Empty;
+                _passwordConfirm = string.Empty;
+                _passwordTwoFactorCode = string.Empty;
+                _pageSuccess = "Password changed successfully.";
+            });
+    }
+
+    private async Task SetupTwoFactorAsync()
+    {
+        if (_securityModule is null || _isBusy)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_twoFactorCurrentPassword))
+        {
+            SetError("Enter your current password to set up two-factor authentication.");
+            return;
+        }
+
+        await RunActionAsync(
+            async () =>
+            {
+                _twoFactorSetup = await _securityModule.InvokeAsync<TwoFactorSetupViewModel>(
+                    "setupTwoFactor",
+                    _twoFactorCurrentPassword,
+                    NullIfBlank(_twoFactorCurrentCode));
+
+                _twoFactorCurrentPassword = string.Empty;
+                _twoFactorCurrentCode = string.Empty;
+                _pageSuccess = "Authenticator key created. Verify one code to finish setup.";
+                await RefreshSecurityAsync();
+            });
+    }
+
+    private async Task EnableTwoFactorAsync()
+    {
+        if (_securityModule is null || _isBusy || _twoFactorSetup is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_twoFactorEnablePassword) ||
+            string.IsNullOrWhiteSpace(_twoFactorEnableCode))
+        {
+            SetError("Enter your current password and the code from your authenticator app.");
+            return;
+        }
+
+        await RunActionAsync(
+            async () =>
+            {
+                var result = await _securityModule.InvokeAsync<TwoFactorRecoveryCodesViewModel>(
+                    "enableTwoFactor",
+                    _twoFactorEnablePassword,
+                    _twoFactorEnableCode);
+
+                _recoveryCodes = result.RecoveryCodes.ToList();
+                _twoFactorSetup = null;
+                _twoFactorEnablePassword = string.Empty;
+                _twoFactorEnableCode = string.Empty;
+                _pageSuccess = "Two-factor authentication is enabled.";
+                await RefreshSecurityAsync();
+            });
+    }
+
+    private async Task RegenerateRecoveryCodesAsync()
+    {
+        if (_securityModule is null || _isBusy)
+        {
+            return;
+        }
+
+        await RunTwoFactorSensitiveActionAsync(
+            async () =>
+            {
+                var result = await _securityModule.InvokeAsync<TwoFactorRecoveryCodesViewModel>(
+                    "regenerateRecoveryCodes",
+                    _twoFactorCurrentPassword,
+                    _twoFactorCurrentCode);
+
+                _recoveryCodes = result.RecoveryCodes.ToList();
+                _pageSuccess = "New recovery codes generated. Previous codes no longer work.";
+            });
+    }
+
+    private async Task DisableTwoFactorAsync()
+    {
+        if (_securityModule is null || _isBusy)
+        {
+            return;
+        }
+
+        await RunTwoFactorSensitiveActionAsync(
+            async () =>
+            {
+                await _securityModule.InvokeVoidAsync(
+                    "disableTwoFactor",
+                    _twoFactorCurrentPassword,
+                    _twoFactorCurrentCode);
+
+                _twoFactorSetup = null;
+                _recoveryCodes.Clear();
+                _pageSuccess = "Two-factor authentication is disabled.";
+                await RefreshSecurityAsync();
+            });
+    }
+
+    private async Task ResetTwoFactorAsync()
+    {
+        if (_securityModule is null || _isBusy)
+        {
+            return;
+        }
+
+        await RunTwoFactorSensitiveActionAsync(
+            async () =>
+            {
+                _twoFactorSetup = await _securityModule.InvokeAsync<TwoFactorSetupViewModel>(
+                    "resetTwoFactor",
+                    _twoFactorCurrentPassword,
+                    _twoFactorCurrentCode);
+
+                _recoveryCodes.Clear();
+                _pageSuccess = "Old authenticator disabled. Add the new key and verify a code to re-enable 2FA.";
+                await RefreshSecurityAsync();
+            });
+    }
+
+    private async Task RunTwoFactorSensitiveActionAsync(Func<Task> action)
+    {
+        if (string.IsNullOrWhiteSpace(_twoFactorCurrentPassword) ||
+            string.IsNullOrWhiteSpace(_twoFactorCurrentCode))
+        {
+            SetError("Enter your current password and current authenticator code.");
+            return;
+        }
+
+        await RunActionAsync(
+            async () =>
+            {
+                await action();
+                _twoFactorCurrentPassword = string.Empty;
+                _twoFactorCurrentCode = string.Empty;
+            });
+    }
+
+    private async Task SaveTimestampAsync()
+    {
+        if (_isBusy || _timeModule is null)
+        {
+            return;
+        }
+
+        await RunActionAsync(
+            async () =>
+            {
+                var preference = await _timeModule.InvokeAsync<AccountPreferenceViewModel>(
+                    "saveTimestampPreference",
+                    _selectedMode);
+
+                _selectedMode = NormalizeMode(preference.TimestampDisplayMode);
+                _pageSuccess = "Timestamp preference saved.";
+            });
+    }
+
+    private async Task RunActionAsync(Func<Task> action)
+    {
+        _isBusy = true;
+        _pageError = null;
+        _pageSuccess = null;
 
         try
         {
-            var preference = await _timeModule.InvokeAsync<AccountPreferenceViewModel>(
-                "saveTimestampPreference",
-                _selectedMode);
-
-            _selectedMode = NormalizeMode(preference.TimestampDisplayMode);
-            _successMessage = "Timestamp preference saved.";
+            await action();
         }
-        catch (JSException)
+        catch (JSException ex)
         {
-            _errorMessage = "BillWatch could not save your timestamp preference.";
+            _pageError = string.IsNullOrWhiteSpace(ex.Message)
+                ? "BillWatch could not complete that account security change."
+                : ex.Message;
         }
         finally
         {
-            _isSaving = false;
+            _isBusy = false;
             StateHasChanged();
         }
+    }
+
+    private async Task RefreshSecurityAsync()
+    {
+        if (_securityModule is null)
+        {
+            return;
+        }
+
+        _security = await _securityModule.InvokeAsync<AccountSecurityViewModel>(
+            "getAccountSecurity");
+    }
+
+    private void SetError(string message)
+    {
+        _pageSuccess = null;
+        _pageError = message;
+    }
+
+    private void DismissRecoveryCodes()
+    {
+        _recoveryCodes.Clear();
+    }
+
+    private static string? NullIfBlank(string value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
     }
 
     private static string NormalizeMode(string? value)
@@ -145,22 +708,63 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (_timeModule is null)
+        _passwordCurrent = string.Empty;
+        _passwordNew = string.Empty;
+        _passwordConfirm = string.Empty;
+        _passwordTwoFactorCode = string.Empty;
+        _emailCurrentPassword = string.Empty;
+        _emailTwoFactorCode = string.Empty;
+        _twoFactorCurrentPassword = string.Empty;
+        _twoFactorCurrentCode = string.Empty;
+        _twoFactorEnablePassword = string.Empty;
+        _twoFactorEnableCode = string.Empty;
+        _recoveryCodes.Clear();
+
+        if (_securityModule is not null)
         {
-            return;
+            try
+            {
+                await _securityModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
         }
 
-        try
+        if (_timeModule is not null)
         {
-            await _timeModule.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
+            try
+            {
+                await _timeModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
         }
     }
 
     private sealed class AccountPreferenceViewModel
     {
         public string TimestampDisplayMode { get; set; } = "Local12Hour";
+    }
+
+    private sealed class AccountSecurityViewModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public bool EmailConfirmed { get; set; }
+        public bool TwoFactorEnabled { get; set; }
+        public bool HasAuthenticatorKey { get; set; }
+        public int RecoveryCodesLeft { get; set; }
+    }
+
+    private sealed class TwoFactorSetupViewModel
+    {
+        public string SharedKey { get; set; } = string.Empty;
+        public string OtpAuthUri { get; set; } = string.Empty;
+    }
+
+    private sealed class TwoFactorRecoveryCodesViewModel
+    {
+        public string[] RecoveryCodes { get; set; } = [];
     }
 }

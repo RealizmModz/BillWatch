@@ -215,6 +215,7 @@ app.MapBillWatchAuthEndpoints();
 app.MapBillWatchBffEndpoints();
 app.MapBillWatchAdminBffEndpoints();
 app.MapBillWatchAccountPreferenceBffEndpoints();
+app.MapBillWatchAccountSecurityBffEndpoints();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
