@@ -14,6 +14,25 @@ namespace BillWatch.Tests.Infrastructure;
 public sealed class BillWatchApiFactory
     : WebApplicationFactory<ApiAssemblyMarker>
 {
+    private readonly bool _subscriptionEnforcementEnabled;
+
+    public BillWatchApiFactory()
+    {
+    }
+
+    private BillWatchApiFactory(
+        bool subscriptionEnforcementEnabled)
+    {
+        _subscriptionEnforcementEnabled =
+            subscriptionEnforcementEnabled;
+    }
+
+    public static BillWatchApiFactory WithSubscriptionEnforcement()
+    {
+        return new BillWatchApiFactory(
+            subscriptionEnforcementEnabled: true);
+    }
+
     private readonly string _databaseName =
         $"BillWatchSecurityTests-{Guid.NewGuid():N}";
 
@@ -82,7 +101,10 @@ public sealed class BillWatchApiFactory
                          * scheduled Plaid monitoring worker.
                          */
                         ["BillMonitoring:BackgroundRefresh:Enabled"] =
-                            "false"
+                            "false",
+
+                        ["Subscription:EnforcementEnabled"] =
+                            _subscriptionEnforcementEnabled.ToString()
                     };
 
                 configuration.AddInMemoryCollection(

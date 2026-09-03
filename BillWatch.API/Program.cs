@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -49,7 +50,20 @@ builder.WebHost.ConfigureKestrel(
             false;
     });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(
+    options =>
+    {
+        options.Conventions.Add(
+            new SubscriptionAccessExemptionConvention());
+
+        if (builder.Configuration.GetValue<bool>(
+                "Subscription:EnforcementEnabled"))
+        {
+            options.Filters.Add(
+                new AuthorizeFilter(
+                    BillWatchPolicies.ActiveSubscription));
+        }
+    });
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using BillWatch.API.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 
 namespace BillWatch.API.Authorization;
@@ -57,6 +58,8 @@ public sealed class ActiveSubscriptionAuthorizationHandler(
         var endpoint = resource switch
         {
             HttpContext httpContext => httpContext.GetEndpoint(),
+            AuthorizationFilterContext filterContext =>
+                filterContext.HttpContext.GetEndpoint(),
             Endpoint directEndpoint => directEndpoint,
             _ => null
         };
