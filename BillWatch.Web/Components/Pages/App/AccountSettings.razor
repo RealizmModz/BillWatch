@@ -1,0 +1,166 @@
+@page "/app/account/settings"
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@layout AppLayout
+
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
+<PageTitle>Settings — BillWatch</PageTitle>
+
+<link rel="stylesheet" href="/account-settings.css" />
+
+<div class="app-page settings-page">
+    <header class="page-heading">
+        <div>
+            <span class="page-kicker">Preferences</span>
+            <h1>Settings</h1>
+            <p>Choose how BillWatch presents account information to you.</p>
+        </div>
+    </header>
+
+    <section class="settings-card">
+        <div class="settings-copy">
+            <span class="panel-kicker">Date & time</span>
+            <h2>Timestamp display</h2>
+            <p>This preference follows your BillWatch account across devices.</p>
+        </div>
+
+        @if (_isLoading)
+        {
+            <p>Loading preference…</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <div class="app-error-state">
+                <div class="state-symbol">!</div>
+                <div><p>@_errorMessage</p></div>
+            </div>
+        }
+        else
+        {
+            <div class="settings-field">
+                <label for="timestamp-display-mode">Timestamp format</label>
+                <select id="timestamp-display-mode"
+                        disabled="@_isSaving"
+                        @bind="_selectedMode">
+                    <option value="Local12Hour">Local — 09/03/2026 12:26 AM</option>
+                    <option value="Utc">UTC — 09/03/2026 06:26 UTC</option>
+                </select>
+            </div>
+
+            <div class="settings-actions">
+                <button type="button"
+                        class="primary-action"
+                        disabled="@_isSaving"
+                        @onclick="SaveAsync">
+                    @(_isSaving ? "Saving…" : "Save preference")
+                </button>
+
+                @if (!string.IsNullOrWhiteSpace(_successMessage))
+                {
+                    <span class="settings-success">@_successMessage</span>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private IJSObjectReference? _timeModule;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string _selectedMode = "Local12Hour";
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _timeModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/local-time.js");
+
+            var preference = await _timeModule.InvokeAsync<AccountPreferenceViewModel>(
+                "getTimestampPreference");
+
+            _selectedMode = NormalizeMode(preference.TimestampDisplayMode);
+        }
+        catch (JSException)
+        {
+            _errorMessage = "BillWatch could not load your timestamp preference.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_isSaving || _timeModule is null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            var preference = await _timeModule.InvokeAsync<AccountPreferenceViewModel>(
+                "saveTimestampPreference",
+                _selectedMode);
+
+            _selectedMode = NormalizeMode(preference.TimestampDisplayMode);
+            _successMessage = "Timestamp preference saved.";
+        }
+        catch (JSException)
+        {
+            _errorMessage = "BillWatch could not save your timestamp preference.";
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private static string NormalizeMode(string? value)
+    {
+        return string.Equals(value, "Utc", StringComparison.OrdinalIgnoreCase)
+            ? "Utc"
+            : "Local12Hour";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_timeModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _timeModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    private sealed class AccountPreferenceViewModel
+    {
+        public string TimestampDisplayMode { get; set; } = "Local12Hour";
+    }
+}

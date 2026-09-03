@@ -1,134 +1,204 @@
-function parseDate(
-    value) {
+const storageKey = "billwatch.timestamp-display-mode";
+const localMode = "Local12Hour";
+const utcMode = "Utc";
 
+let observer = null;
+
+function normalizeMode(value) {
+    return value === utcMode
+        ? utcMode
+        : localMode;
+}
+
+function getStoredMode() {
+    return normalizeMode(
+        window.localStorage.getItem(storageKey));
+}
+
+function setStoredMode(mode) {
+    window.localStorage.setItem(
+        storageKey,
+        normalizeMode(mode));
+}
+
+function parseDate(value) {
     if (!value) {
         return null;
     }
 
-    const date =
-        new Date(
-            value);
+    const date = new Date(value);
 
-    if (Number.isNaN(
-        date.getTime())) {
-
-        return null;
-    }
-
-    return date;
+    return Number.isNaN(date.getTime())
+        ? null
+        : date;
 }
 
-const localDateFormatter =
-    new Intl.DateTimeFormat(
-        "en-US",
-        {
-            year:
-                "numeric",
+function pad(value) {
+    return String(value).padStart(2, "0");
+}
 
-            month:
-                "short",
+function formatUtc(date, includeTime = true) {
+    const dateText =
+        `${pad(date.getUTCMonth() + 1)}/${pad(date.getUTCDate())}/${date.getUTCFullYear()}`;
 
-            day:
-                "numeric"
-        });
+    if (!includeTime) {
+        return `${dateText} UTC`;
+    }
 
-const localDateTimeFormatter =
-    new Intl.DateTimeFormat(
-        "en-US",
-        {
-            year:
-                "numeric",
+    return `${dateText} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())} UTC`;
+}
 
-            month:
-                "short",
+function formatLocal(date, includeTime = true) {
+    const dateText =
+        `${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${date.getFullYear()}`;
 
-            day:
-                "numeric",
+    if (!includeTime) {
+        return dateText;
+    }
 
-            hour:
-                "numeric",
+    const hours = date.getHours();
+    const displayHour = hours % 12 || 12;
+    const period = hours >= 12 ? "PM" : "AM";
 
-            minute:
-                "2-digit",
+    return `${dateText} ${displayHour}:${pad(date.getMinutes())} ${period}`;
+}
 
-            hour12:
-                true,
-
-            timeZoneName:
-                "short"
-        });
-
-export function formatLocalDate(
-    value) {
-
-    const date =
-        parseDate(
-            value);
+function formatByMode(value, includeTime = true) {
+    const date = parseDate(value);
 
     if (!date) {
         return null;
     }
 
-    return localDateFormatter
-        .format(
-            date);
+    return getStoredMode() === utcMode
+        ? formatUtc(date, includeTime)
+        : formatLocal(date, includeTime);
 }
 
-export function formatLocalDateTime(
-    value) {
+function renderTimestampElement(element) {
+    const value = element.getAttribute("datetime") ??
+        element.dataset.bwTimestamp;
+    const formatted = formatByMode(value, true);
 
-    const date =
-        parseDate(
-            value);
+    if (formatted) {
+        element.textContent = formatted;
+    }
+}
 
-    if (!date) {
-        return null;
+export function renderTimestamps(root = document) {
+    if (root instanceof Element &&
+        (root.matches("time[datetime]") ||
+         root.matches("[data-bw-timestamp]"))) {
+        renderTimestampElement(root);
     }
 
-    const parts =
-        localDateTimeFormatter
-            .formatToParts(
-                date);
+    root.querySelectorAll?.("time[datetime], [data-bw-timestamp]")
+        .forEach(renderTimestampElement);
+}
 
-    const getPart =
-        type =>
-            parts.find(
-                part =>
-                    part.type ===
-                    type)?.value ?? "";
+export async function getTimestampPreference() {
+    const response = await fetch(
+        "/bff/account/preferences",
+        {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json"
+            }
+        });
 
-    const month =
-        getPart(
-            "month");
+    if (!response.ok) {
+        throw new Error("Could not load timestamp preference.");
+    }
 
-    const day =
-        getPart(
-            "day");
+    return await response.json();
+}
 
-    const year =
-        getPart(
-            "year");
+export async function saveTimestampPreference(mode) {
+    const normalizedMode = normalizeMode(mode);
 
-    const hour =
-        getPart(
-            "hour");
+    const antiforgeryResponse = await fetch(
+        "/bff/antiforgery",
+        {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json"
+            }
+        });
 
-    const minute =
-        getPart(
-            "minute");
+    if (!antiforgeryResponse.ok) {
+        throw new Error("Could not initialize secure preference update.");
+    }
 
-    const dayPeriod =
-        getPart(
-            "dayPeriod");
+    const antiforgery = await antiforgeryResponse.json();
 
-    const timeZoneName =
-        getPart(
-            "timeZoneName");
+    const response = await fetch(
+        "/bff/account/preferences",
+        {
+            method: "PUT",
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": antiforgery.requestToken
+            },
+            body: JSON.stringify({
+                timestampDisplayMode: normalizedMode
+            })
+        });
 
-    const zoneSuffix =
-        timeZoneName
-            ? ` ${timeZoneName}`
-            : "";
+    if (!response.ok) {
+        throw new Error("Could not save timestamp preference.");
+    }
 
-    return `${month} ${day}, ${year} ${hour}:${minute} ${dayPeriod}${zoneSuffix}`.trim();
+    const saved = await response.json();
+    setStoredMode(saved.timestampDisplayMode);
+    renderTimestamps(document);
+
+    return saved;
+}
+
+export async function initializeTimestampPreferences() {
+    try {
+        const preference = await getTimestampPreference();
+        setStoredMode(preference.timestampDisplayMode);
+    }
+    catch {
+        if (window.localStorage.getItem(storageKey) === null) {
+            setStoredMode(localMode);
+        }
+    }
+
+    renderTimestamps(document);
+
+    if (observer) {
+        observer.disconnect();
+    }
+
+    observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+            mutation.addedNodes.forEach(node => {
+                if (node instanceof Element) {
+                    renderTimestamps(node);
+                }
+            });
+        }
+    });
+
+    observer.observe(
+        document.body,
+        {
+            childList: true,
+            subtree: true
+        });
+}
+
+export function formatLocalDate(value) {
+    return formatByMode(value, false);
+}
+
+export function formatLocalDateTime(value) {
+    return formatByMode(value, true);
 }

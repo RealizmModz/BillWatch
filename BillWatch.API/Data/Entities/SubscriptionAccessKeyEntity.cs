@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using BillWatch.API.Data.Configurations;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,9 @@ public sealed class SubscriptionAccessKeyEntity
 
     public string DisplayPrefix { get; set; } =
         string.Empty;
+
+    [MaxLength(120)]
+    public string? Label { get; set; }
 
     public SubscriptionAccessKeyPurpose Purpose { get; set; } =
         SubscriptionAccessKeyPurpose.Complimentary;

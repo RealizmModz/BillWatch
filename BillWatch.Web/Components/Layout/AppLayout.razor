@@ -1,5 +1,9 @@
 @inherits LayoutComponentBase
 
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+
 <link rel="stylesheet"
       href="/theme.css" />
 
@@ -86,6 +90,12 @@
                          class="app-nav-link">
                     <span class="nav-icon" aria-hidden="true">◆</span>
                     <span>Subscription</span>
+                </NavLink>
+
+                <NavLink href="/app/account/settings"
+                         class="app-nav-link">
+                    <span class="nav-icon" aria-hidden="true">⚙</span>
+                    <span>Settings</span>
                 </NavLink>
 
                 <NavLink href="/app/account"
@@ -187,6 +197,31 @@
 </div>
 
 @code {
+    private IJSObjectReference? _timeModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _timeModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/local-time.js");
+
+            await _timeModule.InvokeVoidAsync(
+                "initializeTimestampPreferences");
+        }
+        catch (JSException)
+        {
+            // Timestamp formatting is presentation-only and must never
+            // prevent the authenticated application from rendering.
+        }
+    }
+
     private static string GetInitial(
         string? value)
     {
@@ -211,5 +246,21 @@
         }
 
         return value;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_timeModule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _timeModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
     }
 }

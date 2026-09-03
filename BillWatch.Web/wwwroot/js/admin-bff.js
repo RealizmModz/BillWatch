@@ -1,4 +1,5 @@
 let antiforgeryToken = null;
+let accessKeyLabelObserver = null;
 
 async function readSafeError(response) {
     const contentType =
@@ -163,6 +164,52 @@ function requireIdentifier(
         value.trim());
 }
 
+function ensureAccessKeyLabelField() {
+    const builder = document.querySelector(".admin-key-builder");
+
+    if (!builder || document.getElementById("key-label")) {
+        return;
+    }
+
+    const field = document.createElement("div");
+    field.className = "admin-field";
+    field.innerHTML = `
+        <label for="key-label">Lifetime key label</label>
+        <input id="key-label"
+               type="text"
+               maxlength="120"
+               autocomplete="off"
+               placeholder="Example: Adam personal lifetime key" />
+        <small>Optional. Stored only for lifetime access keys.</small>`;
+
+    const action = builder.querySelector(".admin-key-builder-action");
+
+    if (action) {
+        builder.insertBefore(field, action);
+    } else {
+        builder.appendChild(field);
+    }
+}
+
+function startAccessKeyLabelUi() {
+    ensureAccessKeyLabelField();
+
+    if (accessKeyLabelObserver) {
+        return;
+    }
+
+    accessKeyLabelObserver = new MutationObserver(() => {
+        ensureAccessKeyLabelField();
+    });
+
+    accessKeyLabelObserver.observe(
+        document.body,
+        {
+            childList: true,
+            subtree: true
+        });
+}
+
 export async function getAdminUsers(
     skip = 0,
     take = 50) {
@@ -195,8 +242,18 @@ export async function getAdminAccessKeys(
             1),
         100);
 
-    return await getAdminJson(
+    const result = await getAdminJson(
         `/bff/admin/access-keys?skip=${safeSkip}&take=${safeTake}`);
+
+    if (!result?.accessDenied && Array.isArray(result?.value?.items)) {
+        for (const item of result.value.items) {
+            if (typeof item?.label === "string" && item.label.trim()) {
+                item.purpose = `${item.purpose} · ${item.label.trim()}`;
+            }
+        }
+    }
+
+    return result;
 }
 
 export async function getAdminAuditLog(
@@ -272,10 +329,38 @@ export async function createAdminAccessKey(request) {
             "Access-key settings are required.");
     }
 
-    return await mutateAdminJson(
+    const payload = {
+        ...request
+    };
+
+    if (payload.grantsLifetimeAccess) {
+        const labelInput = document.getElementById("key-label");
+        const label = labelInput?.value?.trim() ?? "";
+
+        if (label.length > 120) {
+            throw new Error(
+                "Lifetime key labels must be 120 characters or fewer.");
+        }
+
+        payload.label = label || null;
+    } else {
+        payload.label = null;
+    }
+
+    const result = await mutateAdminJson(
         "/bff/admin/access-keys",
         "POST",
-        request);
+        payload);
+
+    if (!result?.accessDenied) {
+        const labelInput = document.getElementById("key-label");
+
+        if (labelInput) {
+            labelInput.value = "";
+        }
+    }
+
+    return result;
 }
 
 export async function revokeAdminAccessKey(accessKeyId) {
@@ -302,3 +387,5 @@ export async function copyTextToClipboard(value) {
     await navigator.clipboard.writeText(value);
     return true;
 }
+
+startAccessKeyLabelUi();

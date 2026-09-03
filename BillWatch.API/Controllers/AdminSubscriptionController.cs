@@ -50,7 +50,8 @@ public sealed class AdminSubscriptionController(
                 request.GrantsLifetimeAccess,
                 request.MaxRedemptions,
                 request.ExpiresAtUtc,
-                cancellationToken);
+                cancellationToken,
+                request.Label);
 
             return StatusCode(
                 StatusCodes.Status201Created,
@@ -58,6 +59,7 @@ public sealed class AdminSubscriptionController(
                     created.Id,
                     created.PlaintextKey,
                     created.DisplayPrefix,
+                    created.Label,
                     created.Purpose.ToString(),
                     created.Tier.ToString(),
                     created.DurationDays,
@@ -104,12 +106,14 @@ public sealed record CreateAccessKeyRequest(
     int? DurationDays,
     bool GrantsLifetimeAccess,
     int MaxRedemptions,
-    DateTimeOffset? ExpiresAtUtc);
+    DateTimeOffset? ExpiresAtUtc,
+    string? Label = null);
 
 public sealed record CreatedAccessKeyResponse(
     Guid Id,
     string PlaintextKey,
     string DisplayPrefix,
+    string? Label,
     string Purpose,
     string Tier,
     int? DurationDays,

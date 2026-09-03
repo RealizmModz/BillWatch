@@ -173,7 +173,10 @@
                                 </strong>
 
                                 <span>
-                                    Created @FormatUtc(user.CreatedAtUtc)
+                                    Created
+                                    <time datetime="@user.CreatedAtUtc.ToString("O")">
+                                        @FormatUtc(user.CreatedAtUtc)
+                                    </time>
                                 </span>
                             </div>
 
@@ -275,7 +278,19 @@
                     </label>
                 </div>
 
-                @if (!_newKeyLifetime)
+                @if (_newKeyLifetime)
+                {
+                    <div class="admin-field">
+                        <label for="key-label">Label (optional)</label>
+                        <input id="key-label"
+                               type="text"
+                               maxlength="120"
+                               placeholder="e.g. Founding beta tester"
+                               disabled="@_isMutating"
+                               @bind="_newKeyLabel" />
+                    </div>
+                }
+                else
                 {
                     <div class="admin-field">
                         <label for="key-duration">Subscription days</label>
@@ -400,6 +415,10 @@
                                 <tr @key="key.Id">
                                     <td>
                                         <strong>@key.DisplayPrefix…</strong>
+                                        @if (!string.IsNullOrWhiteSpace(key.Label))
+                                        {
+                                            <span>@key.Label</span>
+                                        }
                                         <span>@key.Purpose</span>
                                     </td>
                                     <td>
@@ -414,7 +433,9 @@
                                         </span>
                                     </td>
                                     <td>
-                                        @FormatUtc(key.CreatedAtUtc)
+                                        <time datetime="@key.CreatedAtUtc.ToString("O")">
+                                            @FormatUtc(key.CreatedAtUtc)
+                                        </time>
                                     </td>
                                     <td class="admin-row-action">
                                         @if (string.Equals(
@@ -560,6 +581,8 @@
     private int _newKeyMaxRedemptions = 1;
 
     private bool _newKeyLifetime;
+
+    private string _newKeyLabel = string.Empty;
 
     private int _newKeyDurationDays = 30;
 
@@ -710,6 +733,10 @@
                     ? null
                     : _newKeyDurationDays,
                 GrantsLifetimeAccess = _newKeyLifetime,
+                Label = _newKeyLifetime &&
+                        !string.IsNullOrWhiteSpace(_newKeyLabel)
+                    ? _newKeyLabel.Trim()
+                    : null,
                 MaxRedemptions = _newKeyMaxRedemptions,
                 ExpiresAtUtc = _expireNewKey
                     ? DateTimeOffset.UtcNow.AddDays(
@@ -740,6 +767,7 @@
             _newPlaintextKey = result.Value.PlaintextKey;
             _newKeyRevealed = false;
             _copyStatus = null;
+            _newKeyLabel = string.Empty;
 
             await LoadAsync(clearTransientKey: false);
         }
@@ -771,6 +799,12 @@
             _newKeyDurationDays is < 1 or > 3650)
         {
             return "Subscription duration must be between 1 and 3,650 days.";
+        }
+
+        if (_newKeyLifetime &&
+            _newKeyLabel.Trim().Length > 120)
+        {
+            return "Lifetime key labels must be 120 characters or fewer.";
         }
 
         if (_expireNewKey &&
@@ -1075,6 +1109,8 @@
 
         public string DisplayPrefix { get; set; } = string.Empty;
 
+        public string? Label { get; set; }
+
         public string Purpose { get; set; } = string.Empty;
 
         public string Tier { get; set; } = string.Empty;
@@ -1124,6 +1160,8 @@
         public int? DurationDays { get; set; }
 
         public bool GrantsLifetimeAccess { get; set; }
+
+        public string? Label { get; set; }
 
         public int MaxRedemptions { get; set; }
 

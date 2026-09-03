@@ -91,7 +91,7 @@
                             <span>
                                 @_detail.Statements.Count
                                 statement@(Pluralize(
-                                                                    _detail.Statements.Count))
+                                    _detail.Statements.Count))
                             </span>
                         }
                     </div>
@@ -111,7 +111,7 @@
                 @if (_detail.PreviousAverage > 0m)
                 {
                     <small class="@GetDifferenceClass(
-                                                                    transactionDifference)">
+                        transactionDifference)">
                         @FormatDifference(
                             transactionDifference)
                         vs. prior average
@@ -127,7 +127,7 @@
         @if (latestChange is not null)
         {
             <section class="@GetDetectedChangeClass(
-                                                latestChange.AmountDifference)">
+                latestChange.AmountDifference)">
 
                 <div class="detected-change-main">
                     <div class="change-eyebrow">
@@ -201,7 +201,7 @@
                     </div>
 
                     <span class="@GetConfidenceClass(
-                                                              latestChange.Confidence)">
+                        latestChange.Confidence)">
                         @FormatConfidence(
                             latestChange.Confidence)
                     </span>
@@ -230,8 +230,10 @@
                         </span>
 
                         <strong>
-                            @FormatDetectedDate(
-                                latestChange.DetectedAtUtc)
+                            <time datetime="@latestChange.DetectedAtUtc.ToString("O")">
+                                @FormatTimestampFallback(
+                                    latestChange.DetectedAtUtc)
+                            </time>
                         </strong>
                     </div>
 
@@ -399,7 +401,7 @@
                         {
                             <article class="change-history-row">
                                 <div class="@GetHistoryIndicatorClass(
-                                                                                    change.AmountDifference)">
+                                    change.AmountDifference)">
                                 </div>
 
                                 <div class="change-history-copy">
@@ -409,10 +411,10 @@
                                                 change.ChangeType)
                                         </strong>
 
-                                        <span>
-                                            @FormatDetectedDate(
+                                        <time datetime="@change.DetectedAtUtc.ToString("O")">
+                                            @FormatTimestampFallback(
                                                 change.DetectedAtUtc)
-                                        </span>
+                                        </time>
                                     </div>
 
                                     <p>
@@ -779,12 +781,12 @@
             "confidence-pill inferred";
     }
 
-    private static string FormatDetectedDate(
-        DateTimeOffset date)
+    private static string FormatTimestampFallback(
+        DateTimeOffset value)
     {
-        return date.LocalDateTime
+        return value.ToUniversalTime()
             .ToString(
-                "MMM d, yyyy");
+                "MM/dd/yyyy HH:mm 'UTC'");
     }
 
     private static string FormatPeriod(

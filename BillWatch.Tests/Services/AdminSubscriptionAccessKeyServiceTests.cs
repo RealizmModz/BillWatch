@@ -36,6 +36,73 @@ public sealed class AdminSubscriptionAccessKeyServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_TrimsAndPersistsLifetimeLabel()
+    {
+        await using var dbContext = CreateDbContext();
+        var service = CreateService(
+            dbContext,
+            new SubscriptionAccessKeyGenerator());
+
+        var result = await service.CreateAsync(
+            Guid.NewGuid(),
+            SubscriptionAccessKeyPurpose.Beta,
+            BillWatchSubscriptionTier.Beta,
+            durationDays: null,
+            grantsLifetimeAccess: true,
+            maxRedemptions: 1,
+            expiresAtUtc: null,
+            label: "  Founding beta tester  ");
+
+        var stored = Assert.Single(dbContext.SubscriptionAccessKeys);
+        Assert.Equal("Founding beta tester", stored.Label);
+        Assert.Equal("Founding beta tester", result.Label);
+    }
+
+    [Fact]
+    public async Task CreateAsync_RejectsLabelForNonLifetimeKey()
+    {
+        await using var dbContext = CreateDbContext();
+        var service = CreateService(
+            dbContext,
+            new SubscriptionAccessKeyGenerator());
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => service.CreateAsync(
+                Guid.NewGuid(),
+                SubscriptionAccessKeyPurpose.Complimentary,
+                BillWatchSubscriptionTier.Standard,
+                durationDays: 30,
+                grantsLifetimeAccess: false,
+                maxRedemptions: 1,
+                expiresAtUtc: null,
+                label: "Not allowed"));
+
+        Assert.Empty(dbContext.SubscriptionAccessKeys);
+    }
+
+    [Fact]
+    public async Task CreateAsync_RejectsLifetimeLabelLongerThan120Characters()
+    {
+        await using var dbContext = CreateDbContext();
+        var service = CreateService(
+            dbContext,
+            new SubscriptionAccessKeyGenerator());
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => service.CreateAsync(
+                Guid.NewGuid(),
+                SubscriptionAccessKeyPurpose.Beta,
+                BillWatchSubscriptionTier.Beta,
+                durationDays: null,
+                grantsLifetimeAccess: true,
+                maxRedemptions: 1,
+                expiresAtUtc: null,
+                label: new string('x', 121)));
+
+        Assert.Empty(dbContext.SubscriptionAccessKeys);
+    }
+
+    [Fact]
     public async Task CreateAsync_RejectsAmbiguousLifetimeGrant()
     {
         await using var dbContext = CreateDbContext();
