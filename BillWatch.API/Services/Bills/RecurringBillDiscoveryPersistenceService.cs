@@ -1,4 +1,4 @@
-﻿using BillWatch.API.Data;
+using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
 using BillWatch.Core.Services;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +13,25 @@ namespace BillWatch.API.Services.Bills;
 
 public sealed class RecurringBillDiscoveryPersistenceService
 {
+    private static readonly HashSet<string>
+        StrongFallbackRejectedPrimaryCategories =
+            new(
+                StringComparer.OrdinalIgnoreCase)
+            {
+                "BANK_FEES",
+                "FOOD_AND_DRINK",
+                "GOVERNMENT_AND_NON_PROFIT",
+                "HOME_IMPROVEMENT",
+                "INCOME",
+                "LOAN_DISBURSEMENTS",
+                "LOAN_PAYMENTS",
+                "MEDICAL",
+                "TRANSPORTATION",
+                "TRAVEL",
+                "TRANSFER_IN",
+                "TRANSFER_OUT"
+            };
+
     private readonly BillWatchDbContext
         _dbContext;
 
@@ -74,21 +93,82 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 .ToListAsync(
                     cancellationToken);
 
-        var eligibleTransactions =
+        /*
+         * Do not discard a transaction merely because Plaid placed it in a
+         * category BillWatch does not currently recognize.
+         *
+         * Cadence is primary evidence that a charge is recurring. Category
+         * evidence is evaluated after recurrence is established so a stable
+         * subscription is not invisible just because its upstream category
+         * is broad or missing.
+         */
+        var candidateTransactions =
             persistedTransactions
                 .Where(
-                    IsEligibleBillTransaction)
+                    IsRecurringCandidateTransaction)
                 .ToList();
 
         var coreTransactions =
-            eligibleTransactions
+            candidateTransactions
                 .Select(
                     ToCoreTransaction)
                 .ToList();
 
-        var discoveredStreams =
+        var detectedStreams =
             _discoveryService.Discover(
                 coreTransactions);
+
+        var acceptedDiscoveries =
+            new List<AcceptedRecurringDiscovery>();
+
+        foreach (var detectedStream in
+                 detectedStreams)
+        {
+            var matchingTransactions =
+                candidateTransactions
+                    .Where(
+                        transaction =>
+                            string.Equals(
+                                GetNormalizedMerchantName(
+                                    transaction),
+                                detectedStream.ProviderName,
+                                StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(
+                        transaction =>
+                            transaction.PostedDate)
+                    .ToList();
+
+            if (matchingTransactions.Count ==
+                0)
+            {
+                continue;
+            }
+
+            var resolvedCategory =
+                ResolveBillCategory(
+                    matchingTransactions);
+
+            if (resolvedCategory ==
+                    BillCategory.Unknown &&
+                IsStrongUnclassifiedRecurringBill(
+                    matchingTransactions))
+            {
+                resolvedCategory =
+                    BillCategory.Other;
+            }
+
+            if (resolvedCategory ==
+                BillCategory.Unknown)
+            {
+                continue;
+            }
+
+            acceptedDiscoveries.Add(
+                new AcceptedRecurringDiscovery(
+                    detectedStream.ProviderName,
+                    matchingTransactions,
+                    resolvedCategory));
+        }
 
         var existingStreams =
             await _dbContext.BillStreams
@@ -100,10 +180,10 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     cancellationToken);
 
         var discoveredProviderNames =
-            discoveredStreams
+            acceptedDiscoveries
                 .Select(
-                    stream =>
-                        stream.ProviderName)
+                    discovery =>
+                        discovery.ProviderName)
                 .ToHashSet(
                     StringComparer.OrdinalIgnoreCase);
 
@@ -177,36 +257,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
             }
         }
 
-        foreach (var discoveredStream in
-                 discoveredStreams)
+        foreach (var discovery in
+                 acceptedDiscoveries)
         {
-            var matchingTransactions =
-                eligibleTransactions
-                    .Where(
-                        transaction =>
-                            string.Equals(
-                                GetNormalizedMerchantName(
-                                    transaction),
-                                discoveredStream.ProviderName,
-                                StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-            if (matchingTransactions.Count ==
-                0)
-            {
-                continue;
-            }
-
-            var resolvedCategory =
-                ResolveBillCategory(
-                    matchingTransactions);
-
-            if (resolvedCategory ==
-                BillCategory.Unknown)
-            {
-                continue;
-            }
-
             var persistedStream =
                 existingStreams
                     .FirstOrDefault(
@@ -214,7 +267,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                             string.Equals(
                                 _merchantNormalizer.Normalize(
                                     existing.ProviderName),
-                                discoveredStream.ProviderName,
+                                discovery.ProviderName,
                                 StringComparison.OrdinalIgnoreCase));
 
             if (persistedStream is
@@ -228,10 +281,10 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
                         ProviderName =
                             GetMerchantName(
-                                matchingTransactions[0]),
+                                discovery.Transactions[0]),
 
                         Category =
-                            resolvedCategory,
+                            discovery.Category,
 
                         Source =
                             BillStreamSource.AutomaticDiscovery,
@@ -266,7 +319,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                         .EnsureNewBillAlertAsync(
                             userId,
                             persistedStream,
-                            matchingTransactions.Count,
+                            discovery.Transactions.Count,
                             now,
                             cancellationToken);
 
@@ -281,7 +334,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                     false;
 
                 var wasAlreadyLinked =
-                    matchingTransactions
+                    discovery.Transactions
                         .Any(
                             transaction =>
                                 transaction.BillStreamId ==
@@ -300,11 +353,11 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
                 if (persistedStream.Category ==
                         BillCategory.Unknown &&
-                    resolvedCategory !=
+                    discovery.Category !=
                         BillCategory.Unknown)
                 {
                     persistedStream.Category =
-                        resolvedCategory;
+                        discovery.Category;
 
                     changed =
                         true;
@@ -329,7 +382,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
             }
 
             foreach (var transaction in
-                     matchingTransactions)
+                     discovery.Transactions)
             {
                 if (transaction.BillStreamId ==
                     persistedStream.Id)
@@ -359,7 +412,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 coreTransactions.Count,
 
             BillsDiscovered:
-                discoveredStreams.Count,
+                acceptedDiscoveries.Count,
 
             BillStreamsCreated:
                 createdCount,
@@ -380,7 +433,7 @@ public sealed class RecurringBillDiscoveryPersistenceService
                 newBillAlertCount);
     }
 
-    private bool IsEligibleBillTransaction(
+    private bool IsRecurringCandidateTransaction(
         BankTransactionEntity transaction)
     {
         if (transaction.IsPending)
@@ -394,17 +447,9 @@ public sealed class RecurringBillDiscoveryPersistenceService
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(
-                GetNormalizedMerchantName(
-                    transaction)))
-        {
-            return false;
-        }
-
-        return _categoryClassifier.TryClassify(
-            transaction.CategoryPrimary,
-            transaction.CategoryDetailed,
-            out _);
+        return !string.IsNullOrWhiteSpace(
+            GetNormalizedMerchantName(
+                transaction));
     }
 
     private BillCategory ResolveBillCategory(
@@ -424,6 +469,153 @@ public sealed class RecurringBillDiscoveryPersistenceService
         }
 
         return BillCategory.Unknown;
+    }
+
+    private static bool IsStrongUnclassifiedRecurringBill(
+        IReadOnlyCollection<BankTransactionEntity>
+            transactions)
+    {
+        if (transactions.Count < 3)
+        {
+            return false;
+        }
+
+        foreach (var transaction in
+                 transactions)
+        {
+            if (IsExplicitlyRejectedFallbackCategory(
+                    transaction))
+            {
+                return false;
+            }
+        }
+
+        var averageAmount =
+            transactions.Average(
+                transaction =>
+                    transaction.Amount);
+
+        if (averageAmount <= 0m)
+        {
+            return false;
+        }
+
+        var minimumAmount =
+            transactions.Min(
+                transaction =>
+                    transaction.Amount);
+
+        var maximumAmount =
+            transactions.Max(
+                transaction =>
+                    transaction.Amount);
+
+        var allowedVariation =
+            Math.Max(
+                1.00m,
+                decimal.Round(
+                    averageAmount * 0.05m,
+                    2,
+                    MidpointRounding.AwayFromZero));
+
+        return maximumAmount - minimumAmount <=
+            allowedVariation;
+    }
+
+    private static bool IsExplicitlyRejectedFallbackCategory(
+        BankTransactionEntity transaction)
+    {
+        var primary =
+            transaction.CategoryPrimary?
+                .Trim();
+
+        if (string.IsNullOrWhiteSpace(
+                primary))
+        {
+            return false;
+        }
+
+        if (StrongFallbackRejectedPrimaryCategories.Contains(
+                primary))
+        {
+            return true;
+        }
+
+        if (string.Equals(
+                primary,
+                "GENERAL_MERCHANDISE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return !HasSubscriptionEvidence(
+                transaction);
+        }
+
+        if (string.Equals(
+                primary,
+                "PERSONAL_CARE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return !ContainsAny(
+                transaction.CategoryDetailed,
+                "GYM",
+                "FITNESS",
+                "MEMBERSHIP",
+                "SUBSCRIPTION");
+        }
+
+        if (string.Equals(
+                primary,
+                "GENERAL_SERVICES",
+                StringComparison.OrdinalIgnoreCase) &&
+            ContainsAny(
+                transaction.CategoryDetailed,
+                "AUTOMOTIVE"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool HasSubscriptionEvidence(
+        BankTransactionEntity transaction)
+    {
+        return ContainsAny(
+                   transaction.CategoryDetailed,
+                   "SUBSCRIPTION",
+                   "MEMBERSHIP",
+                   "DIGITAL",
+                   "SOFTWARE",
+                   "CLOUD") ||
+               ContainsAny(
+                   transaction.MerchantName,
+                   "SUBSCRIPTION",
+                   "MEMBERSHIP",
+                   " BILL",
+                   "BILL ") ||
+               ContainsAny(
+                   transaction.Name,
+                   "SUBSCRIPTION",
+                   "MEMBERSHIP",
+                   " BILL",
+                   "BILL ");
+    }
+
+    private static bool ContainsAny(
+        string? value,
+        params string[] candidates)
+    {
+        if (string.IsNullOrWhiteSpace(
+                value))
+        {
+            return false;
+        }
+
+        return candidates.Any(
+            candidate =>
+                value.Contains(
+                    candidate,
+                    StringComparison.OrdinalIgnoreCase));
     }
 
     private CoreBankTransaction ToCoreTransaction(
@@ -463,6 +655,11 @@ public sealed class RecurringBillDiscoveryPersistenceService
 
         return merchantName.Trim();
     }
+
+    private sealed record AcceptedRecurringDiscovery(
+        string ProviderName,
+        IReadOnlyList<BankTransactionEntity> Transactions,
+        BillCategory Category);
 }
 
 public sealed record RecurringBillDiscoveryPersistenceResult(
