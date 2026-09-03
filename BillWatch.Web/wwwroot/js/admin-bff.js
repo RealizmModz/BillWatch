@@ -1,4 +1,5 @@
 let antiforgeryToken = null;
+let oneTimeKeyEnhancementTimer = null;
 
 async function readSafeError(response) {
     const contentType =
@@ -163,6 +164,167 @@ function requireIdentifier(
         value.trim());
 }
 
+function maskOneTimeAccessKey(value) {
+    const normalized = value.trim();
+    const parts = normalized.split("-");
+
+    if (parts.length > 1) {
+        return parts
+            .map((part, index) =>
+                index === 0
+                    ? part
+                    : "•".repeat(part.length))
+            .join("-");
+    }
+
+    return "•".repeat(
+        Math.max(normalized.length, 8));
+}
+
+function enhanceOneTimeAccessKeyCard() {
+    const card = document.querySelector(
+        ".admin-secret-card");
+
+    if (!(card instanceof HTMLElement)) {
+        return false;
+    }
+
+    const code = card.querySelector("code");
+    const actions = card.querySelector(
+        ".admin-secret-actions");
+
+    if (!(code instanceof HTMLElement) ||
+        !(actions instanceof HTMLElement)) {
+        return false;
+    }
+
+    if (card.dataset.oneTimeKeyEnhanced === "true") {
+        card.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+
+        return true;
+    }
+
+    const plaintext =
+        code.textContent?.trim() ?? "";
+
+    if (!plaintext) {
+        return false;
+    }
+
+    const masked =
+        maskOneTimeAccessKey(plaintext);
+
+    let isRevealed = false;
+
+    code.textContent = masked;
+    code.setAttribute(
+        "aria-label",
+        "One-time access key hidden");
+
+    const revealButton =
+        document.createElement("button");
+
+    revealButton.type = "button";
+    revealButton.className =
+        "admin-secondary-button";
+    revealButton.textContent =
+        "Reveal key";
+    revealButton.setAttribute(
+        "aria-pressed",
+        "false");
+
+    revealButton.addEventListener(
+        "click",
+        () => {
+            isRevealed = !isRevealed;
+
+            code.textContent = isRevealed
+                ? plaintext
+                : masked;
+
+            code.setAttribute(
+                "aria-label",
+                isRevealed
+                    ? "One-time access key revealed"
+                    : "One-time access key hidden");
+
+            revealButton.textContent = isRevealed
+                ? "Hide key"
+                : "Reveal key";
+
+            revealButton.setAttribute(
+                "aria-pressed",
+                isRevealed
+                    ? "true"
+                    : "false");
+        });
+
+    actions.insertBefore(
+        revealButton,
+        actions.firstChild);
+
+    const copyButton =
+        Array.from(
+            actions.querySelectorAll("button"))
+            .find(button =>
+                button.textContent?.trim() ===
+                    "Copy key");
+
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.setAttribute(
+            "aria-label",
+            "Copy one-time access key");
+    }
+
+    card.dataset.oneTimeKeyEnhanced = "true";
+
+    requestAnimationFrame(
+        () => card.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        }));
+
+    return true;
+}
+
+function scheduleOneTimeAccessKeyEnhancement() {
+    if (oneTimeKeyEnhancementTimer !== null) {
+        window.clearTimeout(
+            oneTimeKeyEnhancementTimer);
+
+        oneTimeKeyEnhancementTimer = null;
+    }
+
+    let attempts = 0;
+
+    const attemptEnhancement = () => {
+        oneTimeKeyEnhancementTimer = null;
+
+        if (enhanceOneTimeAccessKeyCard()) {
+            return;
+        }
+
+        attempts++;
+
+        if (attempts >= 60) {
+            return;
+        }
+
+        oneTimeKeyEnhancementTimer =
+            window.setTimeout(
+                attemptEnhancement,
+                100);
+    };
+
+    oneTimeKeyEnhancementTimer =
+        window.setTimeout(
+            attemptEnhancement,
+            0);
+}
+
 export async function getAdminUsers(
     skip = 0,
     take = 50) {
@@ -272,10 +434,18 @@ export async function createAdminAccessKey(request) {
             "Access-key settings are required.");
     }
 
-    return await mutateAdminJson(
+    const result = await mutateAdminJson(
         "/bff/admin/access-keys",
         "POST",
         request);
+
+    if (!result?.accessDenied &&
+        typeof result?.value?.plaintextKey === "string" &&
+        result.value.plaintextKey.trim()) {
+        scheduleOneTimeAccessKeyEnhancement();
+    }
+
+    return result;
 }
 
 export async function revokeAdminAccessKey(accessKeyId) {
