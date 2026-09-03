@@ -99,7 +99,7 @@ The application fails closed outside Development unless these settings are prese
 
 When TLS terminates at a reverse proxy, configure only its trusted address under `ReverseProxy__KnownProxies`. The included Compose network pins Caddy to `172.28.0.10` and trusts only that address.
 
-Subscription enforcement is controlled by `BILLWATCH_SUBSCRIPTION_ENFORCEMENT_ENABLED` and defaults to `false`. Enable it only after validating the entitlement and access-key flow. When enabled, authenticated financial routes require an active entitlement; subscription recovery, staff administration, data export, bank disconnection, and account deletion remain available through explicit endpoint metadata.
+Subscription enforcement is controlled by `BILLWATCH_SUBSCRIPTION_ENFORCEMENT_ENABLED` and defaults to `false`. `BILLWATCH_SUBSCRIPTION_ENFORCEMENT_COHORT` accepts `InternalTester`, `BetaTester`, or `All`; unknown values fail closed as `All`. Enable it only after validating the entitlement and access-key flow. When enabled, targeted users need an active entitlement for financial routes, while subscription recovery, staff administration, data export, bank disconnection, and account deletion remain available through explicit endpoint metadata.
 
 ## Operations and recovery
 
