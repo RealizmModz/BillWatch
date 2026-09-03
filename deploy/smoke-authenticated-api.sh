@@ -59,6 +59,7 @@ trap cleanup EXIT HUP INT TERM
 
 login_payload="$work_directory/login.json"
 login_response="$work_directory/login-response.json"
+auth_config="$work_directory/auth.curl"
 
 printf '{"email":"%s","password":"%s"}' \
     "$(printf '%s' "$email" | sed 's/\\/\\\\/g; s/"/\\"/g')" \
@@ -89,12 +90,15 @@ access_token="$(
     sed -n 's/.*"accessToken"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
         "$login_response"
 )"
-
 rm -f "$login_response"
 
 if [ -z "$access_token" ]; then
     fail "Authentication response did not contain an access token." 69
 fi
+
+printf 'header = "Authorization: Bearer %s"\n' "$access_token" > "$auth_config"
+chmod 600 "$auth_config"
+unset access_token
 
 probe()
 {
@@ -107,7 +111,7 @@ probe()
             --show-error \
             --output /dev/null \
             --write-out '%{http_code}' \
-            --header "Authorization: Bearer $access_token" \
+            --config "$auth_config" \
             "$api_base_url$path"
     )"
 
@@ -124,7 +128,5 @@ probe "/api/bank-accounts" "200"
 probe "/api/bank-transactions" "200"
 probe "/api/bill-streams" "200"
 probe "/api/alerts" "200"
-
-unset access_token
 
 echo "BillWatch authenticated API smoke test passed."
