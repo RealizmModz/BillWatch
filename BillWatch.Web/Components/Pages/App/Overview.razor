@@ -338,8 +338,10 @@
                         </span>
 
                         <strong>
-                            @FormatSyncTime(
-                                LatestSuccessfulSync.Value)
+                            <time datetime="@LatestSuccessfulSync.Value.ToString("O")">
+                                @FormatTimestampFallback(
+                                    LatestSuccessfulSync.Value)
+                            </time>
                         </strong>
                     </div>
                 }
@@ -513,7 +515,7 @@
                                 @if (bill.PreviousAverage > 0m)
                                 {
                                     <span class="@GetDifferenceClass(
-                                                                                              difference)">
+                                        difference)">
                                         @FormatDifference(
                                             difference)
                                     </span>
@@ -547,7 +549,7 @@
 
                     <div class="insight-change">
                         +@FormatMoney(
-                                                    increase)
+                            increase)
                     </div>
 
                     <span class="insight-period">
@@ -561,7 +563,7 @@
 
                         <strong>
                             +@FormatMoney(
-                                                            increase * 12m)
+                                increase * 12m)
                         </strong>
                     </div>
 
@@ -888,12 +890,12 @@
         };
     }
 
-    private static string FormatSyncTime(
+    private static string FormatTimestampFallback(
         DateTimeOffset value)
     {
-        return value.LocalDateTime
+        return value.ToUniversalTime()
             .ToString(
-                "MMM d, yyyy h:mm tt");
+                "MM/dd/yyyy HH:mm 'UTC'");
     }
 
     public async ValueTask DisposeAsync()
