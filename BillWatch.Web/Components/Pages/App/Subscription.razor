@@ -36,7 +36,18 @@
                     <span class="subscription-state active">Active</span>
                     <h2>BillWatch access is active</h2>
                     <p>
-                        @_status.Tier access · @FormatExpiration(_status.EndsAtUtc)
+                        @_status.Tier access ·
+                        @if (_status.EndsAtUtc is null)
+                        {
+                            <text>Lifetime access</text>
+                        }
+                        else
+                        {
+                            <text>Active through </text>
+                            <time datetime="@_status.EndsAtUtc.Value.ToString("O")">
+                                @FormatTimestampFallback(_status.EndsAtUtc.Value)
+                            </time>
+                        }
                     </p>
                 </div>
             </div>
@@ -182,10 +193,8 @@
         }
     }
 
-    private static string FormatExpiration(DateTimeOffset? value) =>
-        value is null
-            ? "Lifetime access"
-            : $"Active through {value.Value:MMMM d, yyyy}";
+    private static string FormatTimestampFallback(DateTimeOffset value) =>
+        value.ToUniversalTime().ToString("MM/dd/yyyy HH:mm 'UTC'");
 
     public async ValueTask DisposeAsync()
     {
