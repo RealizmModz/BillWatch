@@ -12,376 +12,576 @@
 @inject IJSRuntime JS
 @inject Microsoft.Extensions.Localization.IStringLocalizer<AccountSettings> L
 
-<PageTitle>@L["Account & security — BillWatch"]</PageTitle>
+<PageTitle>@L["Settings — BillWatch"]</PageTitle>
 
 <link rel="stylesheet" href="/account-settings.css" />
 
 <div class="app-page settings-page">
-    <header class="page-heading">
-        <div>
-            <span class="page-kicker">@L["Account"]</span>
-            <h1>@L["Account & security"]</h1>
-            <p>@L["Manage your sign-in, recovery protection, and account preferences."]</p>
-        </div>
-    </header>
 
     @if (!string.IsNullOrWhiteSpace(_pageError))
     {
-        <div class="app-error-state settings-banner" role="alert">
-            <div class="state-symbol">!</div>
-            <div><p>@_pageError</p></div>
-        </div>
-    }
+        <div class="settings-toast settings-toast-error"
+             role="alert"
+             aria-live="assertive">
+            <div class="settings-toast-icon">!</div>
 
-    @if (!string.IsNullOrWhiteSpace(_pageSuccess))
-    {
-        <div class="settings-success-banner" role="status">
-            <span>✓</span>
-            @_pageSuccess
-        </div>
-    }
-
-    <section class="settings-card">
-        <div class="settings-copy">
-            <span class="panel-kicker">@L["Identity"]</span>
-            <h2>@L["Email address"]</h2>
-            <p>@L["Your email is your BillWatch sign-in and recovery address."]</p>
-        </div>
-
-        @if (_security is null)
-        {
-            <p>@L["Loading account security…"]</p>
-        }
-        else
-        {
-            <div class="security-summary-row">
-                <div>
-                    <span class="security-label">@L["Current email"]</span>
-                    <strong>@_security.Email</strong>
-                </div>
-
-                <span class="security-badge @(_security.EmailConfirmed ? "is-good" : "is-warning")">
-                    @(_security.EmailConfirmed ? L["Verified"] : L["Not verified"])
-                </span>
+            <div class="settings-toast-copy">
+                <strong>@L["Something needs your attention"]</strong>
+                <span>@_pageError</span>
             </div>
 
-            <div class="settings-grid two-column">
-                <label class="settings-field">
-                    <span>@L["New email address"]</span>
-                    <input type="email"
-                           autocomplete="email"
-                           @bind="_newEmail" />
-                </label>
-
-                <label class="settings-field">
-                    <span>@L["Current password"]</span>
-                    <input type="password"
-                           autocomplete="current-password"
-                           @bind="_emailCurrentPassword" />
-                </label>
-
-                @if (_security.TwoFactorEnabled)
-                {
-                    <label class="settings-field">
-                        <span>@L["Authenticator code"]</span>
-                        <input type="text"
-                               inputmode="numeric"
-                               autocomplete="one-time-code"
-                               maxlength="12"
-                               @bind="_emailTwoFactorCode" />
-                    </label>
-                }
-            </div>
-
-            <div class="settings-actions">
-                <button type="button"
-                        class="primary-action"
-                        disabled="@_isBusy"
-                        @onclick="ChangeEmailAsync">
-                    @L["Send verification email"]
-                </button>
-            </div>
-
-            <p class="security-note">
-                @L["The address changes only after the new inbox opens the verification link."]
-            </p>
-        }
-    </section>
-
-    <section class="settings-card">
-        <div class="settings-copy">
-            <span class="panel-kicker">@L["Password"]</span>
-            <h2>@L["Change password"]</h2>
-            <p>@L["Changing your password invalidates Identity security state and protects future sign-ins."]</p>
-        </div>
-
-        <div class="settings-grid two-column">
-            <label class="settings-field">
-                <span>@L["Current password"]</span>
-                <input type="password"
-                       autocomplete="current-password"
-                       @bind="_passwordCurrent" />
-            </label>
-
-            @if (_security?.TwoFactorEnabled == true)
-            {
-                <label class="settings-field">
-                    <span>@L["Authenticator code"]</span>
-                    <input type="text"
-                           inputmode="numeric"
-                           autocomplete="one-time-code"
-                           maxlength="12"
-                           @bind="_passwordTwoFactorCode" />
-                </label>
-            }
-
-            <label class="settings-field">
-                <span>@L["New password"]</span>
-                <input type="password"
-                       autocomplete="new-password"
-                       @bind="_passwordNew" />
-            </label>
-
-            <label class="settings-field">
-                <span>@L["Confirm new password"]</span>
-                <input type="password"
-                       autocomplete="new-password"
-                       @bind="_passwordConfirm" />
-            </label>
-        </div>
-
-        <div class="password-rules settings-password-rules">
-            <strong>@L["BillWatch password requirements"]</strong>
-            <span>@L["At least 12 characters"]</span>
-            <span>@L["Uppercase and lowercase letters"]</span>
-            <span>@L["At least one number and one symbol"]</span>
-        </div>
-
-        <div class="settings-actions">
             <button type="button"
-                    class="primary-action"
-                    disabled="@_isBusy"
-                    @onclick="ChangePasswordAsync">
-                @L["Change password"]
+                    class="settings-toast-close"
+                    aria-label="@L["Dismiss notification"]"
+                    @onclick="DismissToast">
+                ×
             </button>
         </div>
-    </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_pageSuccess))
+    {
+        <div class="settings-toast settings-toast-success"
+             role="status"
+             aria-live="polite">
+            <div class="settings-toast-icon">✓</div>
 
-    <section class="settings-card">
-        <div class="settings-copy security-heading-row">
-            <div>
-                <span class="panel-kicker">@L["Two-factor authentication"]</span>
-                <h2>@L["Authenticator app"]</h2>
-                <p>@L["Add a second factor from Microsoft Authenticator, Google Authenticator, 1Password, Authy, or another TOTP app."]</p>
+            <div class="settings-toast-copy">
+                <strong>@L["Saved"]</strong>
+                <span>@_pageSuccess</span>
             </div>
 
-            @if (_security is not null)
-            {
-                <span class="security-badge @(_security.TwoFactorEnabled ? "is-good" : "is-neutral")">
-                    @(_security.TwoFactorEnabled ? L["Enabled"] : L["Off"])
-                </span>
-            }
-        </div>
+            <button type="button"
+                    class="settings-toast-close"
+                    aria-label="@L["Dismiss notification"]"
+                    @onclick="DismissToast">
+                ×
+            </button>
 
-        @if (_security is not null)
-        {
-            @if (_security.TwoFactorEnabled)
-            {
-                <div class="security-summary-row">
-                    <div>
-                        <span class="security-label">@L["Recovery codes remaining"]</span>
-                        <strong>@_security.RecoveryCodesLeft</strong>
+            <div class="settings-toast-progress"></div>
+        </div>
+    }
+
+    <header class="settings-header">
+        <div>
+            <span class="page-kicker">@L["Settings"]</span>
+            <h1>@L["Settings"]</h1>
+            <p>@L["Customize your account, security, notifications, and more."]</p>
+        </div>
+    </header>
+
+    <nav class="settings-tabs"
+         aria-label="@L["Settings sections"]">
+
+        <span class="settings-tab is-active"
+              aria-current="page">
+            <span class="settings-tab-icon" aria-hidden="true">⌾</span>
+            @L["Security"]
+        </span>
+
+        <span class="settings-tab is-future"
+              aria-disabled="true"
+              title="@L["Coming soon"]">
+            <span class="settings-tab-icon" aria-hidden="true">♢</span>
+            @L["Notifications"]
+            <small>@L["Soon"]</small>
+        </span>
+
+        <span class="settings-tab is-future"
+              aria-disabled="true"
+              title="@L["Coming soon"]">
+            <span class="settings-tab-icon" aria-hidden="true">☼</span>
+            @L["Appearance"]
+            <small>@L["Soon"]</small>
+        </span>
+
+        <a class="settings-tab"
+           href="/privacy">
+            <span class="settings-tab-icon" aria-hidden="true">◇</span>
+            @L["Privacy"]
+        </a>
+    </nav>
+
+    <div class="settings-workspace">
+        <div class="settings-primary">
+            <section class="security-hero">
+                <div class="security-hero-icon" aria-hidden="true">
+                    <span>✓</span>
+                </div>
+
+                <div class="security-hero-copy">
+                    <span class="panel-kicker">@L["Security"]</span>
+                    <h2>@L["Keep your BillWatch account protected"]</h2>
+                    <p>@L["Use a strong password, verify your recovery email, and protect your account with an authenticator app."]</p>
+                </div>
+
+                @if (_security is not null)
+                {
+                    <div class="security-hero-status">
+                        <div>
+                            <span class="@(_security.EmailConfirmed ? "status-dot is-good" : "status-dot is-warning")"></span>
+                            @(_security.EmailConfirmed ? L["Email verified"] : L["Email needs verification"])
+                        </div>
+
+                        <div>
+                            <span class="@(_security.TwoFactorEnabled ? "status-dot is-good" : "status-dot is-neutral")"></span>
+                            @(_security.TwoFactorEnabled ? L["2FA enabled"] : L["2FA not enabled"])
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <section class="settings-card settings-card-featured">
+                <div class="settings-card-heading">
+                    <div class="settings-card-icon is-purple" aria-hidden="true">◫</div>
+
+                    <div class="settings-copy">
+                        <div class="settings-title-line">
+                            <h2>@L["Two-factor authentication"]</h2>
+
+                            @if (_security is not null)
+                            {
+                                <span class="security-badge @(_security.TwoFactorEnabled ? "is-good" : "is-neutral")">
+                                    @(_security.TwoFactorEnabled ? L["Enabled"] : L["Not enabled"])
+                                </span>
+                            }
+                        </div>
+
+                        <p>@L["Add an authenticator app to keep your account secure even if your password is compromised."]</p>
                     </div>
                 </div>
 
-                <div class="settings-grid two-column">
-                    <label class="settings-field">
-                        <span>@L["Current password"]</span>
-                        <input type="password"
-                               autocomplete="current-password"
-                               @bind="_twoFactorCurrentPassword" />
-                    </label>
-
-                    <label class="settings-field">
-                        <span>@L["Current authenticator code"]</span>
-                        <input type="text"
-                               inputmode="numeric"
-                               autocomplete="one-time-code"
-                               maxlength="12"
-                               @bind="_twoFactorCurrentCode" />
-                    </label>
-                </div>
-
-                <div class="settings-actions">
-                    <button type="button"
-                            class="secondary-action"
-                            disabled="@_isBusy"
-                            @onclick="RegenerateRecoveryCodesAsync">
-                        @L["New recovery codes"]
-                    </button>
-
-                    <button type="button"
-                            class="secondary-action"
-                            disabled="@_isBusy"
-                            @onclick="ResetTwoFactorAsync">
-                        @L["Replace authenticator"]
-                    </button>
-
-                    <button type="button"
-                            class="danger-action"
-                            disabled="@_isBusy"
-                            @onclick="DisableTwoFactorAsync">
-                        @L["Disable 2FA"]
-                    </button>
-                </div>
-            }
-            else
-            {
-                <p class="security-note">
-                    @L["Setup requires your current password. BillWatch never stores the authenticator secret in browser storage."]
-                </p>
-
-                <div class="settings-grid two-column">
-                    <label class="settings-field">
-                        <span>@L["Current password"]</span>
-                        <input type="password"
-                               autocomplete="current-password"
-                               @bind="_twoFactorCurrentPassword" />
-                    </label>
-                </div>
-
-                <div class="settings-actions">
-                    <button type="button"
-                            class="primary-action"
-                            disabled="@_isBusy"
-                            @onclick="SetupTwoFactorAsync">
-                        @L["Set up authenticator"]
-                    </button>
-                </div>
-            }
-        }
-
-        @if (_twoFactorSetup is not null)
-        {
-            <div class="authenticator-setup">
-                @if (!string.IsNullOrWhiteSpace(_twoFactorQrDataUri))
+                @if (_security is null)
                 {
-                    <div class="authenticator-qr-section">
+                    <div class="settings-loading">@L["Loading account security…"]</div>
+                }
+                else if (_security.TwoFactorEnabled)
+                {
+                    <div class="security-active-strip">
+                        <span class="security-active-check">✓</span>
                         <div>
-                            <span class="security-label">@L["Scan QR code"]</span>
-                            <p>@L["Scan this QR code with your authenticator app."]</p>
+                            <strong>@L["Two-factor authentication is active"]</strong>
+                            <span>@L["Your account is protected with an authenticator app."]</span>
+                        </div>
+                    </div>
+
+                    <div class="security-summary-row">
+                        <div>
+                            <span class="security-label">@L["Recovery codes remaining"]</span>
+                            <strong>@_security.RecoveryCodesLeft</strong>
+                        </div>
+                    </div>
+
+                    <div class="settings-grid two-column">
+                        <label class="settings-field">
+                            <span>@L["Current password"]</span>
+                            <input type="password"
+                                   autocomplete="current-password"
+                                   @bind="_twoFactorCurrentPassword" />
+                        </label>
+
+                        <label class="settings-field">
+                            <span>@L["Current authenticator code"]</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   autocomplete="one-time-code"
+                                   maxlength="12"
+                                   @bind="_twoFactorCurrentCode" />
+                        </label>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button type="button"
+                                class="secondary-action"
+                                disabled="@_isBusy"
+                                @onclick="RegenerateRecoveryCodesAsync">
+                            @L["New recovery codes"]
+                        </button>
+
+                        <button type="button"
+                                class="secondary-action"
+                                disabled="@_isBusy"
+                                @onclick="ResetTwoFactorAsync">
+                            @L["Replace authenticator"]
+                        </button>
+
+                        <button type="button"
+                                class="danger-action"
+                                disabled="@_isBusy"
+                                @onclick="DisableTwoFactorAsync">
+                            @L["Disable 2FA"]
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="security-setup-callout">
+                        <div>
+                            <strong>@L["Add another layer of protection"]</strong>
+                            <span>@L["Setup takes about a minute and works with any standard authenticator app."]</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-grid single-column">
+                        <label class="settings-field">
+                            <span>@L["Current password"]</span>
+                            <input type="password"
+                                   autocomplete="current-password"
+                                   placeholder="@L["Enter your current password"]"
+                                   @bind="_twoFactorCurrentPassword" />
+                        </label>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button type="button"
+                                class="primary-action"
+                                disabled="@_isBusy"
+                                @onclick="SetupTwoFactorAsync">
+                            @L["Set up 2FA"]
+                        </button>
+                    </div>
+
+                    <p class="security-note">@L["BillWatch never stores the authenticator secret in browser storage."]</p>
+                }
+
+                @if (_twoFactorSetup is not null)
+                {
+                    <div class="authenticator-setup">
+                        <div class="authenticator-setup-heading">
+                            <div>
+                                <span class="panel-kicker">@L["Authenticator setup"]</span>
+                                <h3>@L["Scan the QR code"]</h3>
+                                <p>@L["Scan this with your authenticator app, then enter the six-digit code below."]</p>
+                            </div>
                         </div>
 
-                        <img class="authenticator-qr"
-                             src="@_twoFactorQrDataUri"
-                             alt="@L["Authenticator setup QR code"]" />
+                        @if (!string.IsNullOrWhiteSpace(_twoFactorQrDataUri))
+                        {
+                            <div class="authenticator-qr-section">
+                                <div>
+                                    <strong>@L["Scan with your authenticator app"]</strong>
+                                    <p>@L["Microsoft Authenticator, Google Authenticator, 1Password, Authy, and other TOTP apps are supported."]</p>
+                                </div>
+
+                                <img class="authenticator-qr"
+                                     src="@_twoFactorQrDataUri"
+                                     alt="@L["Authenticator setup QR code"]" />
+                            </div>
+                        }
+
+                        <div class="authenticator-manual-key">
+                            <span class="security-label">@L["Can't scan it? Enter this setup key manually."]</span>
+                            <code>@_twoFactorSetup.SharedKey</code>
+                        </div>
+
+                        <div class="settings-grid two-column">
+                            <label class="settings-field">
+                                <span>@L["Current password"]</span>
+                                <input type="password"
+                                       autocomplete="current-password"
+                                       @bind="_twoFactorEnablePassword" />
+                            </label>
+
+                            <label class="settings-field">
+                                <span>@L["6-digit code from the app"]</span>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       autocomplete="one-time-code"
+                                       maxlength="12"
+                                       @bind="_twoFactorEnableCode" />
+                            </label>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button type="button"
+                                    class="primary-action"
+                                    disabled="@_isBusy"
+                                    @onclick="EnableTwoFactorAsync">
+                                @L["Verify and enable 2FA"]
+                            </button>
+                        </div>
                     </div>
                 }
 
-                <span class="security-label">@L["Authenticator setup key"]</span>
-                <code>@_twoFactorSetup.SharedKey</code>
-                <p>@L["In your authenticator app, add a TOTP account named BillWatch and enter the key above."]</p>
+                @if (_recoveryCodes.Count > 0)
+                {
+                    <div class="recovery-code-panel" role="status">
+                        <div>
+                            <span class="panel-kicker">@L["Save these now"]</span>
+                            <h3>@L["Recovery codes"]</h3>
+                            <p>@L["Each code works once. Store them somewhere safe outside BillWatch. They will not be shown again after you leave this page."]</p>
+                        </div>
 
-                <div class="settings-grid two-column">
+                        <div class="recovery-code-grid">
+                            @foreach (var recoveryCode in _recoveryCodes)
+                            {
+                                <code>@recoveryCode</code>
+                            }
+                        </div>
+
+                        <button type="button"
+                                class="secondary-action"
+                                @onclick="DismissRecoveryCodes">
+                            @L["I saved these codes"]
+                        </button>
+                    </div>
+                }
+            </section>
+
+            <section class="settings-card">
+                <div class="settings-card-heading">
+                    <div class="settings-card-icon is-blue" aria-hidden="true">✉</div>
+
+                    <div class="settings-copy">
+                        <div class="settings-title-line">
+                            <h2>@L["Email address"]</h2>
+
+                            @if (_security is not null)
+                            {
+                                <span class="security-badge @(_security.EmailConfirmed ? "is-good" : "is-warning")">
+                                    @(_security.EmailConfirmed ? L["Verified"] : L["Not verified"])
+                                </span>
+                            }
+                        </div>
+
+                        <p>@L["Your email is used for sign-in and account recovery."]</p>
+                    </div>
+                </div>
+
+                @if (_security is null)
+                {
+                    <div class="settings-loading">@L["Loading account security…"]</div>
+                }
+                else
+                {
+                    <div class="current-value">
+                        <span>@L["Current email"]</span>
+                        <strong>@_security.Email</strong>
+                    </div>
+
+                    <div class="settings-grid two-column">
+                        <label class="settings-field">
+                            <span>@L["New email address"]</span>
+                            <input type="email"
+                                   autocomplete="email"
+                                   placeholder="@L["Enter a new email address"]"
+                                   @bind="_newEmail" />
+                        </label>
+
+                        <label class="settings-field">
+                            <span>@L["Current password"]</span>
+                            <input type="password"
+                                   autocomplete="current-password"
+                                   placeholder="@L["Enter your current password"]"
+                                   @bind="_emailCurrentPassword" />
+                        </label>
+
+                        @if (_security.TwoFactorEnabled)
+                        {
+                            <label class="settings-field">
+                                <span>@L["Authenticator code"]</span>
+                                <input type="text"
+                                       inputmode="numeric"
+                                       autocomplete="one-time-code"
+                                       maxlength="12"
+                                       @bind="_emailTwoFactorCode" />
+                            </label>
+                        }
+                    </div>
+
+                    <div class="settings-actions">
+                        <button type="button"
+                                class="primary-action"
+                                disabled="@_isBusy"
+                                @onclick="ChangeEmailAsync">
+                            @L["Send verification email"]
+                        </button>
+                    </div>
+
+                    <p class="security-note">@L["The address changes only after the new inbox opens the verification link."]</p>
+                }
+            </section>
+
+            <section class="settings-card">
+                <div class="settings-card-heading">
+                    <div class="settings-card-icon is-purple" aria-hidden="true">▣</div>
+
+                    <div class="settings-copy">
+                        <h2>@L["Password"]</h2>
+                        <p>@L["Update your password to keep your account secure."]</p>
+                    </div>
+                </div>
+
+                <div class="settings-grid password-grid">
                     <label class="settings-field">
                         <span>@L["Current password"]</span>
                         <input type="password"
                                autocomplete="current-password"
-                               @bind="_twoFactorEnablePassword" />
+                               placeholder="@L["Enter your current password"]"
+                               @bind="_passwordCurrent" />
                     </label>
 
                     <label class="settings-field">
-                        <span>@L["6-digit code from the app"]</span>
-                        <input type="text"
-                               inputmode="numeric"
-                               autocomplete="one-time-code"
-                               maxlength="12"
-                               @bind="_twoFactorEnableCode" />
+                        <span>@L["New password"]</span>
+                        <input type="password"
+                               autocomplete="new-password"
+                               placeholder="@L["Enter a new password"]"
+                               @bind="_passwordNew" />
                     </label>
-                </div>
 
-                <div class="settings-actions">
-                    <button type="button"
-                            class="primary-action"
-                            disabled="@_isBusy"
-                            @onclick="EnableTwoFactorAsync">
-                        @L["Verify and enable 2FA"]
-                    </button>
-                </div>
-            </div>
-        }
+                    <label class="settings-field">
+                        <span>@L["Confirm new password"]</span>
+                        <input type="password"
+                               autocomplete="new-password"
+                               placeholder="@L["Confirm your new password"]"
+                               @bind="_passwordConfirm" />
+                    </label>
 
-        @if (_recoveryCodes.Count > 0)
-        {
-            <div class="recovery-code-panel" role="status">
-                <div>
-                    <span class="panel-kicker">@L["Save these now"]</span>
-                    <h3>@L["Recovery codes"]</h3>
-                    <p>@L["Each code works once. Store them somewhere safe outside BillWatch. They will not be shown again after you leave this page."]</p>
-                </div>
-
-                <div class="recovery-code-grid">
-                    @foreach (var recoveryCode in _recoveryCodes)
+                    @if (_security?.TwoFactorEnabled == true)
                     {
-                        <code>@recoveryCode</code>
+                        <label class="settings-field">
+                            <span>@L["Authenticator code"]</span>
+                            <input type="text"
+                                   inputmode="numeric"
+                                   autocomplete="one-time-code"
+                                   maxlength="12"
+                                   @bind="_passwordTwoFactorCode" />
+                        </label>
                     }
                 </div>
 
-                <button type="button"
-                        class="secondary-action"
-                        @onclick="DismissRecoveryCodes">
-                    @L["I saved these codes"]
-                </button>
-            </div>
-        }
-    </section>
+                <details class="password-rules-disclosure">
+                    <summary>@L["Password requirements"]</summary>
+                    <div class="password-rules settings-password-rules">
+                        <span>@L["At least 12 characters"]</span>
+                        <span>@L["Uppercase and lowercase letters"]</span>
+                        <span>@L["At least one number and one symbol"]</span>
+                    </div>
+                </details>
 
-    <section class="settings-card">
-        <div class="settings-copy">
-            <span class="panel-kicker">@L["Date & time"]</span>
-            <h2>@L["Timestamp display"]</h2>
-            <p>@L["This preference follows your BillWatch account across devices."]</p>
+                <div class="settings-actions">
+                    <button type="button"
+                            class="primary-action"
+                            disabled="@_isBusy"
+                            @onclick="ChangePasswordAsync">
+                        @L["Update password"]
+                    </button>
+                </div>
+            </section>
+
+            <section class="settings-card settings-card-compact">
+                <div class="settings-card-heading">
+                    <div class="settings-card-icon is-muted" aria-hidden="true">◷</div>
+
+                    <div class="settings-copy">
+                        <h2>@L["Timestamp display"]</h2>
+                        <p>@L["Choose how BillWatch displays dates and times."]</p>
+                    </div>
+                </div>
+
+                @if (_isLoadingPreference)
+                {
+                    <div class="settings-loading">@L["Loading preference…"]</div>
+                }
+                else
+                {
+                    <div class="settings-grid timestamp-grid">
+                        <label class="settings-field">
+                            <span>@L["Timestamp format"]</span>
+                            <select id="timestamp-display-mode"
+                                    disabled="@_isBusy"
+                                    @bind="_selectedMode">
+                                <option value="Local12Hour">@L["Local — 09/03/2026 12:26 AM"]</option>
+                                <option value="Utc">@L["UTC — 09/03/2026 06:26 UTC"]</option>
+                            </select>
+                        </label>
+
+                        <div class="settings-actions settings-actions-inline">
+                            <button type="button"
+                                    class="secondary-action"
+                                    disabled="@_isBusy"
+                                    @onclick="SaveTimestampAsync">
+                                @L["Save preference"]
+                            </button>
+                        </div>
+                    </div>
+                }
+            </section>
         </div>
 
-        @if (_isLoadingPreference)
-        {
-            <p>@L["Loading preference…"]</p>
-        }
-        else
-        {
-            <div class="settings-field">
-                <label for="timestamp-display-mode">@L["Timestamp format"]</label>
-                <select id="timestamp-display-mode"
-                        disabled="@_isBusy"
-                        @bind="_selectedMode">
-                    <option value="Local12Hour">@L["Local — 09/03/2026 12:26 AM"]</option>
-                    <option value="Utc">@L["UTC — 09/03/2026 06:26 UTC"]</option>
-                </select>
-            </div>
+        <aside class="settings-aside">
+            <section class="settings-side-card">
+                <div class="settings-side-icon" aria-hidden="true">◇</div>
+                <h2>@L["Your security matters"]</h2>
+                <p>@L["A few simple steps help protect your account and sensitive financial information."]</p>
 
-            <div class="settings-actions">
-                <button type="button"
-                        class="primary-action"
-                        disabled="@_isBusy"
-                        @onclick="SaveTimestampAsync">
-                    @L["Save preference"]
-                </button>
-            </div>
-        }
-    </section>
+                <div class="security-benefit-list">
+                    <div><span>✓</span>@L["Protects your account"]</div>
+                    <div><span>✓</span>@L["Prevents unauthorized access"]</div>
+                    <div><span>✓</span>@L["Keeps financial data safer"]</div>
+                    <div><span>✓</span>@L["Recovery options stay under your control"]</div>
+                </div>
+            </section>
+
+            <section class="settings-side-card">
+                <span class="panel-kicker">@L["Security status"]</span>
+
+                @if (_security is null)
+                {
+                    <p>@L["Checking your account protection…"]</p>
+                }
+                else
+                {
+                    <div class="security-score-list">
+                        <div>
+                            <span class="@(_security.EmailConfirmed ? "status-dot is-good" : "status-dot is-warning")"></span>
+                            <div>
+                                <strong>@(_security.EmailConfirmed ? L["Email verified"] : L["Verify your email"])</strong>
+                                <span>@(_security.EmailConfirmed ? L["Your recovery address is confirmed."] : L["Confirm your recovery address so BillWatch can protect account recovery."])</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="@(_security.TwoFactorEnabled ? "status-dot is-good" : "status-dot is-warning")"></span>
+                            <div>
+                                <strong>@(_security.TwoFactorEnabled ? L["2FA enabled"] : L["Enable two-factor authentication"])</strong>
+                                <span>@(_security.TwoFactorEnabled ? L["Authenticator protection is active."] : L["An authenticator app adds protection beyond your password."])</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <section class="settings-side-card settings-privacy-card">
+                <span class="panel-kicker">@L["Privacy"]</span>
+                <h2>@L["Your financial data stays sensitive"]</h2>
+                <p>@L["Review how BillWatch handles account, transaction, and statement information."]</p>
+
+                <a href="/privacy"
+                   class="secondary-link">
+                    @L["View privacy information"]
+                    <span aria-hidden="true">→</span>
+                </a>
+            </section>
+        </aside>
+    </div>
 </div>
 
 @code {
     private IJSObjectReference? _timeModule;
     private IJSObjectReference? _securityModule;
+
     private bool _isBusy;
     private bool _isLoadingPreference = true;
+
     private string _selectedMode = "Local12Hour";
+
     private string? _pageError;
     private string? _pageSuccess;
+
     private AccountSecurityViewModel? _security;
     private TwoFactorSetupViewModel? _twoFactorSetup;
     private string? _twoFactorQrDataUri;
+
     private List<string> _recoveryCodes = [];
 
     private string _newEmail = string.Empty;
@@ -463,7 +663,8 @@
                 _newEmail = string.Empty;
                 _emailCurrentPassword = string.Empty;
                 _emailTwoFactorCode = string.Empty;
-                _pageSuccess = L["Verification email sent to the new address."].Value;
+
+                SetSuccess(L["Verification email sent to the new address."].Value);
             });
     }
 
@@ -481,10 +682,7 @@
             return;
         }
 
-        if (!string.Equals(
-                _passwordNew,
-                _passwordConfirm,
-                StringComparison.Ordinal))
+        if (!string.Equals(_passwordNew, _passwordConfirm, StringComparison.Ordinal))
         {
             SetError(L["The new passwords do not match."].Value);
             return;
@@ -503,7 +701,8 @@
                 _passwordNew = string.Empty;
                 _passwordConfirm = string.Empty;
                 _passwordTwoFactorCode = string.Empty;
-                _pageSuccess = L["Password changed successfully."].Value;
+
+                SetSuccess(L["Password changed successfully."].Value);
             });
     }
 
@@ -528,11 +727,11 @@
                     _twoFactorCurrentPassword,
                     NullIfBlank(_twoFactorCurrentCode));
 
-                _twoFactorQrDataUri = CreateAuthenticatorQrDataUri(
-                    _twoFactorSetup.OtpAuthUri);
+                _twoFactorQrDataUri = CreateAuthenticatorQrDataUri(_twoFactorSetup.OtpAuthUri);
                 _twoFactorCurrentPassword = string.Empty;
                 _twoFactorCurrentCode = string.Empty;
-                _pageSuccess = L["Authenticator key created. Verify one code to finish setup."].Value;
+
+                SetSuccess(L["Authenticator key created. Verify one code to finish setup."].Value);
                 await RefreshSecurityAsync();
             });
     }
@@ -564,7 +763,8 @@
                 _twoFactorQrDataUri = null;
                 _twoFactorEnablePassword = string.Empty;
                 _twoFactorEnableCode = string.Empty;
-                _pageSuccess = L["Two-factor authentication is enabled."].Value;
+
+                SetSuccess(L["Two-factor authentication is enabled."].Value);
                 await RefreshSecurityAsync();
             });
     }
@@ -585,7 +785,7 @@
                     _twoFactorCurrentCode);
 
                 _recoveryCodes = result.RecoveryCodes.ToList();
-                _pageSuccess = L["New recovery codes generated. Previous codes no longer work."].Value;
+                SetSuccess(L["New recovery codes generated. Previous codes no longer work."].Value);
             });
     }
 
@@ -607,7 +807,8 @@
                 _twoFactorSetup = null;
                 _twoFactorQrDataUri = null;
                 _recoveryCodes.Clear();
-                _pageSuccess = L["Two-factor authentication is disabled."].Value;
+
+                SetSuccess(L["Two-factor authentication is disabled."].Value);
                 await RefreshSecurityAsync();
             });
     }
@@ -627,10 +828,10 @@
                     _twoFactorCurrentPassword,
                     _twoFactorCurrentCode);
 
-                _twoFactorQrDataUri = CreateAuthenticatorQrDataUri(
-                    _twoFactorSetup.OtpAuthUri);
+                _twoFactorQrDataUri = CreateAuthenticatorQrDataUri(_twoFactorSetup.OtpAuthUri);
                 _recoveryCodes.Clear();
-                _pageSuccess = L["Old authenticator disabled. Add the new key and verify a code to re-enable 2FA."].Value;
+
+                SetSuccess(L["Old authenticator disabled. Add the new key and verify a code to re-enable 2FA."].Value);
                 await RefreshSecurityAsync();
             });
     }
@@ -668,7 +869,7 @@
                     _selectedMode);
 
                 _selectedMode = NormalizeMode(preference.TimestampDisplayMode);
-                _pageSuccess = L["Timestamp preference saved."].Value;
+                SetSuccess(L["Timestamp preference saved."].Value);
             });
     }
 
@@ -684,9 +885,10 @@
         }
         catch (JSException ex)
         {
-            _pageError = string.IsNullOrWhiteSpace(ex.Message)
-                ? L["BillWatch could not complete that account security change."].Value
-                : ex.Message;
+            SetError(
+                string.IsNullOrWhiteSpace(ex.Message)
+                    ? L["BillWatch could not complete that account security change."].Value
+                    : ex.Message);
         }
         finally
         {
@@ -710,6 +912,18 @@
     {
         _pageSuccess = null;
         _pageError = message;
+    }
+
+    private void SetSuccess(string message)
+    {
+        _pageError = null;
+        _pageSuccess = message;
+    }
+
+    private void DismissToast()
+    {
+        _pageError = null;
+        _pageSuccess = null;
     }
 
     private void DismissRecoveryCodes()
@@ -756,12 +970,15 @@
         _passwordNew = string.Empty;
         _passwordConfirm = string.Empty;
         _passwordTwoFactorCode = string.Empty;
+
         _emailCurrentPassword = string.Empty;
         _emailTwoFactorCode = string.Empty;
+
         _twoFactorCurrentPassword = string.Empty;
         _twoFactorCurrentCode = string.Empty;
         _twoFactorEnablePassword = string.Empty;
         _twoFactorEnableCode = string.Empty;
+
         _twoFactorSetup = null;
         _twoFactorQrDataUri = null;
         _recoveryCodes.Clear();
