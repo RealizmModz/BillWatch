@@ -84,7 +84,9 @@ jobs:
           sh deploy/tests/runtime-watchdog-tests.sh
 
       - name: Validate beta readiness scripts
-        run: sh deploy/tests/beta-readiness-tests.sh
+        run: |
+          sh deploy/tests/beta-readiness-tests.sh
+          sh deploy/tests/reboot-recovery-drill-tests.sh
 
       - name: Configure container builder
         uses: docker/setup-buildx-action@v4
