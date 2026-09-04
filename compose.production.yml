@@ -26,6 +26,12 @@ services:
       Database__MigrateOnStartup: "true"
       Subscription__EnforcementEnabled: ${BILLWATCH_SUBSCRIPTION_ENFORCEMENT_ENABLED:-false}
       Subscription__EnforcementCohort: ${BILLWATCH_SUBSCRIPTION_ENFORCEMENT_COHORT:-All}
+      StripeBilling__Enabled: ${BILLWATCH_STRIPE_ENABLED:-false}
+      StripeBilling__SecretKey: ${STRIPE_SECRET_KEY:-}
+      StripeBilling__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:-}
+      StripeBilling__MonthlyPriceId: ${STRIPE_MONTHLY_PRICE_ID:-}
+      StripeBilling__YearlyPriceId: ${STRIPE_YEARLY_PRICE_ID:-}
+      StripeBilling__PublicWebBaseUrl: https://${BILLWATCH_WEB_HOST:?Set BILLWATCH_WEB_HOST}
       DataProtection__KeysPath: /var/lib/billwatch/keys
       BillStatementStorage__RootPath: /var/lib/billwatch/statements
       Plaid__ClientId: ${PLAID_CLIENT_ID:?Set PLAID_CLIENT_ID}
