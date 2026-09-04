@@ -60,6 +60,63 @@ public static class BffEndpointMappings
                     "/api/subscription",
                     context.RequestAborted));
 
+        bff.MapGet(
+            "/subscription/plans",
+            async (
+                HttpContext context,
+                BillWatchBffProxyService proxyService) =>
+                await proxyService.ForwardGetAsync(
+                    context,
+                    "/api/subscription/plans",
+                    context.RequestAborted));
+
+        bff.MapPost(
+            "/subscription/checkout",
+            async (
+                HttpContext context,
+                IAntiforgery antiforgery,
+                AdminBffWriteProxyService writeProxyService,
+                SubscriptionCheckoutRequest request) =>
+            {
+                await antiforgery.ValidateRequestAsync(context);
+                return await writeProxyService.ForwardJsonAsync(
+                    context,
+                    HttpMethod.Post,
+                    "/api/subscription/checkout",
+                    request,
+                    context.RequestAborted);
+            });
+
+        bff.MapPost(
+            "/subscription/billing-portal",
+            async (
+                HttpContext context,
+                IAntiforgery antiforgery,
+                BillWatchBffProxyService proxyService) =>
+            {
+                await antiforgery.ValidateRequestAsync(context);
+                return await proxyService.ForwardPostAsync(
+                    context,
+                    "/api/subscription/billing-portal",
+                    includeEmptyJsonBody: false,
+                    context.RequestAborted);
+            });
+
+        bff.MapPost(
+            "/subscription/sync",
+            async (
+                HttpContext context,
+                IAntiforgery antiforgery,
+                BillWatchBffProxyService proxyService) =>
+            {
+                await antiforgery.ValidateRequestAsync(context);
+                return await proxyService.ForwardPostAsync(
+                    context,
+                    "/api/subscription/sync",
+                    includeEmptyJsonBody: false,
+                    context.RequestAborted);
+            });
+
         bff.MapPost(
             "/subscription/access-keys/redeem",
             async (
@@ -521,5 +578,7 @@ public static class BffEndpointMappings
         return endpoints;
     }
 }
+
+public sealed record SubscriptionCheckoutRequest(string BillingInterval);
 
 public sealed record SubscriptionRedemptionRequest(string AccessKey);
