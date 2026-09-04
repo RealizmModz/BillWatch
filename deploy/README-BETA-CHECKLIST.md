@@ -64,6 +64,29 @@ This harness proves BillWatch's real API/provider update-mode and disconnect bou
 
 Remove the password file immediately after the smoke gate. Never save the one-time Hosted Link URL or any Plaid credential in tickets, logs, shell history, or the repository.
 
+## Guarded statement lifecycle smoke gate
+
+Use `deploy/smoke-statement-lifecycle.sh` only with an operator-supplied controlled statement fixture and an explicitly approved Bill Stream. Real/private statements are never committed to the repository. Upload is **disabled by default** and requires `BILLWATCH_STATEMENT_SMOKE_ALLOW_UPLOAD=true` because the API persists the uploaded statement record and file.
+
+Create a mode-`600` password file outside the repository, select a controlled Bill Stream and fixture, then run:
+
+```sh
+BILLWATCH_STATEMENT_SMOKE_EMAIL='controlled-beta@example.com' \
+BILLWATCH_STATEMENT_SMOKE_PASSWORD_FILE='/run/user/1000/billwatch-statement-smoke-password' \
+BILLWATCH_STATEMENT_SMOKE_BILL_STREAM_ID='00000000-0000-0000-0000-000000000000' \
+BILLWATCH_STATEMENT_SMOKE_FIXTURE_PATH='/secure/operator-fixtures/representative-bill.pdf' \
+BILLWATCH_STATEMENT_SMOKE_ALLOW_UPLOAD=true \
+BILLWATCH_STATEMENT_SMOKE_EXPECT_STATUS='Processed' \
+sh deploy/smoke-statement-lifecycle.sh \
+    'https://api.billbeacon.net'
+```
+
+The harness proves Bill Stream ownership before upload, requires HTTP 201, rejects secret/internal-storage fields in upload/status responses, polls through `Uploaded`/`Processing` until a truthful terminal state, downloads the owned file, and requires its SHA-256 to exactly match the operator fixture. Set `BILLWATCH_STATEMENT_SMOKE_EXPECT_STATUS=Processed` only when that fixture is expected to complete parsing; the safe default `any` accepts any known terminal state without pretending that a failed or OCR-needing document parsed successfully.
+
+When a known foreign controlled statement exists, set both `BILLWATCH_STATEMENT_SMOKE_FOREIGN_BILL_STREAM_ID` and `BILLWATCH_STATEMENT_SMOKE_FOREIGN_UPLOAD_ID`; both status and file access must return 404. Remove the password file and controlled uploaded fixture from the environment according to the beta data-retention procedure after the test. Do not place real statements, credentials, extracted bill data, or statement storage paths in tickets, shell history, or the repository.
+
+This gate verifies lifecycle, ownership, response secrecy, and stored-byte integrity. It does **not** by itself prove extraction accuracy. Representative PDF/JPG/PNG fixtures still require expected-field review during Internal Beta 0, including OCR cases and the resulting bill-change explanation.
+
 ## Release
 
 - [ ] Full solution build completes with zero errors and zero warnings where reasonably achievable.
@@ -119,14 +142,17 @@ Remove the password file immediately after the smoke gate. Never save the one-ti
 
 ## Statements
 
+- [ ] `deploy/smoke-statement-lifecycle.sh` passes with an operator-supplied controlled fixture and explicit upload opt-in.
 - [ ] Real PDF upload reaches a truthful terminal state.
 - [ ] Real JPG/PNG upload reaches a truthful terminal state.
 - [ ] Invalid signatures/extensions are rejected.
 - [ ] Files over 15 MB are rejected.
 - [ ] OCR path is exercised.
 - [ ] Processed statement updates only the owning Bill Stream.
+- [ ] Downloaded controlled fixture matches its original SHA-256.
 - [ ] Storage paths never leave the API.
-- [ ] Cross-user statement IDs are inaccessible.
+- [ ] Cross-user statement IDs and files are inaccessible.
+- [ ] Representative fixture extraction fields and bill-change explanation are manually reviewed; lifecycle success alone is not treated as semantic accuracy.
 
 ## Recovery and operations
 
