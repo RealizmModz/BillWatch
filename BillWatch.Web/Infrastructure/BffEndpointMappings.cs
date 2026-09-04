@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BillWatch.Web.Services;
 using Microsoft.AspNetCore.Antiforgery;
 
@@ -263,10 +264,34 @@ public static class BffEndpointMappings
             async (
                 HttpContext context,
                 IAntiforgery antiforgery,
-                AdminBffWriteProxyService writeProxyService,
-                DeleteAccountBffRequest request) =>
+                AdminBffWriteProxyService writeProxyService) =>
             {
                 await antiforgery.ValidateRequestAsync(context);
+
+                DeleteAccountBffRequest? request;
+
+                try
+                {
+                    request = await context.Request.ReadFromJsonAsync<DeleteAccountBffRequest>(
+                        cancellationToken: context.RequestAborted);
+                }
+                catch (JsonException)
+                {
+                    return Results.BadRequest();
+                }
+                catch (BadHttpRequestException)
+                {
+                    return Results.BadRequest();
+                }
+                catch (NotSupportedException)
+                {
+                    return Results.BadRequest();
+                }
+
+                if (request is null)
+                {
+                    return Results.BadRequest();
+                }
 
                 if (!string.Equals(
                         request.Confirmation,
