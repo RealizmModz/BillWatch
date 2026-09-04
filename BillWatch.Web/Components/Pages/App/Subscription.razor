@@ -3,16 +3,17 @@
 @layout AppLayout
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<Subscription> L
 
-<PageTitle>Subscription — BillWatch</PageTitle>
+<PageTitle>@L["Subscription — BillWatch"]</PageTitle>
 <link rel="stylesheet" href="/subscription.css" />
 
 <div class="app-page subscription-page">
     <header class="page-heading">
         <div>
-            <span class="page-kicker">BillWatch access</span>
-            <h1>Subscription</h1>
-            <p>Review your BillWatch access or redeem an access key.</p>
+            <span class="page-kicker">@L["BillWatch access"]</span>
+            <h1>@L["Subscription"]</h1>
+            <p>@L["Review your BillWatch access or redeem an access key."]</p>
         </div>
     </header>
 
@@ -22,8 +23,8 @@
             <div class="subscription-loading">
                 <span class="subscription-loading-ring" aria-hidden="true"></span>
                 <div>
-                    <strong>Checking your access</strong>
-                    <p>BillWatch is verifying the subscription attached to this account.</p>
+                    <strong>@L["Checking your access"]</strong>
+                    <p>@L["BillWatch is verifying the subscription attached to this account."]</p>
                 </div>
             </div>
         }
@@ -33,17 +34,17 @@
                 <div class="subscription-card-icon active" aria-hidden="true">✓</div>
 
                 <div>
-                    <span class="subscription-state active">Active</span>
-                    <h2>BillWatch access is active</h2>
+                    <span class="subscription-state active">@L["Active"]</span>
+                    <h2>@L["BillWatch access is active"]</h2>
                     <p>
-                        @_status.Tier access ·
+                        @L["{0} access", _status.Tier ?? L["BillWatch"]] ·
                         @if (_status.EndsAtUtc is null)
                         {
-                            <text>Lifetime access</text>
+                            <text>@L["Lifetime access"]</text>
                         }
                         else
                         {
-                            <text>Active through </text>
+                            <text>@L["Active through"] </text>
                             <time datetime="@_status.EndsAtUtc.Value.ToString("O")">
                                 @FormatTimestampFallback(_status.EndsAtUtc.Value)
                             </time>
@@ -53,13 +54,13 @@
             </div>
 
             <a class="subscription-action" href="/app">
-                Continue to BillWatch
+                @L["Continue to BillWatch"]
                 <span aria-hidden="true">→</span>
             </a>
 
             <div class="subscription-card-footer">
-                <span>Your account and data controls remain available at any time.</span>
-                <a href="/app/account/privacy">Data and privacy options</a>
+                <span>@L["Your account and data controls remain available at any time."]</span>
+                <a href="/app/account/privacy">@L["Data and privacy options"]</a>
             </div>
         }
         else
@@ -80,17 +81,14 @@
                 </div>
 
                 <div>
-                    <span class="subscription-state">No active plan</span>
-                    <h2>Activate BillWatch access</h2>
-                    <p>
-                        This account does not currently have an active BillWatch entitlement.
-                        If you received an access key, redeem it below.
-                    </p>
+                    <span class="subscription-state">@L["No active plan"]</span>
+                    <h2>@L["Activate BillWatch access"]</h2>
+                    <p>@L["This account does not currently have an active BillWatch entitlement. If you received an access key, redeem it below."]</p>
                 </div>
             </div>
 
             <div class="subscription-key-panel">
-                <label for="access-key">Access key</label>
+                <label for="access-key">@L["Access key"]</label>
 
                 <div class="subscription-key-entry">
                     <input id="access-key"
@@ -102,18 +100,16 @@
                     <button class="subscription-action"
                             disabled="@_working"
                             @onclick="RedeemAsync">
-                        @(_working ? "Activating…" : "Redeem key")
+                        @(_working ? L["Activating…"] : L["Redeem key"])
                     </button>
                 </div>
 
-                <small>
-                    Access keys are redeemed once and attached securely to your account.
-                </small>
+                <small>@L["Access keys are redeemed once and attached securely to your account."]</small>
             </div>
 
             <div class="subscription-card-footer">
-                <span>Your account and privacy controls do not depend on an active entitlement.</span>
-                <a href="/app/account/privacy">Data and privacy options</a>
+                <span>@L["Your account and privacy controls do not depend on an active entitlement."]</span>
+                <a href="/app/account/privacy">@L["Data and privacy options"]</a>
             </div>
         }
 
@@ -125,6 +121,9 @@
 </div>
 
 @code {
+    private static readonly System.Globalization.CultureInfo UsCulture =
+        System.Globalization.CultureInfo.GetCultureInfo("en-US");
+
     private IJSObjectReference? _module;
     private SubscriptionStatus? _status;
     private string _accessKey = string.Empty;
@@ -150,7 +149,7 @@
         }
         catch
         {
-            _message = "BillWatch could not load your subscription status.";
+            _message = L["BillWatch could not load your subscription status."];
         }
         finally
         {
@@ -181,11 +180,11 @@
                 "getSubscription");
 
             _accessKey = string.Empty;
-            _message = "Your BillWatch access is active.";
+            _message = L["Your BillWatch access is active."];
         }
         catch
         {
-            _message = "That access key could not be redeemed.";
+            _message = L["That access key could not be redeemed."];
         }
         finally
         {
@@ -194,7 +193,7 @@
     }
 
     private static string FormatTimestampFallback(DateTimeOffset value) =>
-        value.ToUniversalTime().ToString("MM/dd/yyyy HH:mm 'UTC'");
+        value.ToUniversalTime().ToString("MM/dd/yyyy HH:mm 'UTC'", UsCulture);
 
     public async ValueTask DisposeAsync()
     {
