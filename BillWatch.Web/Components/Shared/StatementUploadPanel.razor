@@ -1,18 +1,12 @@
 ﻿@implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<StatementUploadPanel> L
 
 <section class="statement-upload-panel">
     <div class="statement-upload-heading">
         <div class="statement-upload-icon">
-            <svg viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="1.7"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 aria-hidden="true">
-
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M6 2h9l3 3v17H6z" />
                 <path d="M14 2v4h4" />
                 <path d="M12 18v-7" />
@@ -21,18 +15,9 @@
         </div>
 
         <div>
-            <span class="statement-upload-kicker">
-                Provider evidence
-            </span>
-
-            <h2>
-                Upload a statement
-            </h2>
-
-            <p>
-                A provider statement gives BillWatch the
-                evidence needed to explain why a bill changed.
-            </p>
+            <span class="statement-upload-kicker">@L["Provider evidence"]</span>
+            <h2>@L["Upload a statement"]</h2>
+            <p>@L["A provider statement gives BillWatch the evidence needed to explain why a bill changed."]</p>
         </div>
     </div>
 
@@ -44,40 +29,21 @@
                disabled="@_isBusy"
                @onchange="HandleFileChangedAsync" />
 
-        <label class="@GetPickerClass()"
-               for="@_inputId">
-
+        <label class="@GetPickerClass()" for="@_inputId">
             @if (_selectedFile is null)
             {
-                <div class="picker-symbol">
-                    +
-                </div>
-
+                <div class="picker-symbol">+</div>
                 <div class="picker-copy">
-                    <strong>
-                        Choose statement
-                    </strong>
-
-                    <span>
-                        PDF, JPG, JPEG, or PNG · 15 MB max
-                    </span>
+                    <strong>@L["Choose statement"]</strong>
+                    <span>@L["PDF, JPG, JPEG, or PNG · 15 MB max"]</span>
                 </div>
             }
             else
             {
-                <div class="selected-file-symbol">
-                    ✓
-                </div>
-
+                <div class="selected-file-symbol">✓</div>
                 <div class="picker-copy">
-                    <strong>
-                        @_selectedFile.Name
-                    </strong>
-
-                    <span>
-                        @FormatFileSize(
-                            _selectedFile.Size)
-                    </span>
+                    <strong>@_selectedFile.Name</strong>
+                    <span>@FormatFileSize(_selectedFile.Size)</span>
                 </div>
             }
         </label>
@@ -86,159 +52,99 @@
                 type="button"
                 disabled="@(!CanUpload)"
                 @onclick="UploadAsync">
-
             @if (_isBusy)
             {
                 <span class="statement-upload-spinner"></span>
-
-                <span>
-                    @_buttonText
-                </span>
+                <span>@_buttonText</span>
             }
             else
             {
-                <span>
-                    Upload statement
-                </span>
-
-                <span aria-hidden="true">
-                    →
-                </span>
+                <span>@L["Upload statement"]</span>
+                <span aria-hidden="true">→</span>
             }
         </button>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(
-        _message))
+    @if (!string.IsNullOrWhiteSpace(_message))
     {
-        <div class="@GetMessageClass()"
-             role="status"
-             aria-live="polite">
-
+        <div class="@GetMessageClass()" role="status" aria-live="polite">
             <span class="statement-status-dot"></span>
-
             <div>
-                <strong>
-                    @_statusHeading
-                </strong>
-
-                <span>
-                    @_message
-                </span>
+                <strong>@_statusHeading</strong>
+                <span>@_message</span>
             </div>
         </div>
     }
 
     <div class="statement-upload-footnote">
-        BillWatch verifies the document server-side before
-        storing or using extracted facts.
+        @L["BillWatch verifies the document server-side before storing or using extracted facts."]
     </div>
 </section>
 
 @code {
-    private const long MaximumFileSize =
-        15L * 1024 * 1024;
+    private const long MaximumFileSize = 15L * 1024 * 1024;
 
-    private readonly string _inputId =
-        $"billwatch-statement-{Guid.NewGuid():N}";
+    private readonly string _inputId = $"billwatch-statement-{Guid.NewGuid():N}";
+    private readonly CancellationTokenSource _disposeCancellation = new();
 
-    private readonly CancellationTokenSource
-        _disposeCancellation =
-            new();
-
-    private IJSObjectReference?
-        _bffModule;
-
-    private SelectedStatementFileViewModel?
-        _selectedFile;
-
+    private IJSObjectReference? _bffModule;
+    private SelectedStatementFileViewModel? _selectedFile;
     private bool _isBusy;
-
     private bool _isDisposed;
-
-    private string _state =
-        string.Empty;
-
-    private string _buttonText =
-        "Uploading…";
-
-    private string _statusHeading =
-        string.Empty;
-
+    private string _state = string.Empty;
+    private string _buttonText = string.Empty;
+    private string _statusHeading = string.Empty;
     private string? _message;
 
     [Parameter]
-    public Guid BillStreamId
-    {
-        get;
-        set;
-    }
+    public Guid BillStreamId { get; set; }
 
     [Parameter]
-    public string ProviderName
-    {
-        get;
-        set;
-    } = string.Empty;
+    public string ProviderName { get; set; } = string.Empty;
 
     [Parameter]
-    public EventCallback OnProcessed
-    {
-        get;
-        set;
-    }
+    public EventCallback OnProcessed { get; set; }
 
     private bool CanUpload =>
         !_isBusy &&
         _selectedFile is not null &&
         _selectedFile.Size > 0 &&
-        _selectedFile.Size <=
-            MaximumFileSize &&
-        BillStreamId !=
-            Guid.Empty;
+        _selectedFile.Size <= MaximumFileSize &&
+        BillStreamId != Guid.Empty;
 
-    private async Task<
-        IJSObjectReference>
-        GetBffModuleAsync()
+    protected override void OnInitialized()
     {
-        _bffModule ??=
-            await JS.InvokeAsync<
-                IJSObjectReference>(
-                "import",
-                _disposeCancellation.Token,
-                "./js/bff.js");
+        _buttonText = L["Uploading…"];
+    }
+
+    private async Task<IJSObjectReference> GetBffModuleAsync()
+    {
+        _bffModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            _disposeCancellation.Token,
+            "./js/bff.js");
 
         return _bffModule;
     }
 
     private async Task HandleFileChangedAsync()
     {
-        if (_isBusy ||
-            _isDisposed)
+        if (_isBusy || _isDisposed)
         {
             return;
         }
 
-        _message =
-            null;
-
-        _state =
-            string.Empty;
-
-        _statusHeading =
-            string.Empty;
+        _message = null;
+        _state = string.Empty;
+        _statusHeading = string.Empty;
 
         try
         {
-            var module =
-                await GetBffModuleAsync();
-
-            _selectedFile =
-                await module.InvokeAsync<
-                    SelectedStatementFileViewModel?>(
-                    "getSelectedStatementFileInfo",
-                    _disposeCancellation.Token,
-                    _inputId);
+            var module = await GetBffModuleAsync();
+            _selectedFile = await module.InvokeAsync<SelectedStatementFileViewModel?>(
+                "getSelectedStatementFileInfo",
+                _disposeCancellation.Token,
+                _inputId);
 
             if (_selectedFile is null)
             {
@@ -247,189 +153,116 @@
 
             if (_selectedFile.Size <= 0)
             {
-                SetError(
-                    "Invalid file",
-                    "The selected statement is empty.");
-
+                SetError(L["Invalid file"], L["The selected statement is empty."]);
                 return;
             }
 
-            if (_selectedFile.Size >
-                MaximumFileSize)
+            if (_selectedFile.Size > MaximumFileSize)
             {
-                SetError(
-                    "File too large",
-                    "Bill statements must be 15 MB or smaller.");
-
+                SetError(L["File too large"], L["Bill statements must be 15 MB or smaller."]);
                 return;
             }
 
-            if (!IsSupportedFileName(
-                    _selectedFile.Name))
+            if (!IsSupportedFileName(_selectedFile.Name))
             {
-                SetError(
-                    "Unsupported file",
-                    "Only PDF, JPG, JPEG, and PNG bill statements are supported.");
+                SetError(L["Unsupported file"], L["Only PDF, JPG, JPEG, and PNG bill statements are supported."]);
             }
         }
-        catch (OperationCanceledException)
-            when (_disposeCancellation
-                .IsCancellationRequested)
+        catch (OperationCanceledException) when (_disposeCancellation.IsCancellationRequested)
         {
         }
         catch (JSException)
         {
-            SetError(
-                "Couldn't read file",
-                "BillWatch could not inspect the selected file.");
+            SetError(L["Couldn't read file"], L["BillWatch could not inspect the selected file."]);
         }
     }
 
     private async Task UploadAsync()
     {
-        if (!CanUpload ||
-            _isDisposed)
+        if (!CanUpload || _isDisposed)
         {
             return;
         }
 
-        _isBusy =
-            true;
-
-        _state =
-            "working";
-
-        _statusHeading =
-            "Uploading securely";
-
-        _message =
-            $"Sending the {_selectedFile!.Name} statement to BillWatch.";
-
-        _buttonText =
-            "Uploading…";
+        _isBusy = true;
+        _state = "working";
+        _statusHeading = L["Uploading securely"];
+        _message = L["Sending the {0} statement to BillWatch.", _selectedFile!.Name];
+        _buttonText = L["Uploading…"];
 
         try
         {
-            var module =
-                await GetBffModuleAsync();
+            var module = await GetBffModuleAsync();
+            var upload = await module.InvokeAsync<BillStatementUploadViewModel>(
+                "uploadBillStatement",
+                _disposeCancellation.Token,
+                BillStreamId.ToString("D"),
+                _inputId);
 
-            var upload =
-                await module.InvokeAsync<
-                    BillStatementUploadViewModel>(
-                    "uploadBillStatement",
-                    _disposeCancellation.Token,
-                    BillStreamId.ToString(
-                        "D"),
-                    _inputId);
-
-            if (upload is null ||
-                upload.Id ==
-                    Guid.Empty)
+            if (upload is null || upload.Id == Guid.Empty)
             {
-                throw new InvalidOperationException(
-                    "The upload did not return a valid identifier.");
+                throw new InvalidOperationException("The upload did not return a valid identifier.");
             }
 
-            _buttonText =
-                "Processing…";
-
-            SetProcessingStatus(
-                upload.Status);
-
+            _buttonText = L["Processing…"];
+            SetProcessingStatus(upload.Status);
             StateHasChanged();
 
-            await PollUntilCompleteAsync(
-                module,
-                upload.Id);
+            await PollUntilCompleteAsync(module, upload.Id);
         }
-        catch (OperationCanceledException)
-            when (_disposeCancellation
-                .IsCancellationRequested)
+        catch (OperationCanceledException) when (_disposeCancellation.IsCancellationRequested)
         {
         }
-        catch (JSException ex)
+        catch (JSException)
         {
-            SetError(
-                "Upload failed",
-                GetSafeInteropMessage(
-                    ex));
+            SetError(L["Upload failed"], L["BillWatch could not upload this statement."]);
         }
         catch (Exception)
         {
-            SetError(
-                "Upload failed",
-                "BillWatch could not upload this statement.");
+            SetError(L["Upload failed"], L["BillWatch could not upload this statement."]);
         }
         finally
         {
             if (!_isDisposed)
             {
-                _isBusy =
-                    false;
-
-                _buttonText =
-                    "Uploading…";
-
+                _isBusy = false;
+                _buttonText = L["Uploading…"];
                 StateHasChanged();
             }
         }
     }
 
-    private async Task PollUntilCompleteAsync(
-        IJSObjectReference module,
-        Guid uploadId)
+    private async Task PollUntilCompleteAsync(IJSObjectReference module, Guid uploadId)
     {
-        const int maximumAttempts =
-            90;
+        const int maximumAttempts = 90;
 
-        for (var attempt = 0;
-             attempt < maximumAttempts;
-             attempt++)
+        for (var attempt = 0; attempt < maximumAttempts; attempt++)
         {
-            await Task.Delay(
-                TimeSpan.FromSeconds(
-                    2),
-                _disposeCancellation.Token);
+            await Task.Delay(TimeSpan.FromSeconds(2), _disposeCancellation.Token);
 
-            var status =
-                await module.InvokeAsync<
-                    BillStatementUploadStatusViewModel>(
-                    "getBillStatementUploadStatus",
-                    _disposeCancellation.Token,
-                    BillStreamId.ToString(
-                        "D"),
-                    uploadId.ToString(
-                        "D"));
+            var status = await module.InvokeAsync<BillStatementUploadStatusViewModel>(
+                "getBillStatementUploadStatus",
+                _disposeCancellation.Token,
+                BillStreamId.ToString("D"),
+                uploadId.ToString("D"));
 
             if (status is null)
             {
                 continue;
             }
 
-            SetProcessingStatus(
-                status.Status);
-
+            SetProcessingStatus(status.Status);
             StateHasChanged();
 
-            if (string.Equals(
-                    status.Status,
-                    "Processed",
-                    StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(status.Status, "Processed", StringComparison.OrdinalIgnoreCase))
             {
-                _state =
-                    "success";
+                _state = "success";
+                _statusHeading = L["Statement processed"];
+                _message = string.IsNullOrWhiteSpace(ProviderName)
+                    ? L["BillWatch validated the statement and updated the bill evidence."]
+                    : L["BillWatch validated the {0} statement and updated its bill evidence.", ProviderName];
 
-                _statusHeading =
-                    "Statement processed";
-
-                _message =
-                    string.IsNullOrWhiteSpace(
-                        ProviderName)
-                        ? "BillWatch validated the statement and updated the bill evidence."
-                        : $"BillWatch validated the {ProviderName} statement and updated its bill evidence.";
-
-                _selectedFile =
-                    null;
+                _selectedFile = null;
 
                 await module.InvokeVoidAsync(
                     "clearStatementFileInput",
@@ -438,217 +271,116 @@
 
                 if (OnProcessed.HasDelegate)
                 {
-                    await OnProcessed
-                        .InvokeAsync();
+                    await OnProcessed.InvokeAsync();
                 }
 
                 return;
             }
 
-            if (string.Equals(
-                    status.Status,
-                    "Failed",
-                    StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(status.Status, "Failed", StringComparison.OrdinalIgnoreCase))
             {
                 SetError(
-                    "Processing failed",
-                    "BillWatch could not safely extract and validate this statement.");
-
+                    L["Processing failed"],
+                    L["BillWatch could not safely extract and validate this statement."]);
                 return;
             }
         }
 
-        _state =
-            "working";
-
-        _statusHeading =
-            "Still processing";
-
-        _message =
-            "The upload is secure and processing is continuing in the background. The bill will update when processing finishes.";
+        _state = "working";
+        _statusHeading = L["Still processing"];
+        _message = L["The upload is secure and processing is continuing in the background. The bill will update when processing finishes."];
     }
 
-    private void SetProcessingStatus(
-        string? status)
+    private void SetProcessingStatus(string? status)
     {
-        _state =
-            "working";
+        _state = "working";
 
         switch (status)
         {
             case "Uploaded":
-                _statusHeading =
-                    "Upload received";
-
-                _message =
-                    "The statement is queued for secure processing.";
-
+                _statusHeading = L["Upload received"];
+                _message = L["The statement is queued for secure processing."];
                 break;
 
             case "Processing":
-                _statusHeading =
-                    "Reading statement";
-
-                _message =
-                    "BillWatch is extracting the document contents.";
-
+                _statusHeading = L["Reading statement"];
+                _message = L["BillWatch is extracting the document contents."];
                 break;
 
             case "NeedsOcr":
-                _statusHeading =
-                    "Reading image text";
-
-                _message =
-                    "This statement needs OCR before BillWatch can validate its bill data.";
-
+                _statusHeading = L["Reading image text"];
+                _message = L["This statement needs OCR before BillWatch can validate its bill data."];
                 break;
 
             case "ReadyForParsing":
-                _statusHeading =
-                    "Validating facts";
-
-                _message =
-                    "Document text is available and BillWatch is validating structured bill evidence.";
-
+                _statusHeading = L["Validating facts"];
+                _message = L["Document text is available and BillWatch is validating structured bill evidence."];
                 break;
 
             case "Processed":
-                _statusHeading =
-                    "Statement processed";
-
-                _message =
-                    "The statement was successfully processed.";
-
+                _statusHeading = L["Statement processed"];
+                _message = L["The statement was successfully processed."];
                 break;
 
             case "Failed":
-                SetError(
-                    "Processing failed",
-                    "BillWatch could not safely process this statement.");
-
+                SetError(L["Processing failed"], L["BillWatch could not safely process this statement."]);
                 break;
 
             default:
-                _statusHeading =
-                    "Processing";
-
-                _message =
-                    "BillWatch is processing the statement.";
-
+                _statusHeading = L["Processing"];
+                _message = L["BillWatch is processing the statement."];
                 break;
         }
     }
 
-    private void SetError(
-        string heading,
-        string message)
+    private void SetError(string heading, string message)
     {
-        _state =
-            "error";
-
-        _statusHeading =
-            heading;
-
-        _message =
-            message;
+        _state = "error";
+        _statusHeading = heading;
+        _message = message;
     }
 
-    private static string GetSafeInteropMessage(
-        JSException exception)
+    private static bool IsSupportedFileName(string fileName)
     {
-        var message =
-            exception.Message;
-
-        if (string.IsNullOrWhiteSpace(
-                message))
-        {
-            return
-                "BillWatch could not upload this statement.";
-        }
-
-        var firstLine =
-            message
-                .Split(
-                    '\n',
-                    StringSplitOptions
-                        .RemoveEmptyEntries)
-                .FirstOrDefault()?
-                .Trim();
-
-        return string.IsNullOrWhiteSpace(
-                firstLine)
-            ? "BillWatch could not upload this statement."
-            : firstLine;
-    }
-
-    private static bool IsSupportedFileName(
-        string fileName)
-    {
-        var extension =
-            Path.GetExtension(
-                    fileName)
-                .ToLowerInvariant();
-
-        return extension is
-            ".pdf" or
-            ".jpg" or
-            ".jpeg" or
-            ".png";
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        return extension is ".pdf" or ".jpg" or ".jpeg" or ".png";
     }
 
     private string GetPickerClass()
     {
         if (_selectedFile is null)
         {
-            return
-                "statement-file-picker";
+            return "statement-file-picker";
         }
 
-        if (_state ==
-            "error")
-        {
-            return
-                "statement-file-picker selected invalid";
-        }
-
-        return
-            "statement-file-picker selected";
+        return _state == "error"
+            ? "statement-file-picker selected invalid"
+            : "statement-file-picker selected";
     }
 
     private string GetMessageClass()
     {
         return _state switch
         {
-            "success" =>
-                "statement-upload-status success",
-
-            "error" =>
-                "statement-upload-status error",
-
-            _ =>
-                "statement-upload-status working"
+            "success" => "statement-upload-status success",
+            "error" => "statement-upload-status error",
+            _ => "statement-upload-status working"
         };
     }
 
-    private static string FormatFileSize(
-        long sizeBytes)
+    private string FormatFileSize(long sizeBytes)
     {
-        if (sizeBytes >=
-            1024L * 1024L)
+        if (sizeBytes >= 1024L * 1024L)
         {
-            return
-                $"{sizeBytes / (1024d * 1024d):0.0} MB";
+            return $"{sizeBytes / (1024d * 1024d):0.0} MB";
         }
 
-        if (sizeBytes >=
-            1024L)
+        if (sizeBytes >= 1024L)
         {
-            return
-                $"{sizeBytes / 1024d:0} KB";
+            return $"{sizeBytes / 1024d:0} KB";
         }
 
-        return
-            $"{sizeBytes} bytes";
+        return L["{0} bytes", sizeBytes];
     }
 
     public async ValueTask DisposeAsync()
@@ -658,14 +390,9 @@
             return;
         }
 
-        _isDisposed =
-            true;
-
-        await _disposeCancellation
-            .CancelAsync();
-
-        _disposeCancellation
-            .Dispose();
+        _isDisposed = true;
+        await _disposeCancellation.CancelAsync();
+        _disposeCancellation.Dispose();
 
         if (_bffModule is null)
         {
@@ -674,113 +401,37 @@
 
         try
         {
-            await _bffModule
-                .DisposeAsync();
+            await _bffModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
         }
     }
 
-    public sealed class
-        SelectedStatementFileViewModel
+    public sealed class SelectedStatementFileViewModel
     {
-        public string Name
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public long Size
-        {
-            get;
-            set;
-        }
-
-        public string Type
-        {
-            get;
-            set;
-        } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string Type { get; set; } = string.Empty;
     }
 
-    public sealed class
-        BillStatementUploadViewModel
+    public sealed class BillStatementUploadViewModel
     {
-        public Guid Id
-        {
-            get;
-            set;
-        }
-
-        public Guid BillStreamId
-        {
-            get;
-            set;
-        }
-
-        public string MediaType
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public string FileExtension
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public long SizeBytes
-        {
-            get;
-            set;
-        }
-
-        public string Status
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public DateTimeOffset CreatedAtUtc
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
+        public Guid BillStreamId { get; set; }
+        public string MediaType { get; set; } = string.Empty;
+        public string FileExtension { get; set; } = string.Empty;
+        public long SizeBytes { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTimeOffset CreatedAtUtc { get; set; }
     }
 
-    public sealed class
-        BillStatementUploadStatusViewModel
+    public sealed class BillStatementUploadStatusViewModel
     {
-        public Guid Id
-        {
-            get;
-            set;
-        }
-
-        public Guid BillStreamId
-        {
-            get;
-            set;
-        }
-
-        public string Status
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public DateTimeOffset CreatedAtUtc
-        {
-            get;
-            set;
-        }
-
-        public DateTimeOffset UpdatedAtUtc
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
+        public Guid BillStreamId { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTimeOffset CreatedAtUtc { get; set; }
+        public DateTimeOffset UpdatedAtUtc { get; set; }
     }
 }
