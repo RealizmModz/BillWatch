@@ -198,6 +198,38 @@
     background: rgba(83, 108, 242, 0.055);
 }
 
+.authenticator-qr-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px;
+    border: 1px solid var(--app-border);
+    border-radius: 16px;
+    background: var(--app-surface-raised);
+}
+
+.authenticator-qr-section > div {
+    display: grid;
+    gap: 6px;
+}
+
+.authenticator-qr-section p {
+    margin: 0;
+    color: var(--app-text-muted);
+}
+
+.authenticator-qr {
+    width: 180px;
+    height: 180px;
+    flex: 0 0 auto;
+    display: block;
+    padding: 10px;
+    box-sizing: border-box;
+    border-radius: 14px;
+    background: #fff;
+}
+
 .authenticator-setup > code {
     width: fit-content;
     max-width: 100%;
@@ -238,8 +270,19 @@
     }
 
     .security-heading-row,
-    .security-summary-row {
+    .security-summary-row,
+    .authenticator-qr-section {
         align-items: flex-start;
+    }
+
+    .authenticator-qr-section {
+        flex-direction: column;
+    }
+
+    .authenticator-qr {
+        width: min(220px, 100%);
+        height: auto;
+        aspect-ratio: 1;
     }
 
     .settings-card {
