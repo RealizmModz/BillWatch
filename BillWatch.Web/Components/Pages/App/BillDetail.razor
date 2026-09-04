@@ -7,6 +7,7 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<BillDetail> L
 
 <PageTitle>@PageTitleText</PageTitle>
 
@@ -16,7 +17,7 @@
 <div class="app-page">
     <a class="detail-back"
        href="/app/bills">
-        ← Bills
+        ← @L["Bills"]
     </a>
 
     @if (_isLoading)
@@ -30,91 +31,65 @@
             </div>
         </div>
     }
-    else if (!string.IsNullOrWhiteSpace(
-        _errorMessage))
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
         <div class="app-error-state">
-            <div class="state-symbol">
-                !
-            </div>
+            <div class="state-symbol">!</div>
 
             <div>
-                <h2>
-                    We couldn't open this bill
-                </h2>
-
-                <p>
-                    @_errorMessage
-                </p>
+                <h2>@L["We couldn't open this bill"]</h2>
+                <p>@_errorMessage</p>
             </div>
 
             <button type="button"
                     class="secondary-action"
                     @onclick="ReloadAsync">
-                Try again
+                @L["Try again"]
             </button>
         </div>
     }
     else if (_detail is not null)
     {
-        var transactionDifference =
-            GetTransactionDifference();
-
-        var latestChange =
-            LatestChange;
+        var transactionDifference = GetTransactionDifference();
+        var latestChange = LatestChange;
 
         <header class="bill-detail-header">
             <div class="bill-detail-provider">
                 <div class="detail-provider-avatar">
-                    @GetProviderInitial(
-                        _detail.ProviderName)
+                    @GetProviderInitial(_detail.ProviderName)
                 </div>
 
                 <div>
                     <span class="page-kicker">
-                        @FormatCategory(
-                            _detail.Category)
+                        @FormatCategory(_detail.Category)
                     </span>
 
-                    <h1>
-                        @_detail.ProviderName
-                    </h1>
+                    <h1>@_detail.ProviderName</h1>
 
                     <div class="detail-status-line">
                         <span class="watching-state">
                             <span></span>
-                            Watching
+                            @L["Watching"]
                         </span>
 
                         @if (_detail.Statements.Count > 0)
                         {
-                            <span>
-                                @_detail.Statements.Count
-                                statement@(Pluralize(
-                                    _detail.Statements.Count))
-                            </span>
+                            <span>@FormatStatementCount(_detail.Statements.Count)</span>
                         }
                     </div>
                 </div>
             </div>
 
             <div class="current-bill-amount">
-                <span>
-                    Latest transaction
-                </span>
+                <span>@L["Latest transaction"]</span>
 
-                <strong>
-                    @FormatMoney(
-                        _detail.CurrentAmount)
-                </strong>
+                <strong>@FormatMoney(_detail.CurrentAmount)</strong>
 
                 @if (_detail.PreviousAverage > 0m)
                 {
-                    <small class="@GetDifferenceClass(
-                        transactionDifference)">
-                        @FormatDifference(
-                            transactionDifference)
-                        vs. prior average
+                    <small class="@GetDifferenceClass(transactionDifference)">
+                        @FormatDifference(transactionDifference)
+                        @L["vs. prior average"]
                     </small>
                 }
             </div>
@@ -126,64 +101,36 @@
 
         @if (latestChange is not null)
         {
-            <section class="@GetDetectedChangeClass(
-                latestChange.AmountDifference)">
-
+            <section class="@GetDetectedChangeClass(latestChange.AmountDifference)">
                 <div class="detected-change-main">
                     <div class="change-eyebrow">
-                        Detected statement change
+                        @L["Detected statement change"]
                     </div>
 
                     <div class="detected-change-values">
                         <div>
-                            <span>
-                                Previous
-                            </span>
-
-                            <strong>
-                                @FormatMoney(
-                                    latestChange.PreviousAmount)
-                            </strong>
+                            <span>@L["Previous"]</span>
+                            <strong>@FormatMoney(latestChange.PreviousAmount)</strong>
                         </div>
 
-                        <span class="detail-arrow">
-                            →
-                        </span>
+                        <span class="detail-arrow">→</span>
 
                         <div>
-                            <span>
-                                Current
-                            </span>
-
-                            <strong>
-                                @FormatMoney(
-                                    latestChange.CurrentAmount)
-                            </strong>
+                            <span>@L["Current"]</span>
+                            <strong>@FormatMoney(latestChange.CurrentAmount)</strong>
                         </div>
                     </div>
                 </div>
 
                 <div class="change-impact-stack">
                     <div>
-                        <span>
-                            Change
-                        </span>
-
-                        <strong>
-                            @FormatDifference(
-                                latestChange.AmountDifference)
-                        </strong>
+                        <span>@L["Change"]</span>
+                        <strong>@FormatDifference(latestChange.AmountDifference)</strong>
                     </div>
 
                     <div>
-                        <span>
-                            Annual impact
-                        </span>
-
-                        <strong>
-                            @FormatSignedMoney(
-                                latestChange.AnnualizedImpact)
-                        </strong>
+                        <span>@L["Annual impact"]</span>
+                        <strong>@FormatSignedMoney(latestChange.AnnualizedImpact)</strong>
                     </div>
                 </div>
             </section>
@@ -191,61 +138,40 @@
             <section class="detail-panel explanation-panel">
                 <div class="panel-heading">
                     <div>
-                        <span class="panel-kicker">
-                            Why it changed
-                        </span>
-
-                        <h2>
-                            BillWatch explanation
-                        </h2>
+                        <span class="panel-kicker">@L["Why it changed"]</span>
+                        <h2>@L["BillWatch explanation"]</h2>
                     </div>
 
-                    <span class="@GetConfidenceClass(
-                        latestChange.Confidence)">
-                        @FormatConfidence(
-                            latestChange.Confidence)
+                    <span class="@GetConfidenceClass(latestChange.Confidence)">
+                        @FormatConfidence(latestChange.Confidence)
                     </span>
                 </div>
 
                 <p class="change-description">
-                    @GetExplanation(
-                        latestChange.Description)
+                    @GetExplanation(latestChange.Description)
                 </p>
 
                 <div class="evidence-metadata">
                     <div>
-                        <span>
-                            Change type
-                        </span>
-
-                        <strong>
-                            @FormatEnumText(
-                                latestChange.ChangeType)
-                        </strong>
+                        <span>@L["Change type"]</span>
+                        <strong>@LocalizeEnumText(latestChange.ChangeType)</strong>
                     </div>
 
                     <div>
-                        <span>
-                            Detected
-                        </span>
-
+                        <span>@L["Detected"]</span>
                         <strong>
                             <time datetime="@latestChange.DetectedAtUtc.ToString("O")">
-                                @FormatTimestampFallback(
-                                    latestChange.DetectedAtUtc)
+                                @FormatTimestampFallback(latestChange.DetectedAtUtc)
                             </time>
                         </strong>
                     </div>
 
                     <div>
-                        <span>
-                            Status
-                        </span>
-
+                        <span>@L["Status"]</span>
                         <strong>
                             @(latestChange.IsAcknowledged
-                                ? "Reviewed"
-                                : "Not reviewed")
+                                ? L["Reviewed"]
+                                : L["Not reviewed"])
                         </strong>
                     </div>
                 </div>
@@ -254,24 +180,12 @@
         else
         {
             <section class="detail-panel no-explanation-panel">
-                <div class="no-change-icon">
-                    ?
-                </div>
+                <div class="no-change-icon">?</div>
 
                 <div>
-                    <span class="panel-kicker">
-                        Explanation
-                    </span>
-
-                    <h2>
-                        We don't know yet.
-                    </h2>
-
-                    <p>
-                        BillWatch has transaction history for this
-                        recurring bill, but no verified statement
-                        comparison has produced a detected change yet.
-                    </p>
+                    <span class="panel-kicker">@L["Explanation"]</span>
+                    <h2>@L["We don't know yet."]</h2>
+                    <p>@L["BillWatch has transaction history for this recurring bill, but no verified statement comparison has produced a detected change yet."]</p>
                 </div>
             </section>
         }
@@ -280,78 +194,39 @@
             <section class="detail-panel">
                 <div class="panel-heading">
                     <div>
-                        <span class="panel-kicker">
-                            Provider documents
-                        </span>
-
-                        <h2>
-                            Statement history
-                        </h2>
+                        <span class="panel-kicker">@L["Provider documents"]</span>
+                        <h2>@L["Statement history"]</h2>
                     </div>
 
-                    <span class="panel-count">
-                        @_detail.Statements.Count
-                    </span>
+                    <span class="panel-count">@_detail.Statements.Count</span>
                 </div>
 
                 @if (_detail.Statements.Count == 0)
                 {
                     <div class="detail-empty">
-                        <strong>
-                            No processed statements yet
-                        </strong>
-
-                        <span>
-                            Transaction history can detect that an
-                            amount moved. Statements are what allow
-                            BillWatch to explain why.
-                        </span>
+                        <strong>@L["No processed statements yet"]</strong>
+                        <span>@L["Transaction history can detect that an amount moved. Statements are what allow BillWatch to explain why."]</span>
                     </div>
                 }
                 else
                 {
                     <div class="statement-list">
-                        @foreach (var statement
-                            in _detail.Statements
-                                .OrderByDescending(
-                                    item =>
-                                        item.PeriodEnd))
+                        @foreach (var statement in _detail.Statements.OrderByDescending(item => item.PeriodEnd))
                         {
                             <article class="statement-row">
                                 <div class="statement-date-icon">
-                                    <span>
-                                        @GetMonth(
-                                            statement.PeriodEnd)
-                                    </span>
-
-                                    <strong>
-                                        @GetDay(
-                                            statement.PeriodEnd)
-                                    </strong>
+                                    <span>@GetMonth(statement.PeriodEnd)</span>
+                                    <strong>@GetDay(statement.PeriodEnd)</strong>
                                 </div>
 
                                 <div class="statement-info">
-                                    <strong>
-                                        @FormatPeriod(
-                                            statement.PeriodStart,
-                                            statement.PeriodEnd)
-                                    </strong>
-
-                                    <span>
-                                        @FormatStatementMeta(
-                                            statement)
-                                    </span>
+                                    <strong>@FormatPeriod(statement.PeriodStart, statement.PeriodEnd)</strong>
+                                    <span>@FormatStatementMeta(statement)</span>
                                 </div>
 
                                 <div class="statement-amount">
-                                    <strong>
-                                        @FormatMoney(
-                                            statement.TotalAmount)
-                                    </strong>
-
-                                    <span>
-                                        @statement.CurrencyCode
-                                    </span>
+                                    <strong>@FormatMoney(statement.TotalAmount)</strong>
+                                    <span>@statement.CurrencyCode</span>
                                 </div>
                             </article>
                         }
@@ -362,82 +237,43 @@
             <section class="detail-panel">
                 <div class="panel-heading">
                     <div>
-                        <span class="panel-kicker">
-                            History
-                        </span>
-
-                        <h2>
-                            Detected changes
-                        </h2>
+                        <span class="panel-kicker">@L["History"]</span>
+                        <h2>@L["Detected changes"]</h2>
                     </div>
 
-                    <span class="panel-count">
-                        @_detail.Changes.Count
-                    </span>
+                    <span class="panel-count">@_detail.Changes.Count</span>
                 </div>
 
                 @if (_detail.Changes.Count == 0)
                 {
                     <div class="detail-empty">
-                        <strong>
-                            No statement changes yet
-                        </strong>
-
-                        <span>
-                            BillWatch will list verified historical
-                            changes here as statement comparisons
-                            become available.
-                        </span>
+                        <strong>@L["No statement changes yet"]</strong>
+                        <span>@L["BillWatch will list verified historical changes here as statement comparisons become available."]</span>
                     </div>
                 }
                 else
                 {
                     <div class="change-history-list">
-                        @foreach (var change
-                            in _detail.Changes
-                                .OrderByDescending(
-                                    item =>
-                                        item.DetectedAtUtc))
+                        @foreach (var change in _detail.Changes.OrderByDescending(item => item.DetectedAtUtc))
                         {
                             <article class="change-history-row">
-                                <div class="@GetHistoryIndicatorClass(
-                                    change.AmountDifference)">
-                                </div>
+                                <div class="@GetHistoryIndicatorClass(change.AmountDifference)"></div>
 
                                 <div class="change-history-copy">
                                     <div class="change-history-heading">
-                                        <strong>
-                                            @FormatEnumText(
-                                                change.ChangeType)
-                                        </strong>
+                                        <strong>@LocalizeEnumText(change.ChangeType)</strong>
 
                                         <time datetime="@change.DetectedAtUtc.ToString("O")">
-                                            @FormatTimestampFallback(
-                                                change.DetectedAtUtc)
+                                            @FormatTimestampFallback(change.DetectedAtUtc)
                                         </time>
                                     </div>
 
-                                    <p>
-                                        @GetExplanation(
-                                            change.Description)
-                                    </p>
+                                    <p>@GetExplanation(change.Description)</p>
 
                                     <div class="change-history-meta">
-                                        <span>
-                                            @FormatDifference(
-                                                change.AmountDifference)
-                                        </span>
-
-                                        <span>
-                                            @FormatSignedMoney(
-                                                change.AnnualizedImpact)
-                                            / year
-                                        </span>
-
-                                        <span>
-                                            @FormatConfidence(
-                                                change.Confidence)
-                                        </span>
+                                        <span>@FormatDifference(change.AmountDifference)</span>
+                                        <span>@FormatSignedMoney(change.AnnualizedImpact) @L["/ year"]</span>
+                                        <span>@FormatConfidence(change.Confidence)</span>
                                     </div>
                                 </div>
                             </article>
@@ -451,40 +287,27 @@
 
 @code {
     [Parameter]
-    public Guid BillStreamId
-    {
-        get;
-        set;
-    }
+    public Guid BillStreamId { get; set; }
 
-    private IJSObjectReference?
-        _bffModule;
+    private static readonly System.Globalization.CultureInfo UsCulture =
+        System.Globalization.CultureInfo.GetCultureInfo("en-US");
 
-    private BillStreamDetailViewModel?
-        _detail;
-
-    private bool _isLoading =
-        true;
-
+    private IJSObjectReference? _bffModule;
+    private BillStreamDetailViewModel? _detail;
+    private bool _isLoading = true;
     private string? _errorMessage;
 
     private string PageTitleText =>
         _detail is null
-            ? "Bill — BillWatch"
+            ? L["Bill — BillWatch"]
             : $"{_detail.ProviderName} — BillWatch";
 
-    private BillChangeViewModel?
-        LatestChange =>
-            _detail?
-                .Changes
-                .OrderByDescending(
-                    change =>
-                        change.DetectedAtUtc)
-                .FirstOrDefault();
+    private BillChangeViewModel? LatestChange =>
+        _detail?.Changes
+            .OrderByDescending(change => change.DetectedAtUtc)
+            .FirstOrDefault();
 
-    protected override async Task
-        OnAfterRenderAsync(
-            bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
         {
@@ -492,36 +315,29 @@
         }
 
         await LoadAsync();
-
         StateHasChanged();
     }
 
     private async Task ReloadAsync()
     {
         await LoadAsync();
-
         StateHasChanged();
     }
 
-    private async Task
-        HandleStatementProcessedAsync()
+    private async Task HandleStatementProcessedAsync()
     {
         try
         {
             await LoadDetailAsync();
-
-            _errorMessage =
-                null;
+            _errorMessage = null;
         }
         catch (JSException)
         {
-            _errorMessage =
-                "The statement finished processing, but BillWatch could not refresh this bill.";
+            _errorMessage = L["The statement finished processing, but BillWatch could not refresh this bill."];
         }
         catch (Exception)
         {
-            _errorMessage =
-                "The statement finished processing, but BillWatch could not refresh this bill.";
+            _errorMessage = L["The statement finished processing, but BillWatch could not refresh this bill."];
         }
 
         StateHasChanged();
@@ -529,21 +345,13 @@
 
     private async Task LoadAsync()
     {
-        _isLoading =
-            true;
+        _isLoading = true;
+        _errorMessage = null;
 
-        _errorMessage =
-            null;
-
-        if (BillStreamId ==
-            Guid.Empty)
+        if (BillStreamId == Guid.Empty)
         {
-            _isLoading =
-                false;
-
-            _errorMessage =
-                "BillWatch could not determine which bill to open.";
-
+            _isLoading = false;
+            _errorMessage = L["BillWatch could not determine which bill to open."];
             return;
         }
 
@@ -553,344 +361,222 @@
 
             if (_detail is null)
             {
-                _errorMessage =
-                    "This bill could not be found.";
+                _errorMessage = L["This bill could not be found."];
             }
         }
         catch (JSException)
         {
-            _errorMessage =
-                "BillWatch could not load this bill from the secure API.";
+            _errorMessage = L["BillWatch could not load this bill from the secure API."];
         }
         catch (Exception)
         {
-            _errorMessage =
-                "Something went wrong while opening this bill.";
+            _errorMessage = L["Something went wrong while opening this bill."];
         }
         finally
         {
-            _isLoading =
-                false;
+            _isLoading = false;
         }
     }
 
     private async Task LoadDetailAsync()
     {
-        _bffModule ??=
-            await JS.InvokeAsync<
-                IJSObjectReference>(
-                "import",
-                "./js/bff.js");
+        _bffModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/bff.js");
 
-        _detail =
-            await _bffModule
-                .InvokeAsync<
-                    BillStreamDetailViewModel>(
-                    "getBillStreamDetail",
-                    BillStreamId.ToString(
-                        "D"));
+        _detail = await _bffModule.InvokeAsync<BillStreamDetailViewModel>(
+            "getBillStreamDetail",
+            BillStreamId.ToString("D"));
     }
 
     private decimal GetTransactionDifference()
     {
-        if (_detail is null ||
-            _detail.PreviousAverage <= 0m)
+        if (_detail is null || _detail.PreviousAverage <= 0m)
         {
             return 0m;
         }
 
-        return _detail.CurrentAmount -
-            _detail.PreviousAverage;
+        return _detail.CurrentAmount - _detail.PreviousAverage;
     }
 
-    private static string FormatMoney(
-        decimal amount)
-    {
-        return amount.ToString(
-            "C2");
-    }
+    private static string FormatMoney(decimal amount) =>
+        amount.ToString("C2", UsCulture);
 
-    private static string FormatSignedMoney(
-        decimal amount)
+    private static string FormatSignedMoney(decimal amount)
     {
         if (amount > 0m)
         {
-            return
-                $"+{FormatMoney(amount)}";
+            return $"+{FormatMoney(amount)}";
         }
 
         if (amount < 0m)
         {
-            return
-                $"-{FormatMoney(Math.Abs(amount))}";
+            return $"-{FormatMoney(Math.Abs(amount))}";
         }
 
-        return
-            FormatMoney(0m);
+        return FormatMoney(0m);
     }
 
-    private static string FormatDifference(
-        decimal difference)
+    private static string FormatDifference(decimal difference) =>
+        FormatSignedMoney(difference);
+
+    private static string GetDifferenceClass(decimal difference) =>
+        difference > 0m
+            ? "detail-amount-difference increase"
+            : difference < 0m
+                ? "detail-amount-difference decrease"
+                : "detail-amount-difference steady";
+
+    private static string GetDetectedChangeClass(decimal difference) =>
+        difference > 0m
+            ? "detected-change-card increase"
+            : difference < 0m
+                ? "detected-change-card decrease"
+                : "detected-change-card steady";
+
+    private static string GetHistoryIndicatorClass(decimal difference) =>
+        difference > 0m
+            ? "change-history-indicator increase"
+            : difference < 0m
+                ? "change-history-indicator decrease"
+                : "change-history-indicator steady";
+
+    private static string GetProviderInitial(string providerName)
     {
-        return FormatSignedMoney(
-            difference);
-    }
-
-    private static string GetDifferenceClass(
-        decimal difference)
-    {
-        if (difference > 0m)
-        {
-            return
-                "detail-amount-difference increase";
-        }
-
-        if (difference < 0m)
-        {
-            return
-                "detail-amount-difference decrease";
-        }
-
-        return
-            "detail-amount-difference steady";
-    }
-
-    private static string GetDetectedChangeClass(
-        decimal difference)
-    {
-        if (difference > 0m)
-        {
-            return
-                "detected-change-card increase";
-        }
-
-        if (difference < 0m)
-        {
-            return
-                "detected-change-card decrease";
-        }
-
-        return
-            "detected-change-card steady";
-    }
-
-    private static string GetHistoryIndicatorClass(
-        decimal difference)
-    {
-        if (difference > 0m)
-        {
-            return
-                "change-history-indicator increase";
-        }
-
-        if (difference < 0m)
-        {
-            return
-                "change-history-indicator decrease";
-        }
-
-        return
-            "change-history-indicator steady";
-    }
-
-    private static string GetProviderInitial(
-        string providerName)
-    {
-        if (string.IsNullOrWhiteSpace(
-                providerName))
+        if (string.IsNullOrWhiteSpace(providerName))
         {
             return "?";
         }
 
-        return char.ToUpperInvariant(
-                providerName.Trim()[0])
-            .ToString();
+        return char.ToUpperInvariant(providerName.Trim()[0]).ToString();
     }
 
-    private static string FormatCategory(
-        string? category)
+    private string FormatCategory(string? category)
     {
-        if (string.IsNullOrWhiteSpace(
-                category) ||
-            string.Equals(
-                category,
-                "Unknown",
-                StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(category) ||
+            string.Equals(category, "Unknown", StringComparison.OrdinalIgnoreCase))
         {
-            return
-                "Recurring bill";
+            return L["Recurring bill"];
         }
 
-        return FormatEnumText(
-            category);
+        return LocalizeEnumText(category);
     }
 
-    private static string GetExplanation(
-        string? description)
+    private string GetExplanation(string? description)
     {
-        if (string.IsNullOrWhiteSpace(
-                description))
+        if (string.IsNullOrWhiteSpace(description))
         {
-            return
-                "BillWatch detected a change, but the available evidence does not explain the cause confidently.";
+            return L["BillWatch detected a change, but the available evidence does not explain the cause confidently."];
         }
 
+        // Evidence text is preserved verbatim. Localization must not alter the facts BillWatch extracted.
         return description.Trim();
     }
 
-    private static string FormatConfidence(
-        string? confidence)
+    private string FormatConfidence(string? confidence)
     {
-        if (string.IsNullOrWhiteSpace(
-                confidence))
+        if (string.IsNullOrWhiteSpace(confidence))
         {
-            return
-                "Unknown confidence";
+            return L["Unknown confidence"];
         }
 
-        return FormatEnumText(
-            confidence);
+        return LocalizeEnumText(confidence);
     }
 
-    private static string GetConfidenceClass(
-        string? confidence)
+    private static string GetConfidenceClass(string? confidence)
     {
-        if (string.Equals(
-                confidence,
-                "Confirmed",
-                StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(
-                confidence,
-                "High",
-                StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(confidence, "Confirmed", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(confidence, "High", StringComparison.OrdinalIgnoreCase))
         {
-            return
-                "confidence-pill confirmed";
+            return "confidence-pill confirmed";
         }
 
-        if (string.Equals(
-                confidence,
-                "Unknown",
-                StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(confidence, "Unknown", StringComparison.OrdinalIgnoreCase))
         {
-            return
-                "confidence-pill unknown";
+            return "confidence-pill unknown";
         }
 
-        return
-            "confidence-pill inferred";
+        return "confidence-pill inferred";
     }
 
-    private static string FormatTimestampFallback(
-        DateTimeOffset value)
-    {
-        return value.ToUniversalTime()
-            .ToString(
-                "MM/dd/yyyy HH:mm 'UTC'");
-    }
+    private static string FormatTimestampFallback(DateTimeOffset value) =>
+        value.ToUniversalTime().ToString("MM/dd/yyyy HH:mm 'UTC'", UsCulture);
 
-    private static string FormatPeriod(
-        DateOnly start,
-        DateOnly end)
+    private static string FormatPeriod(DateOnly start, DateOnly end)
     {
-        if (start.Year ==
-                end.Year &&
-            start.Month ==
-                end.Month)
+        var culture = System.Globalization.CultureInfo.CurrentUICulture;
+
+        if (start.Year == end.Year && start.Month == end.Month)
         {
-            return
-                $"{start:MMM d} – {end:d, yyyy}";
+            return $"{start.ToString("MMM d", culture)} – {end.ToString("d, yyyy", culture)}";
         }
 
-        return
-            $"{start:MMM d} – {end:MMM d, yyyy}";
+        return $"{start.ToString("MMM d", culture)} – {end.ToString("MMM d, yyyy", culture)}";
     }
 
-    private static string FormatStatementMeta(
-        BillStatementViewModel statement)
+    private string FormatStatementMeta(BillStatementViewModel statement)
     {
-        var parts =
-            new List<string>();
+        var culture = System.Globalization.CultureInfo.CurrentUICulture;
+        var parts = new List<string>();
 
         if (statement.StatementDate is not null)
         {
-            parts.Add(
-                $"Statement {statement.StatementDate.Value:MMM d, yyyy}");
+            parts.Add($"{L["Statement"]} {statement.StatementDate.Value.ToString("MMM d, yyyy", culture)}");
         }
 
         if (statement.DueDate is not null)
         {
-            parts.Add(
-                $"Due {statement.DueDate.Value:MMM d, yyyy}");
+            parts.Add($"{L["Due"]} {statement.DueDate.Value.ToString("MMM d, yyyy", culture)}");
         }
 
         return parts.Count == 0
-            ? "Statement period"
-            : string.Join(
-                " · ",
-                parts);
+            ? L["Statement period"]
+            : string.Join(" · ", parts);
     }
 
-    private static string GetMonth(
-        DateOnly date)
+    private static string GetMonth(DateOnly date) =>
+        date.ToString("MMM", System.Globalization.CultureInfo.CurrentUICulture)
+            .ToUpper(System.Globalization.CultureInfo.CurrentUICulture);
+
+    private static string GetDay(DateOnly date) =>
+        date.Day.ToString(System.Globalization.CultureInfo.CurrentUICulture);
+
+    private string LocalizeEnumText(string? value)
     {
-        return date.ToString(
-                "MMM")
-            .ToUpperInvariant();
+        var humanized = HumanizeEnumText(value);
+        return L[humanized];
     }
 
-    private static string GetDay(
-        DateOnly date)
+    private static string HumanizeEnumText(string? value)
     {
-        return date.Day
-            .ToString();
-    }
-
-    private static string FormatEnumText(
-        string? value)
-    {
-        if (string.IsNullOrWhiteSpace(
-                value))
+        if (string.IsNullOrWhiteSpace(value))
         {
             return "Unknown";
         }
 
-        var builder =
-            new System.Text.StringBuilder();
+        var builder = new System.Text.StringBuilder();
 
-        for (var index = 0;
-             index < value.Length;
-             index++)
+        for (var index = 0; index < value.Length; index++)
         {
-            var character =
-                value[index];
+            var character = value[index];
 
             if (index > 0 &&
-                char.IsUpper(
-                    character) &&
-                !char.IsWhiteSpace(
-                    value[index - 1]))
+                char.IsUpper(character) &&
+                !char.IsWhiteSpace(value[index - 1]))
             {
-                builder.Append(
-                    ' ');
+                builder.Append(' ');
             }
 
-            builder.Append(
-                character);
+            builder.Append(character);
         }
 
-        return builder
-            .ToString()
-            .Trim();
+        return builder.ToString().Trim();
     }
 
-    private static string Pluralize(
-        int count)
-    {
-        return count == 1
-            ? string.Empty
-            : "s";
-    }
+    private string FormatStatementCount(int count) =>
+        count == 1
+            ? L["1 statement"]
+            : L["{0} statements", count];
 
     public async ValueTask DisposeAsync()
     {
@@ -901,187 +587,49 @@
 
         try
         {
-            await _bffModule
-                .DisposeAsync();
+            await _bffModule.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
         }
     }
 
-    public sealed class
-        BillStreamDetailViewModel
+    public sealed class BillStreamDetailViewModel
     {
-        public Guid Id
-        {
-            get;
-            set;
-        }
-
-        public string ProviderName
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public string Category
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public bool IsActive
-        {
-            get;
-            set;
-        }
-
-        public decimal CurrentAmount
-        {
-            get;
-            set;
-        }
-
-        public decimal PreviousAverage
-        {
-            get;
-            set;
-        }
-
-        public List<BillStatementViewModel>
-            Statements
-        {
-            get;
-            set;
-        } = [];
-
-        public List<BillChangeViewModel>
-            Changes
-        {
-            get;
-            set;
-        } = [];
+        public Guid Id { get; set; }
+        public string ProviderName { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public decimal CurrentAmount { get; set; }
+        public decimal PreviousAverage { get; set; }
+        public List<BillStatementViewModel> Statements { get; set; } = [];
+        public List<BillChangeViewModel> Changes { get; set; } = [];
     }
 
-    public sealed class
-        BillStatementViewModel
+    public sealed class BillStatementViewModel
     {
-        public Guid Id
-        {
-            get;
-            set;
-        }
-
-        public DateOnly PeriodStart
-        {
-            get;
-            set;
-        }
-
-        public DateOnly PeriodEnd
-        {
-            get;
-            set;
-        }
-
-        public DateOnly? StatementDate
-        {
-            get;
-            set;
-        }
-
-        public DateOnly? DueDate
-        {
-            get;
-            set;
-        }
-
-        public decimal TotalAmount
-        {
-            get;
-            set;
-        }
-
-        public string CurrencyCode
-        {
-            get;
-            set;
-        } = "USD";
+        public Guid Id { get; set; }
+        public DateOnly PeriodStart { get; set; }
+        public DateOnly PeriodEnd { get; set; }
+        public DateOnly? StatementDate { get; set; }
+        public DateOnly? DueDate { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string CurrencyCode { get; set; } = "USD";
     }
 
-    public sealed class
-        BillChangeViewModel
+    public sealed class BillChangeViewModel
     {
-        public Guid Id
-        {
-            get;
-            set;
-        }
-
-        public Guid? PreviousStatementId
-        {
-            get;
-            set;
-        }
-
-        public Guid CurrentStatementId
-        {
-            get;
-            set;
-        }
-
-        public string ChangeType
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public string Confidence
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public string Description
-        {
-            get;
-            set;
-        } = string.Empty;
-
-        public decimal PreviousAmount
-        {
-            get;
-            set;
-        }
-
-        public decimal CurrentAmount
-        {
-            get;
-            set;
-        }
-
-        public decimal AmountDifference
-        {
-            get;
-            set;
-        }
-
-        public decimal AnnualizedImpact
-        {
-            get;
-            set;
-        }
-
-        public bool IsAcknowledged
-        {
-            get;
-            set;
-        }
-
-        public DateTimeOffset DetectedAtUtc
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
+        public Guid? PreviousStatementId { get; set; }
+        public Guid CurrentStatementId { get; set; }
+        public string ChangeType { get; set; } = string.Empty;
+        public string Confidence { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal PreviousAmount { get; set; }
+        public decimal CurrentAmount { get; set; }
+        public decimal AmountDifference { get; set; }
+        public decimal AnnualizedImpact { get; set; }
+        public bool IsAcknowledged { get; set; }
+        public DateTimeOffset DetectedAtUtc { get; set; }
     }
 }
