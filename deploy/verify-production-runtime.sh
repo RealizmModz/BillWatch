@@ -59,11 +59,50 @@ do
     fi
 done
 
-release_id="$(git -C "$deployment_directory" rev-parse HEAD)"
+release_id="$(git -C "$deployment_directory" rev-parse --verify HEAD^{commit} 2>/dev/null)" ||
+    fail "Could not resolve the deployed Git commit." 77
+
 recorded_release="$(cat "$deployment_directory/.billwatch-release" 2>/dev/null || true)"
 
 if [ "$recorded_release" != "$release_id" ]; then
     fail "Recorded production release does not match the deployed Git checkout." 77
 fi
+
+verify_running_revision()
+{
+    service=$1
+    container_id="$(compose ps -q "$service")"
+
+    [ -n "$container_id" ] ||
+        fail "Could not resolve production container for release verification: $service" 69
+
+    image_revision="$(
+        docker inspect \
+            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' \
+            "$container_id" 2>/dev/null || true
+    )"
+
+    [ -n "$image_revision" ] ||
+        fail "Production container is missing its BillWatch release revision label: $service" 77
+
+    [ "$image_revision" = "$release_id" ] ||
+        fail "Production container revision does not match the deployed release: $service" 77
+}
+
+verify_running_revision api
+verify_running_revision web
+
+backup_image="billwatch-backup:$release_id"
+backup_revision="$(
+    docker image inspect \
+        --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' \
+        "$backup_image" 2>/dev/null || true
+)"
+
+[ -n "$backup_revision" ] ||
+    fail "Production backup image is missing or has no BillWatch release revision label." 77
+
+[ "$backup_revision" = "$release_id" ] ||
+    fail "Production backup image revision does not match the deployed release." 77
 
 echo "BillWatch production runtime verification passed for $release_id."

@@ -8,7 +8,7 @@ This file is the durable BillWatch development handoff.
 
 - Current source is authoritative for implementation details.
 - Stop roadmap progression immediately for compile, runtime, test, CI, deployment, migration, or unexpected security failures caused by current work.
-- Never weaken authentication, BFF isolation, antiforgery, HTTPS, ownership checks, trusted-proxy rules, token protection, statement protections, backup protections, or financial-data boundaries to make a check pass.
+- Never weaken authentication, BFF isolation, antiforgery, HTTPS, ownership checks, trusted-proxy rules, token protection, statement protections, backup protections, migration safety, or financial-data boundaries to make a check pass.
 - Prefer large coherent feature slices and one complete validation gate after a meaningful milestone.
 - Do not deploy a feature branch directly to production.
 - Do not merge until the full CI/container/recovery gate is green.
@@ -27,7 +27,7 @@ Repository: `RealizmModz/BillWatch`
 
 Current overnight branch: `work/p0-beta-verification-2026-09-04`
 
-Current PR: #44, `P0 private-beta security verification`, targeting `master`.
+Current PR: #44, `P0 private-beta security verification`, targeting `master`, kept as a draft.
 
 Projects:
 
@@ -37,7 +37,7 @@ Projects:
 - `BillWatch.Tests/BillWatch.Tests.csproj`
 - `BillWatch.Web/BillWatch.Web.csproj` — Blazor Interactive Server Web/BFF
 
-Technology includes .NET 10, PostgreSQL/EF Core, ASP.NET Core Identity bearer auth, encrypted HttpOnly Web/BFF auth, Plaid, xUnit, PdfPig, local Tesseract OCR, Docker Compose, Caddy, and encrypted Restic recovery.
+Technology includes .NET 10, PostgreSQL/EF Core, ASP.NET Core Identity bearer auth, encrypted HttpOnly Web/BFF auth, Plaid, xUnit, PdfPig, local Tesseract OCR, Docker Compose, Caddy, systemd, and encrypted Restic recovery.
 
 Public Web: `https://billbeacon.net`
 
@@ -57,80 +57,98 @@ Production repository path: `/opt/billwatch`
 - Never log raw statements, full account numbers, access/refresh tokens, Plaid tokens, passwords, provider secrets, database credentials, Restic secrets, or private operations-webhook URLs.
 - AI-derived persistence remains disabled. Deterministic extraction remains the production persistence path.
 
-## Current P0 security milestone
+## PR #44 milestone state
 
-PR #44 includes a substantial security verification milestone.
+PR #44 contains three substantial overnight commits. Temporary per-file GitHub persistence commits should continue to be reconsolidated into those milestone commits rather than growing hourly history.
 
-Implemented:
+### Security and Web/API boundaries
 
-- Stripe webhook bodies are capped at 256 KB, including unknown-length/chunked request bodies.
+Implemented and regression-tested:
+
+- Stripe webhook bodies capped at 256 KB, including unknown-length/chunked requests.
 - Oversized webhook requests return 413 before signature processing.
-- Invalid Stripe signatures remain fail-closed and do not echo request payload/signature evidence.
-- A centralized Web antiforgery boundary validates actual unsafe `/auth` and `/bff` endpoint route templates before handler execution.
+- Invalid Stripe signatures fail closed without echoing payload/signature material.
+- Centralized antiforgery validation for actual unsafe `/auth` and `/bff` routes before handler execution.
 - Unknown/fallback Web routes are not incorrectly converted into antiforgery failures.
-- Web integration-test infrastructure exercises the real ASP.NET Core pipeline with authenticated test principals.
-- Missing-antiforgery coverage spans authentication, subscription, alerts, Plaid, bank disconnect, statement upload, account deletion/preferences, account security/2FA, and admin mutations.
-- Anonymous API authorization regression coverage was expanded across destructive/sensitive financial, statement, account, alert, and subscription routes.
-- API no-store behavior is regression-tested for sensitive responses.
-- End-to-end rate-limit tests cover authentication, account export, subscription redemption, statement upload, and statement download.
-- Account-export limiting is proven to partition authenticated users separately rather than throttling another user sharing the same client IP.
+- Sensitive Web/API responses remain no-store and carry expected security headers.
+- Anonymous authorization coverage spans destructive/sensitive financial, statement, alert, account, and subscription routes.
+- End-to-end rate-limit coverage spans authentication, account export, subscription redemption, statement upload, and statement download.
+- Authenticated rate limiting is proven user-partitioned where required.
 
-### Last fully green milestone
+### Identity, beta access, and Plaid lifecycle
 
-Security head `454bace79554d0c851cb0c46d128d7782867ecd1` passed BillWatch CI run #211 completely:
+Implemented and regression-tested:
 
-- backend Release build passed;
-- EF pending-model-change verification passed;
-- all 412 tests passed;
-- production API image passed;
-- production Web image passed;
-- public HTTPS readiness passed;
-- encrypted backup creation passed;
-- isolated database/statement/Data Protection restore passed;
-- post-restore API readiness passed.
+- Owner/Admin authorization policies and Moderator/user denial.
+- Fresh bearer role claims required after promotion.
+- Admin cannot escalate to Owner or manage Owner authority.
+- Beta access-key create/list-without-plaintext/redeem/exhaust/revoke/rejected-redemption lifecycle.
+- Plaid sync coordinator persists `RequiresAttention` only for explicit user-action Item errors.
+- Protected access token and transaction cursor are retained for update-mode repair.
+- Automatic retries stop after a persisted RequiresAttention provider failure while the original exception still propagates.
+- Disconnect revokes provider access, removes local protected credentials/cursor, deactivates accounts, preserves cross-user isolation, handles already-removed Items safely, and preserves local state on other provider failures.
 
-This is the last known fully green baseline while the resilience slice below is still being finalized/validated.
-
-## Current P0 operations-resilience slice
-
-A second substantial PR slice is implemented on the same branch. Its goal is to close repository-level backup-retention and backup-failure-alerting gaps without pretending repository controls provide storage-provider immutability.
+### Recovery, retention, and operations alerts
 
 Implemented:
 
-- Backup retention configuration is explicit and opt-in.
-- Safe enabled floors are 14 daily, 8 weekly, 12 monthly, and 3 yearly completed snapshots.
-- The backup container rejects malformed or weaker enabled retention values before running any destructive Restic retention operation.
-- Enabled retention applies only after a new backup passes repository integrity checking and is promoted to the `billwatch-complete` tag.
-- A non-destructive `backup policy` command and `deploy/check-backup-policy.sh` verify configured retention.
-- Production configuration preflight validates retention booleans/counts/floors before Docker receives configuration.
-- `billwatch-backup.service` routes failures through `billwatch-operations-alert@.service`.
-- `deploy/send-operations-alert.sh` sends only fixed operational metadata: source, event, unit, host, and UTC timestamp.
-- The private HTTPS webhook URL is read from protected `.env.production`, rejected if unsafe, stored in a mode-600 temporary curl config, and kept out of curl process arguments.
-- Alert payloads never attach service logs, financial data, statements, request bodies, credentials, or tokens.
-- `deploy/check-operations-alerting.sh` verifies alerting configuration/systemd wiring without sending an external event.
-- `deploy/verify-beta-readiness.sh` now requires configured backup retention and local backup-failure alert wiring.
-- Production/beta shell regression tests cover safe retention floors, reject weaker retention, require HTTPS alerting, verify systemd wiring, and verify secret-safe curl configuration.
-- Production documentation and beta checklist now distinguish repository retention from provider-side immutable/Object-Lock/WORM protection.
+- Guarded encrypted Restic backup workflow and isolated recovery verification.
+- Opt-in retention with minimum enabled floors of 14 daily / 8 weekly / 12 monthly / 3 yearly completed snapshots.
+- Weak/malformed retention is rejected before destructive `restic forget --prune` operations.
+- Retention runs only after a completed backup passes repository verification.
+- Non-destructive retention-policy verification.
+- Backup failures route through a dedicated systemd operations-alert unit.
+- Operations alert payloads contain fixed metadata only and never service logs, financial data, statements, request bodies, credentials, or tokens.
+- Private alert webhook URL remains in protected configuration and out of curl process arguments.
+- Provider-side Object Lock/WORM/append-only protection remains a separate required real-environment beta gate; repository pruning is not treated as equivalent immutability.
 
-Important safety boundary:
+### Release/deployment integrity
 
-Repository pruning is **not** equivalent to immutable recovery. Provider-side Object Lock/WORM/append-only protection remains a separate beta gate. If provider immutability rejects Restic pruning, keep BillWatch automatic pruning disabled and use a tested provider-side lifecycle/retention policy; never weaken immutability merely to make pruning succeed.
+Implemented and regression-tested:
 
-External alert delivery is also not proven merely by configuration. Before beta invitations, send a manual `readiness-test` event and observe it at the configured external destination.
+- `.billwatch-release`, `BILLWATCH_RELEASE_ID`, Git HEAD, clean source, and first-party OCI revision labels must agree.
+- Protected release marker is deployment-owned, mode 600, non-symlinked, Git-ignored, untracked, and exactly one lowercase 40-character SHA.
+- Production deployment rejects stale/missing API, Web, or backup image revisions before startup.
+- Existing API/Web/edge runtime must be consistently running and match the last verified release before replacement.
+- Encrypted recovery point is taken before replacing a verified running release.
+- Candidate startup/readiness/HTTP-security failure stops unverified API/Web/edge services while leaving PostgreSQL and the last verified marker untouched.
+- Automatic code rollback is intentionally not performed after candidate startup because forward migrations may already have changed database schema.
 
-The operations-resilience slice has not yet received its definitive full CI gate as of this context update. Do not merge it based only on the prior green security run.
+### Runtime watchdog / reboot readiness — current slice
 
-## Production backup state
+Implemented on the same third milestone commit and awaiting its definitive CI gate:
 
-Production has an active daily encrypted backup timer and a previously verified completed `billwatch-complete` Restic snapshot. Existing CI has repeatedly proven isolated restore of database, statement files, and Data Protection material.
+- `billwatch-runtime-readiness.service` runs the complete guarded production verifier as the deployment account.
+- The service requires Docker/network ordering and routes failures through the existing metadata-only operations alert service.
+- Missing `.env.production`, missing `.billwatch-release`, dirty source, stale runtime revisions, unhealthy containers, bad exposure, or public readiness failures are allowed to fail the verifier and alert; systemd conditions do not silently skip missing protected state.
+- `billwatch-runtime-readiness.timer` verifies shortly after boot and then five minutes after each completed verification, avoiding overlapping checks.
+- `deploy/check-runtime-watchdog.sh` verifies installation, enabled/active timer state, safe service wiring, and the next scheduled run.
+- `deploy/verify-beta-readiness.sh` now requires the runtime watchdog.
+- Operations-alert verification now requires both backup and runtime-readiness failure routing.
+- Dedicated shell regression tests cover unit wiring, fail-closed missing-state behavior, scheduling semantics, disabled/inactive timer rejection, beta-readiness integration, and alert integration.
+- CI now runs the runtime-watchdog regression suite.
+
+The watchdog deliberately does **not** automatically deploy, roll back, restart PostgreSQL, or rewrite the verified release marker. An actual controlled VPS reboot remains a real-host proof gate even after automated watchdog checks pass.
+
+## Last definitive green baseline
+
+Head `35ce21e9725a7c8c5b8731c79ed50af6c1186ca4` passed BillWatch CI #287 completely before the runtime-watchdog slice was added.
+
+That gate covered Release build, EF pending-model verification, full xUnit tests, production operation/release-integrity suites, production API/Web images, HTTPS readiness, HTTP security boundaries, encrypted backup, isolated database/statement/Data Protection restore, and post-recovery API readiness.
+
+The runtime-watchdog head must receive a new complete CI gate before the current milestone is considered closed.
+
+## Production backup / operations state
+
+Production has an active daily encrypted backup design and CI repeatedly proves isolated restore of database, statement files, and Data Protection material.
 
 Still-required real-host recovery/operations gates include:
 
 - clean-host/off-host restore drill using production-like protected storage;
 - provider-side immutable/Object-Lock/WORM or equivalent protection and tested recovery from it;
-- observed external backup-failure alert delivery;
-- external readiness forced-failure alert proof;
-- controlled VPS reboot and automatic healthy recovery.
+- observed external backup/runtime-failure alert delivery;
+- independent external readiness forced-failure alert proof;
+- controlled VPS reboot and automatic healthy recovery, followed by `verify-beta-readiness.sh`.
 
 ## Core pipeline
 
@@ -150,29 +168,27 @@ Implemented alerts include bill increase/decrease, new fee, removed discount, ev
 
 ## Immediate resume point
 
-1. Finish the current operations-resilience slice review.
-2. Consolidate temporary GitHub persistence commits into meaningful milestone commits rather than hourly/file-by-file history.
-3. Run one definitive full CI/container/recovery gate for the completed security + resilience PR state.
-4. Fix any failure caused by current work before progressing.
-5. Merge only when the complete gate is green and the PR remains reviewable.
-6. Guarded-deploy the resulting `master`; never deploy this feature branch directly.
-7. Continue real production/browser/Plaid/statement/recovery beta gates.
+1. Reconsolidate the runtime-watchdog/context persistence commits into the existing third substantial milestone commit.
+2. Run one definitive full CI/container/recovery gate on that exact consolidated head.
+3. Fix any failure caused by current work before progressing.
+4. If green, keep PR #44 draft/unmerged and continue the remaining real-environment or automatable P0 beta-readiness gates without reopening already-green audits.
 
 ## Remaining private-beta launch gates
 
 Before trusted external beta invitations:
 
 - complete authenticated browser smoke testing;
-- prove production Owner/Admin role authorization after the role-aware release;
-- prove access-key create/redeem/revoke flow;
-- test Plaid RequiresAttention/update-mode reconnect/disconnect behavior;
-- verify statement PDF/image/OCR/ownership paths with real test documents;
-- perform a real clean-host/off-host recovery drill;
-- prove provider-side immutable backup protection and recovery;
-- prove backup-failure and external-readiness alert delivery;
-- perform a controlled VPS reboot/recovery test;
-- finish ownership/antiforgery/rate-limit/proxy/cookie/secret-safe-logging review;
-- run internal Beta 0 on real bills before inviting 3–5 trusted testers.
+- production Owner/Admin browser/API smoke after guarded deployment;
+- real access-key create/redeem/revoke smoke;
+- Plaid Hosted Link, RequiresAttention, update-mode reconnect, and disconnect smoke with real sandbox/production configuration;
+- real PDF/JPG/PNG/OCR statement fixtures and ownership checks;
+- real clean-host/off-host recovery drill;
+- provider-side immutable backup protection and recovery proof;
+- observed external operations-alert delivery;
+- independent external readiness monitoring with forced-failure proof;
+- controlled VPS reboot/recovery test;
+- internal Beta 0 on real bills before inviting 3–5 trusted testers;
+- Terms/Privacy review before broader public beta.
 
 ## Development workflow
 

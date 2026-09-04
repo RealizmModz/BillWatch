@@ -36,11 +36,12 @@ This composes the production verification with:
 - exactly-one-Owner verification;
 - confirmation that subscription enforcement remains disabled;
 - enabled/active daily backup timer verification;
+- enabled/active runtime-readiness watchdog verification;
 - existence of a completed encrypted `billwatch-complete` Restic snapshot;
 - enabled backup retention at or above BillWatch's minimum retention floors;
-- installed backup-failure alert routing with an HTTPS external webhook configured.
+- installed backup/runtime-failure alert routing with an HTTPS external webhook configured.
 
-Passing this command does **not** prove the browser, Plaid, provider-statement, clean-host restore, controlled reboot, storage-provider immutability, or actual external alert delivery. Those remain explicit operator checks in `deploy/README-BETA-CHECKLIST.md`.
+Passing this command does **not** prove the browser, Plaid, provider-statement, clean-host restore, an actual controlled reboot, storage-provider immutability, independent external monitoring, or actual external alert delivery. Those remain explicit operator checks in `deploy/README-BETA-CHECKLIST.md`.
 
 ## First Owner
 
@@ -70,6 +71,34 @@ The admin smoke test proves that a fresh bearer session can satisfy `AdminOrOwne
 
 Command-line smoke tests do not replace browser verification of login/logout, Overview, Bills, Activity, Account, Subscription, Admin, Plaid Hosted Link/update mode, statement upload/download, or responsive theme behavior.
 
+## Systemd production units
+
+Install the backup, runtime-watchdog, and alert units together so no `OnFailure` route can point at a missing template:
+
+```sh
+sudo cp \
+  deploy/systemd/billwatch-backup.service \
+  deploy/systemd/billwatch-backup.timer \
+  deploy/systemd/billwatch-runtime-readiness.service \
+  deploy/systemd/billwatch-runtime-readiness.timer \
+  deploy/systemd/billwatch-operations-alert@.service \
+  /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now \
+  billwatch-backup.timer \
+  billwatch-runtime-readiness.timer
+```
+
+The runtime watchdog waits briefly after boot and then executes the same guarded production verifier every five minutes. It verifies the checked-out source, protected release marker, running release revisions, exposure rules, container health, and public readiness. It **does not** automatically deploy, roll back, restart PostgreSQL, or rewrite the verified release marker. A failure is surfaced through the metadata-only operations alert path.
+
+Verify the watchdog locally with:
+
+```sh
+sh deploy/check-runtime-watchdog.sh
+```
+
+This proves installation and scheduling; an actual controlled VPS reboot must still be performed once before beta invitations to prove Docker/systemd/network ordering on the real host.
+
 ## Backups
 
 The production backup timer should remain enabled:
@@ -88,18 +117,6 @@ Then inspect its status without printing secrets:
 
 ```sh
 sudo systemctl status billwatch-backup.service --no-pager
-```
-
-Install all backup/alert systemd units together so `OnFailure` routing cannot point at a missing template:
-
-```sh
-sudo cp \
-  deploy/systemd/billwatch-backup.service \
-  deploy/systemd/billwatch-backup.timer \
-  deploy/systemd/billwatch-operations-alert@.service \
-  /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now billwatch-backup.timer
 ```
 
 Verify the timer with:
@@ -136,7 +153,7 @@ sh deploy/check-backup-policy.sh /opt/billwatch
 
 This repository-level policy does **not** provide immutability against a compromised host that possesses delete-capable storage credentials. Configure provider-side Object Lock/WORM/append-only retention where supported, and use separate backup-write versus retention-delete credentials when possible.
 
-### Backup-failure alerts
+### Operations alerts
 
 Configure a private HTTPS webhook in `.env.production`:
 
@@ -145,7 +162,7 @@ BILLWATCH_OPERATIONS_ALERTING_ENABLED=true
 BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL=https://your-private-alert-endpoint.example/path
 ```
 
-`billwatch-backup.service` uses systemd `OnFailure` to invoke the dedicated alert unit. The alert payload contains only a fixed BillWatch source identifier, event name, systemd unit name, hostname, and UTC timestamp. It does not attach service logs, financial data, request bodies, credentials, or tokens.
+`billwatch-backup.service` and `billwatch-runtime-readiness.service` use systemd `OnFailure` to invoke the dedicated alert unit. The alert payload contains only a fixed BillWatch source identifier, event name, systemd unit name, hostname, and UTC timestamp. It does not attach service logs, financial data, request bodies, credentials, or tokens.
 
 Verify local wiring without sending an alert:
 

@@ -1,0 +1,14 @@
+[Unit]
+Description=Verify the BillWatch production runtime matches the last verified release
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+OnFailure=billwatch-operations-alert@%n.service
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/billwatch
+ExecStart=/bin/sh /opt/billwatch/deploy/verify-production.sh /opt/billwatch
+TimeoutStartSec=10m
+UMask=0077

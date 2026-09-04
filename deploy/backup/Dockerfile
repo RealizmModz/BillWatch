@@ -1,5 +1,9 @@
 FROM postgres:17-alpine
 
+ARG BILLWATCH_RELEASE_ID=unknown
+
+LABEL org.opencontainers.image.revision="$BILLWATCH_RELEASE_ID"
+
 RUN apk add --no-cache \
         ca-certificates \
         jq \

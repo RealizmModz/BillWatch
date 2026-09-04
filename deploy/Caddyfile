@@ -4,10 +4,22 @@
 
 {$BILLWATCH_HOST} {
     encode zstd gzip
+
+    header {
+        -Server
+        Strict-Transport-Security "max-age=31536000"
+    }
+
     reverse_proxy api:8080
 }
 
 {$BILLWATCH_WEB_HOST} {
     encode zstd gzip
+
+    header {
+        -Server
+        Strict-Transport-Security "max-age=31536000"
+    }
+
     reverse_proxy web:8080
 }

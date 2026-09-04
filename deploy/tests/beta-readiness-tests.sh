@@ -29,6 +29,7 @@ $root_dir/deploy/verify-identity-role-schema.sh
 $root_dir/deploy/verify-owner-count.sh
 $root_dir/deploy/verify-production-exposure.sh
 $root_dir/deploy/verify-production-permissions.sh
+$root_dir/deploy/verify-release-integrity.sh
 $root_dir/deploy/verify-production-runtime.sh
 $root_dir/deploy/verify-production.sh
 $root_dir/deploy/verify-subscription-safety.sh
@@ -42,6 +43,11 @@ do
     sh -n "$script" ||
         fail "POSIX shell syntax validation failed: $script"
 done
+
+grep -Fq \
+    'verify-release-integrity.sh' \
+    "$root_dir/deploy/verify-production.sh" ||
+    fail "production verification must enforce release integrity before declaring the host healthy."
 
 for smoke_script in \
     "$root_dir/deploy/smoke-authenticated-api.sh" \

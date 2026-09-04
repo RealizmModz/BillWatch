@@ -9,6 +9,7 @@ Do not enable subscription enforcement merely because this checklist exists. Enf
 - [ ] Pull-request CI/recovery pipeline passes.
 - [ ] Guarded production deployment succeeds.
 - [ ] `.billwatch-release` matches the intended Git commit.
+- [ ] Running API/Web containers and the production backup image report the same `org.opencontainers.image.revision` as the intended release.
 - [ ] `sh deploy/verify-production.sh /opt/billwatch` passes.
 
 ## Authentication and administration
@@ -62,15 +63,17 @@ Do not enable subscription enforcement merely because this checklist exists. Enf
 ## Recovery and operations
 
 - [ ] Daily encrypted backup timer is enabled.
+- [ ] Runtime-readiness watchdog timer is installed, enabled, and active.
 - [ ] Fresh encrypted backup succeeds.
 - [ ] Restic repository is confirmed off-host.
 - [ ] Clean-host restore drill succeeds.
 - [ ] Database, statements, and Data Protection keys restore coherently.
 - [ ] Repository retention is explicitly enabled at or above 14 daily / 8 weekly / 12 monthly / 3 yearly completed snapshots.
 - [ ] Provider-side immutable/Object-Lock/WORM or equivalent protection is configured and recovery from that protected storage has been tested.
-- [ ] Backup failure alerting is configured and a manual `readiness-test` event is observed in the external alert destination.
-- [ ] External readiness monitor is configured and a forced-failure notification is proven.
-- [ ] Controlled VPS reboot returns BillWatch to healthy automatically.
+- [ ] Backup/runtime failure alerting is configured and a manual `readiness-test` event is observed in the external alert destination.
+- [ ] Independent external readiness monitor is configured and a forced-failure notification is proven.
+- [ ] Controlled VPS reboot returns Docker, BillWatch, the backup timer, and the runtime-readiness watchdog to healthy automatically.
+- [ ] After the controlled reboot, `sh deploy/verify-beta-readiness.sh /opt/billwatch` passes without modifying the verified release marker.
 
 ## Beta entry
 

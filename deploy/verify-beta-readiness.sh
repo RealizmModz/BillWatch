@@ -19,6 +19,8 @@ sh "$deployment_directory/deploy/verify-beta-admin.sh" \
 
 sh "$deployment_directory/deploy/check-backup-timer.sh"
 
+sh "$deployment_directory/deploy/check-runtime-watchdog.sh"
+
 sh "$deployment_directory/deploy/check-backup-snapshot.sh" \
     "$deployment_directory"
 
@@ -29,4 +31,4 @@ sh "$deployment_directory/deploy/check-operations-alerting.sh" \
     "$deployment_directory"
 
 echo "BillWatch automated private-beta host prerequisites passed."
-echo "Browser, Plaid, statement, clean-host restore, reboot, storage-provider immutability, and external alert-delivery proof remain operator-verification gates."
+echo "Browser, Plaid, statement, clean-host restore, actual reboot observation, storage-provider immutability, external monitoring, and external alert-delivery proof remain operator-verification gates."

@@ -2,7 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using BillWatch.Tests.Infrastructure;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace BillWatch.Tests.Security;
 
@@ -126,6 +129,48 @@ public sealed class WebAntiforgeryBoundaryTests
                     StringComparison.OrdinalIgnoreCase));
 
         AssertSecurityHeaders(response);
+    }
+
+    [Fact]
+    public void AuthenticationCookie_IsHostOnlySecureAndNonSliding()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        var cookieOptions =
+            factory.Services
+                .GetRequiredService<
+                    IOptionsMonitor<
+                        CookieAuthenticationOptions>>()
+                .Get(
+                    CookieAuthenticationDefaults
+                        .AuthenticationScheme);
+
+        Assert.Equal(
+            "__Host-BillWatch.Web.Auth",
+            cookieOptions.Cookie.Name);
+
+        Assert.True(
+            cookieOptions.Cookie.HttpOnly);
+
+        Assert.Equal(
+            CookieSecurePolicy.Always,
+            cookieOptions.Cookie.SecurePolicy);
+
+        Assert.Equal(
+            SameSiteMode.Lax,
+            cookieOptions.Cookie.SameSite);
+
+        Assert.Equal(
+            "/",
+            cookieOptions.Cookie.Path);
+
+        Assert.True(
+            string.IsNullOrWhiteSpace(
+                cookieOptions.Cookie.Domain));
+
+        Assert.False(
+            cookieOptions.SlidingExpiration);
     }
 
     [Fact]

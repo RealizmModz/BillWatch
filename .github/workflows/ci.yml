@@ -63,7 +63,7 @@ jobs:
       BILLWATCH_DATABASE_PASSWORD: ci-only-password
       BILLWATCH_HOST: localhost
       BILLWATCH_WEB_HOST: web.localhost
-      BILLWATCH_RELEASE_ID: ci
+      BILLWATCH_RELEASE_ID: ${{ github.sha }}
       BILLWATCH_REQUIRE_RECOVERY_FIXTURE: "true"
       PLAID_CLIENT_ID: ci-client
       PLAID_ENVIRONMENT: sandbox
@@ -76,7 +76,12 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Validate production operation scripts
-        run: sh deploy/tests/production-operations-tests.sh
+        run: |
+          sh deploy/tests/production-operations-tests.sh
+          sh deploy/tests/release-integrity-tests.sh
+          sh deploy/tests/runtime-release-tests.sh
+          sh deploy/tests/http-security-boundary-tests.sh
+          sh deploy/tests/runtime-watchdog-tests.sh
 
       - name: Validate beta readiness scripts
         run: sh deploy/tests/beta-readiness-tests.sh
@@ -91,7 +96,9 @@ jobs:
           file: Dockerfile
           load: true
           push: false
-          tags: billwatch-api:ci
+          tags: billwatch-api:${{ github.sha }}
+          build-args: |
+            BILLWATCH_RELEASE_ID=${{ github.sha }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
@@ -102,7 +109,9 @@ jobs:
           file: Dockerfile.web
           load: true
           push: false
-          tags: billwatch-web:ci
+          tags: billwatch-web:${{ github.sha }}
+          build-args: |
+            BILLWATCH_RELEASE_ID=${{ github.sha }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
@@ -114,6 +123,14 @@ jobs:
 
       - name: Verify web HTTPS readiness
         run: curl --fail --insecure --retry 30 --retry-all-errors --retry-delay 2 --resolve web.localhost:443:127.0.0.1 https://web.localhost/health/ready
+
+      - name: Verify production HTTP security boundaries
+        env:
+          BILLWATCH_HTTP_SECURITY_ALLOW_INSECURE: "true"
+        run: >-
+          sh deploy/check-http-security-boundaries.sh
+          https://localhost
+          https://web.localhost
 
       - name: Seed protected recovery fixture
         shell: bash
@@ -150,6 +167,19 @@ jobs:
 
       - name: Build recovery image
         run: docker compose --profile operations --file compose.production.yml build backup
+
+      - name: Verify production image release revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for image in \
+            "billwatch-api:${BILLWATCH_RELEASE_ID}" \
+            "billwatch-web:${BILLWATCH_RELEASE_ID}" \
+            "billwatch-backup:${BILLWATCH_RELEASE_ID}"
+          do
+            revision="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "${image}")"
+            test "${revision}" = "${BILLWATCH_RELEASE_ID}"
+          done
 
       - name: Initialize encrypted backup repository
         run: docker compose --profile operations --file compose.production.yml run --rm backup init

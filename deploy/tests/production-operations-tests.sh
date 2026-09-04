@@ -176,6 +176,8 @@ cp "$root_dir/compose.production.yml" "$deployment_root/compose.production.yml"
 cp "$root_dir/.env.production.example" "$deployment_root/.env.production.example"
 cp "$root_dir/deploy/validate-production-env.sh" "$deployment_root/deploy/validate-production-env.sh"
 cp "$root_dir/deploy/monitor-readiness.sh" "$deployment_root/deploy/monitor-readiness.sh"
+cp "$root_dir/deploy/verify-running-release.sh" "$deployment_root/deploy/verify-running-release.sh"
+cp "$root_dir/deploy/check-http-security-boundaries.sh" "$deployment_root/deploy/check-http-security-boundaries.sh"
 cp "$root_dir/deploy/run-backup.sh" "$deployment_root/deploy/run-backup.sh"
 cp "$root_dir/deploy/deploy-production.sh" "$deployment_root/deploy/deploy-production.sh"
 : > "$deployment_root/Dockerfile"
@@ -185,6 +187,9 @@ write_valid_env "$deployment_root/.env.production"
 
 command_log="$temp_dir/deployment-commands.log"
 readiness_log="$temp_dir/deployment-readiness.log"
+security_log="$temp_dir/deployment-security.log"
+release_id=0123456789abcdef0123456789abcdef01234567
+old_release=89abcdef0123456789abcdef0123456789abcdef
 
 cat > "$fake_bin/git" <<'SCRIPT'
 #!/bin/sh
@@ -199,10 +204,20 @@ cat > "$fake_bin/docker" <<'SCRIPT'
 #!/bin/sh
 printf '%s\n' "$*" >> "$BILLWATCH_TEST_COMMAND_LOG"
 case "$*" in
-    *'ps --status running --services'*) exit 0 ;;
+    *'ps --status running --services'*)
+        [ "${BILLWATCH_TEST_RUNNING_API:-false}" != true ] || printf '%s\n' api
+        ;;
+    *'image inspect --format '*'billwatch-api:'*|*'image inspect --format '*'billwatch-web:'*|*'image inspect --format '*'billwatch-backup:'*)
+        if [ "${BILLWATCH_TEST_BAD_IMAGE_REVISION:-false}" = true ]; then
+            printf '%s\n' '89abcdef0123456789abcdef0123456789abcdef'
+        else
+            printf '%s\n' '0123456789abcdef0123456789abcdef01234567'
+        fi
+        ;;
     *'up --detach --wait --wait-timeout 240 --no-build database api web edge'*)
         [ "${BILLWATCH_TEST_FAIL_UP:-false}" != true ] || exit 1
         ;;
+    *'stop api web edge'*) : ;;
 esac
 SCRIPT
 
@@ -210,38 +225,74 @@ cat > "$deployment_root/deploy/monitor-readiness.sh" <<'SCRIPT'
 #!/bin/sh
 set -eu
 printf '%s\n' "$1" >> "$BILLWATCH_TEST_READINESS_LOG"
+[ "${BILLWATCH_TEST_FAIL_READINESS:-false}" != true ] || exit 1
+SCRIPT
+
+cat > "$deployment_root/deploy/check-http-security-boundaries.sh" <<'SCRIPT'
+#!/bin/sh
+set -eu
+printf '%s|%s\n' "$1" "$2" >> "$BILLWATCH_TEST_SECURITY_LOG"
+[ "${BILLWATCH_TEST_FAIL_SECURITY:-false}" != true ] || exit 1
 SCRIPT
 
 cat > "$deployment_root/deploy/run-backup.sh" <<'SCRIPT'
 #!/bin/sh
 set -eu
+printf '%s\n' backup >> "$BILLWATCH_TEST_COMMAND_LOG"
 exit 0
 SCRIPT
 
-chmod 755 "$fake_bin/git" "$fake_bin/docker" "$deployment_root/deploy/monitor-readiness.sh" "$deployment_root/deploy/run-backup.sh"
+chmod 755 "$fake_bin/git" "$fake_bin/docker" "$deployment_root/deploy/monitor-readiness.sh" "$deployment_root/deploy/check-http-security-boundaries.sh" "$deployment_root/deploy/run-backup.sh"
 
-PATH="$fake_bin:$PATH" \
-    BILLWATCH_TEST_COMMAND_LOG="$command_log" \
-    BILLWATCH_TEST_READINESS_LOG="$readiness_log" \
-    "$deployment_root/deploy/deploy-production.sh" "$deployment_root/.env.production" >/dev/null
+run_deploy()
+{
+    env \
+        PATH="$fake_bin:$PATH" \
+        BILLWATCH_TEST_COMMAND_LOG="$command_log" \
+        BILLWATCH_TEST_READINESS_LOG="$readiness_log" \
+        BILLWATCH_TEST_SECURITY_LOG="$security_log" \
+        "$@" \
+        "$deployment_root/deploy/deploy-production.sh" \
+        "$deployment_root/.env.production"
+}
 
-[ "$(cat "$deployment_root/.billwatch-release")" = '0123456789abcdef0123456789abcdef01234567' ] || fail "deployment did not record the verified release."
+: > "$command_log"
+run_deploy >/dev/null
+
+[ "$(cat "$deployment_root/.billwatch-release")" = "$release_id" ] || fail "deployment did not record the verified release."
 [ ! -d "$deployment_root/.billwatch-deploy.lock" ] || fail "deployment lock was not removed after success."
 grep -q 'config --quiet' "$command_log" || fail "deployment did not validate Compose configuration."
 grep -q -- '--profile operations build api web backup' "$command_log" || fail "deployment did not build API, web, and backup release images."
+grep -q 'image inspect' "$command_log" || fail "deployment did not verify built image release revisions."
 grep -q 'up --detach --wait --wait-timeout 240 --no-build database api web edge' "$command_log" || fail "deployment did not wait for the full production service set."
 grep -qx 'https://api.billwatch.test' "$readiness_log" || fail "deployment did not verify API readiness."
 grep -qx 'https://app.billwatch.test' "$readiness_log" || fail "deployment did not verify web readiness."
+grep -qx 'https://api.billwatch.test|https://app.billwatch.test' "$security_log" || fail "deployment did not verify public HTTP security boundaries."
 
-rm -f "$deployment_root/.billwatch-release"
-if PATH="$fake_bin:$PATH" \
-    BILLWATCH_TEST_COMMAND_LOG="$command_log" \
-    BILLWATCH_TEST_READINESS_LOG="$readiness_log" \
-    BILLWATCH_TEST_FAIL_UP=true \
-    "$deployment_root/deploy/deploy-production.sh" "$deployment_root/.env.production" >/dev/null 2>&1; then
-    fail "deployment unexpectedly succeeded after the production stack failed to start."
-fi
-[ ! -e "$deployment_root/.billwatch-release" ] || fail "failed deployment recorded a successful release."
+printf '%s\n' "$old_release" > "$deployment_root/.billwatch-release"
+chmod 600 "$deployment_root/.billwatch-release"
+: > "$command_log"
+expect_failure run_deploy BILLWATCH_TEST_BAD_IMAGE_REVISION=true
+[ "$(cat "$deployment_root/.billwatch-release")" = "$old_release" ] || fail "bad image revision changed the last verified release marker."
+if grep -q 'up --detach' "$command_log"; then fail "bad image revision reached production startup."; fi
+if grep -q 'stop api web edge' "$command_log"; then fail "pre-start image verification failure unnecessarily stopped the existing runtime."; fi
+
+: > "$command_log"
+expect_failure run_deploy BILLWATCH_TEST_FAIL_SECURITY=true
+[ "$(cat "$deployment_root/.billwatch-release")" = "$old_release" ] || fail "HTTP security failure changed the last verified release marker."
+grep -q 'stop api web edge' "$command_log" || fail "HTTP security failure did not stop the unverified candidate runtime."
+if grep -q 'stop database' "$command_log"; then fail "candidate cleanup attempted to stop PostgreSQL."; fi
+[ ! -d "$deployment_root/.billwatch-deploy.lock" ] || fail "deployment lock was not removed after HTTP security boundary failure."
+
+: > "$command_log"
+expect_failure run_deploy BILLWATCH_TEST_FAIL_READINESS=true
+[ "$(cat "$deployment_root/.billwatch-release")" = "$old_release" ] || fail "readiness failure changed the last verified release marker."
+grep -q 'stop api web edge' "$command_log" || fail "readiness failure did not stop the unverified candidate runtime."
+
+: > "$command_log"
+expect_failure run_deploy BILLWATCH_TEST_FAIL_UP=true
+[ "$(cat "$deployment_root/.billwatch-release")" = "$old_release" ] || fail "failed startup changed the last verified release marker."
+grep -q 'stop api web edge' "$command_log" || fail "failed startup did not stop potentially started candidate services."
 [ ! -d "$deployment_root/.billwatch-deploy.lock" ] || fail "deployment lock was not removed after failure."
 
 printf '%s\n' 'Production operation script tests passed.'

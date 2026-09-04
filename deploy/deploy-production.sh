@@ -8,6 +8,7 @@ lock_dir="$root_dir/.billwatch-deploy.lock"
 release_file="$root_dir/.billwatch-release"
 release_temp=
 deployment_started=false
+candidate_runtime_started=false
 
 fail()
 {
@@ -25,12 +26,25 @@ cleanup()
         rm -f "$release_temp"
     fi
 
+    if [ "$status" -ne 0 ] &&
+       [ "$candidate_runtime_started" = true ]; then
+        printf '%s\n' \
+            "Candidate release verification failed. Stopping the unverified public application services." >&2
+
+        compose stop api web edge >/dev/null 2>&1 ||
+            printf '%s\n' \
+                "WARNING: BillWatch could not confirm that all unverified public application services stopped. Operator intervention is required immediately." >&2
+    fi
+
     rmdir "$lock_dir" 2>/dev/null || true
 
     if [ "$status" -ne 0 ] &&
        [ "$deployment_started" = true ]; then
         printf '%s\n' \
-            "The release marker was not changed. Inspect sanitized service logs before retrying:" \
+            "The last verified release marker was not changed." \
+            "Do not attempt an automatic code rollback: the candidate API may already have applied forward database migrations." \
+            "Keep the public application services stopped until the failure is understood or a tested recovery is performed." \
+            "Inspect sanitized service logs before recovery:" \
             "docker compose --env-file .env.production --file compose.production.yml logs --no-color --tail 200 api web edge database" >&2
     fi
 
@@ -54,6 +68,12 @@ trap 'exit 130' HUP INT TERM
 
 [ -x "$root_dir/deploy/monitor-readiness.sh" ] ||
     fail "readiness monitor is not executable."
+
+[ -f "$root_dir/deploy/verify-running-release.sh" ] ||
+    fail "running-release verifier is missing."
+
+[ -f "$root_dir/deploy/check-http-security-boundaries.sh" ] ||
+    fail "HTTP security boundary verifier is missing."
 
 [ -x "$root_dir/deploy/run-backup.sh" ] ||
     fail "backup wrapper is not executable."
@@ -102,6 +122,31 @@ compose()
 
 compose config --quiet
 
+running_services=$(compose ps --status running --services)
+running_api=false
+running_web=false
+running_edge=false
+
+printf '%s\n' "$running_services" | grep -qx api && running_api=true || true
+printf '%s\n' "$running_services" | grep -qx web && running_web=true || true
+printf '%s\n' "$running_services" | grep -qx edge && running_edge=true || true
+
+running_public_count=0
+[ "$running_api" = false ] || running_public_count=$((running_public_count + 1))
+[ "$running_web" = false ] || running_public_count=$((running_public_count + 1))
+[ "$running_edge" = false ] || running_public_count=$((running_public_count + 1))
+
+if [ "$running_public_count" -ne 0 ] &&
+   [ "$running_public_count" -ne 3 ]; then
+    fail "the existing public application runtime is only partially running; restore or stop API, Web, and edge consistently before deploying."
+fi
+
+if [ "$running_public_count" -eq 3 ]; then
+    sh "$root_dir/deploy/verify-running-release.sh" \
+        "$root_dir" \
+        "$env_file"
+fi
+
 compose \
     --profile operations \
     build \
@@ -109,9 +154,24 @@ compose \
     web \
     backup
 
-if compose ps --status running --services |
-    grep -qx api; then
+for image_name in api web backup
+do
+    case "$image_name" in
+        api) image="billwatch-api:$release_id" ;;
+        web) image="billwatch-web:$release_id" ;;
+        backup) image="billwatch-backup:$release_id" ;;
+    esac
 
+    revision=$(docker image inspect \
+        --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' \
+        "$image" 2>/dev/null) ||
+        fail "the built $image_name image could not be inspected."
+
+    [ "$revision" = "$release_id" ] ||
+        fail "the built $image_name image revision does not match BILLWATCH_RELEASE_ID."
+done
+
+if [ "$running_public_count" -eq 3 ]; then
     printf '%s\n' \
         "Creating a verified encrypted recovery point before replacing the running BillWatch release."
 
@@ -120,6 +180,7 @@ if compose ps --status running --services |
 fi
 
 deployment_started=true
+candidate_runtime_started=true
 
 compose up \
     --detach \
@@ -137,6 +198,10 @@ compose up \
 "$root_dir/deploy/monitor-readiness.sh" \
     "https://$web_host"
 
+sh "$root_dir/deploy/check-http-security-boundaries.sh" \
+    "https://$api_host" \
+    "https://$web_host"
+
 release_temp="$release_file.tmp.$$"
 
 printf '%s\n' \
@@ -148,6 +213,9 @@ chmod 600 \
 mv -f \
     "$release_temp" \
     "$release_file"
+
+release_temp=
+candidate_runtime_started=false
 
 printf '%s\n' \
     "Production deployment completed and verified at release $release_id." \

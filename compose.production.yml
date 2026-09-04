@@ -12,6 +12,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BILLWATCH_RELEASE_ID: ${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
     restart: unless-stopped
     stop_grace_period: 30s
     logging: *default-logging
@@ -58,6 +60,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+      args:
+        BILLWATCH_RELEASE_ID: ${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
     restart: unless-stopped
     stop_grace_period: 30s
     logging: *default-logging
@@ -103,6 +107,8 @@ services:
     build:
       context: ./deploy/backup
       dockerfile: Dockerfile
+      args:
+        BILLWATCH_RELEASE_ID: ${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
     restart: "no"
     read_only: true
     user: "1654:1654"
