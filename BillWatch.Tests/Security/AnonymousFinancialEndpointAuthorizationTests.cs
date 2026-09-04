@@ -19,6 +19,9 @@ public sealed class AnonymousFinancialEndpointAuthorizationTests
     public static IEnumerable<object[]>
         ProtectedEndpoints()
     {
+        var alertId =
+            Guid.NewGuid();
+
         var billStreamId =
             Guid.NewGuid();
 
@@ -32,6 +35,12 @@ public sealed class AnonymousFinancialEndpointAuthorizationTests
         [
             "GET",
             "/api/bank-connections"
+        ];
+
+        yield return
+        [
+            "DELETE",
+            $"/api/bank-connections/{connectionId}"
         ];
 
         yield return
@@ -66,8 +75,32 @@ public sealed class AnonymousFinancialEndpointAuthorizationTests
 
         yield return
         [
+            "POST",
+            $"/api/alerts/{alertId}/read"
+        ];
+
+        yield return
+        [
+            "POST",
+            $"/api/alerts/{alertId}/dismiss"
+        ];
+
+        yield return
+        [
+            "POST",
+            $"/api/bill-streams/{billStreamId}/statement-uploads"
+        ];
+
+        yield return
+        [
             "GET",
             $"/api/bill-streams/{billStreamId}/statement-uploads/{uploadId}"
+        ];
+
+        yield return
+        [
+            "GET",
+            $"/api/bill-streams/{billStreamId}/statement-uploads/{uploadId}/file"
         ];
 
         yield return
@@ -108,8 +141,50 @@ public sealed class AnonymousFinancialEndpointAuthorizationTests
 
         yield return
         [
+            "GET",
+            "/api/account/export"
+        ];
+
+        yield return
+        [
             "DELETE",
             "/api/account"
+        ];
+
+        yield return
+        [
+            "GET",
+            "/api/subscription"
+        ];
+
+        yield return
+        [
+            "GET",
+            "/api/subscription/plans"
+        ];
+
+        yield return
+        [
+            "POST",
+            "/api/subscription/checkout"
+        ];
+
+        yield return
+        [
+            "POST",
+            "/api/subscription/billing-portal"
+        ];
+
+        yield return
+        [
+            "POST",
+            "/api/subscription/sync"
+        ];
+
+        yield return
+        [
+            "POST",
+            "/api/subscription/access-keys/redeem"
         ];
     }
 
@@ -135,6 +210,31 @@ public sealed class AnonymousFinancialEndpointAuthorizationTests
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task StripeWebhook_RemainsAnonymousButHiddenWhenBillingIsUnconfigured()
+    {
+        using var client =
+            _factory.CreateHttpsClient();
+
+        using var request =
+            new HttpRequestMessage(
+                HttpMethod.Post,
+                "/api/subscription/webhooks/stripe")
+            {
+                Content =
+                    new StringContent(
+                        "{}")
+            };
+
+        using var response =
+            await client.SendAsync(
+                request);
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
             response.StatusCode);
     }
 }
