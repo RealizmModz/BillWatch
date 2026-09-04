@@ -44,6 +44,9 @@
   <data name="Disable 2FA" xml:space="preserve"><value>Desactivar 2FA</value></data>
   <data name="Setup requires your current password. BillWatch never stores the authenticator secret in browser storage." xml:space="preserve"><value>La configuración requiere tu contraseña actual. BillWatch nunca almacena el secreto del autenticador en el almacenamiento del navegador.</value></data>
   <data name="Set up authenticator" xml:space="preserve"><value>Configurar autenticador</value></data>
+  <data name="Scan QR code" xml:space="preserve"><value>Escanear código QR</value></data>
+  <data name="Scan this QR code with your authenticator app." xml:space="preserve"><value>Escanea este código QR con tu aplicación de autenticación.</value></data>
+  <data name="Authenticator setup QR code" xml:space="preserve"><value>Código QR de configuración del autenticador</value></data>
   <data name="Authenticator setup key" xml:space="preserve"><value>Clave de configuración del autenticador</value></data>
   <data name="In your authenticator app, add a TOTP account named BillWatch and enter the key above." xml:space="preserve"><value>En tu aplicación de autenticación, añade una cuenta TOTP llamada BillWatch e introduce la clave anterior.</value></data>
   <data name="6-digit code from the app" xml:space="preserve"><value>Código de 6 dígitos de la aplicación</value></data>
