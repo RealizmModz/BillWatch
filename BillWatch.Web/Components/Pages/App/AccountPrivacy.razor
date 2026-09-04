@@ -8,37 +8,26 @@
 
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject Microsoft.Extensions.Localization.IStringLocalizer<AccountPrivacy> L
 
-<PageTitle>Data & Privacy — BillWatch</PageTitle>
+<PageTitle>@L["Data & Privacy — BillWatch"]</PageTitle>
 
-<link rel="stylesheet"
-      href="/account-privacy.css" />
+<link rel="stylesheet" href="/account-privacy.css" />
 
 <div class="app-page">
-    <a class="privacy-back-link"
-       href="/app/account">
-        ← Account
+    <a class="privacy-back-link" href="/app/account">
+        ← @L["Account"]
     </a>
 
     <header class="page-heading">
         <div>
-            <span class="page-kicker">
-                Your data
-            </span>
-
-            <h1>
-                Data & privacy
-            </h1>
-
-            <p>
-                Export the BillWatch data associated with
-                your account or permanently delete it.
-            </p>
+            <span class="page-kicker">@L["Your data"]</span>
+            <h1>@L["Data & privacy"]</h1>
+            <p>@L["Export the BillWatch data associated with your account or permanently delete it."]</p>
         </div>
     </header>
 
-    @if (!string.IsNullOrWhiteSpace(
-        _message))
+    @if (!string.IsNullOrWhiteSpace(_message))
     {
         <div class="@GetMessageClass()">
             @_message
@@ -46,44 +35,19 @@
     }
 
     <section class="privacy-management-card">
-        <div class="privacy-management-icon">
-            ↓
-        </div>
+        <div class="privacy-management-icon">↓</div>
 
         <div class="privacy-management-copy">
-            <span class="panel-kicker">
-                Portable data
-            </span>
-
-            <h2>
-                Export your BillWatch data
-            </h2>
-
-            <p>
-                Download a JSON copy of the financial records
-                BillWatch stores for your account.
-            </p>
+            <span class="panel-kicker">@L["Portable data"]</span>
+            <h2>@L["Export your BillWatch data"]</h2>
+            <p>@L["Download a JSON copy of the financial records BillWatch stores for your account."]</p>
 
             <div class="privacy-facts">
-                <span>
-                    ✓ Bank connections and masked accounts
-                </span>
-
-                <span>
-                    ✓ Transactions, Bill Streams and alerts
-                </span>
-
-                <span>
-                    ✓ Statement metadata and extracted bill history
-                </span>
-
-                <span>
-                    ✓ No protected Plaid access tokens
-                </span>
-
-                <span>
-                    ✓ No internal statement storage paths
-                </span>
+                <span>✓ @L["Bank connections and masked accounts"]</span>
+                <span>✓ @L["Transactions, Bill Streams and alerts"]</span>
+                <span>✓ @L["Statement metadata and extracted bill history"]</span>
+                <span>✓ @L["No protected Plaid access tokens"]</span>
+                <span>✓ @L["No internal statement storage paths"]</span>
             </div>
         </div>
 
@@ -91,80 +55,38 @@
                 class="privacy-primary-button"
                 disabled="@_isExporting"
                 @onclick="ExportDataAsync">
-
-            @(_isExporting
-                ? "Preparing export…"
-                : "Download data")
+            @(_isExporting ? L["Preparing export…"] : L["Download data"])
         </button>
     </section>
 
     <section class="privacy-explanation-card">
         <div>
-            <span class="panel-kicker">
-                What BillWatch keeps
-            </span>
-
-            <h2>
-                Data exists to explain your bills.
-            </h2>
+            <span class="panel-kicker">@L["What BillWatch keeps"]</span>
+            <h2>@L["Data exists to explain your bills."]</h2>
         </div>
 
-        <p>
-            Transactions are used to discover recurring bills.
-            Statements and extracted line items provide evidence
-            for what changed and why. Alerts surface meaningful
-            findings. BillWatch does not use this data to move money.
-        </p>
+        <p>@L["Transactions are used to discover recurring bills. Statements and extracted line items provide evidence for what changed and why. Alerts surface meaningful findings. BillWatch does not use this data to move money."]</p>
     </section>
 
     <section class="danger-zone">
         <div class="danger-zone-heading">
-            <div class="danger-icon">
-                !
-            </div>
+            <div class="danger-icon">!</div>
 
             <div>
-                <span class="danger-kicker">
-                    Danger zone
-                </span>
-
-                <h2>
-                    Permanently delete BillWatch
-                </h2>
+                <span class="danger-kicker">@L["Danger zone"]</span>
+                <h2>@L["Permanently delete BillWatch"]</h2>
             </div>
         </div>
 
-        <p>
-            Account deletion attempts to revoke active bank
-            connections first. If BillWatch cannot safely revoke
-            one of them, deletion stops rather than claiming your
-            account was removed.
-        </p>
+        <p>@L["Account deletion attempts to revoke active bank connections first. If BillWatch cannot safely revoke one of them, deletion stops rather than claiming your account was removed."]</p>
 
         <div class="delete-consequences">
-            <strong>
-                Permanent deletion removes:
-            </strong>
-
-            <span>
-                Financial connections and account records
-            </span>
-
-            <span>
-                Imported bank transactions
-            </span>
-
-            <span>
-                Bill Streams, statements, line items and changes
-            </span>
-
-            <span>
-                BillWatch alerts and stored statement files
-            </span>
-
-            <span>
-                Your BillWatch Identity account
-            </span>
+            <strong>@L["Permanent deletion removes:"]</strong>
+            <span>@L["Financial connections and account records"]</span>
+            <span>@L["Imported bank transactions"]</span>
+            <span>@L["Bill Streams, statements, line items and changes"]</span>
+            <span>@L["BillWatch alerts and stored statement files"]</span>
+            <span>@L["Your BillWatch Identity account"]</span>
         </div>
 
         @if (!_showDeleteConfirmation)
@@ -172,20 +94,14 @@
             <button type="button"
                     class="danger-button"
                     @onclick="ShowDeleteConfirmation">
-                Delete account permanently
+                @L["Delete account permanently"]
             </button>
         }
         else
         {
             <div class="delete-confirmation">
-                <strong>
-                    This cannot be undone.
-                </strong>
-
-                <p>
-                    Type <b>DELETE</b> below to confirm permanent
-                    account deletion.
-                </p>
+                <strong>@L["This cannot be undone."]</strong>
+                <p>@L["Type DELETE below to confirm permanent account deletion."]</p>
 
                 <InputText class="delete-confirmation-input"
                            autocomplete="off"
@@ -196,17 +112,14 @@
                             class="cancel-delete-button"
                             disabled="@_isDeleting"
                             @onclick="CancelDelete">
-                        Keep my account
+                        @L["Keep my account"]
                     </button>
 
                     <button type="button"
                             class="final-delete-button"
                             disabled="@(!CanDelete)"
                             @onclick="DeleteAccountAsync">
-
-                        @(_isDeleting
-                            ? "Deleting securely…"
-                            : "Delete permanently")
+                        @(_isDeleting ? L["Deleting securely…"] : L["Delete permanently"])
                     </button>
                 </div>
             </div>
@@ -215,20 +128,12 @@
 </div>
 
 @code {
-    private IJSObjectReference?
-        _bffModule;
-
+    private IJSObjectReference? _bffModule;
     private bool _isExporting;
-
     private bool _isDeleting;
-
     private bool _showDeleteConfirmation;
-
     private bool _messageSucceeded;
-
-    private string _deleteConfirmation =
-        string.Empty;
-
+    private string _deleteConfirmation = string.Empty;
     private string? _message;
 
     private bool CanDelete =>
@@ -238,68 +143,46 @@
             "DELETE",
             StringComparison.Ordinal);
 
-    private async Task<
-        IJSObjectReference>
-        GetBffModuleAsync()
+    private async Task<IJSObjectReference> GetBffModuleAsync()
     {
-        _bffModule ??=
-            await JS.InvokeAsync<
-                IJSObjectReference>(
-                "import",
-                "./js/bff.js");
+        _bffModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/bff.js");
 
         return _bffModule;
     }
 
     private async Task ExportDataAsync()
     {
-        if (_isExporting ||
-            _isDeleting)
+        if (_isExporting || _isDeleting)
         {
             return;
         }
 
-        _isExporting =
-            true;
-
-        _message =
-            null;
+        _isExporting = true;
+        _message = null;
 
         try
         {
-            var module =
-                await GetBffModuleAsync();
+            var module = await GetBffModuleAsync();
+            await module.InvokeAsync<bool>("downloadAccountExport");
 
-            await module.InvokeAsync<bool>(
-                "downloadAccountExport");
-
-            _messageSucceeded =
-                true;
-
-            _message =
-                "Your BillWatch data export was prepared securely.";
+            _messageSucceeded = true;
+            _message = L["Your BillWatch data export was prepared securely."];
         }
         catch (JSException)
         {
-            _messageSucceeded =
-                false;
-
-            _message =
-                "BillWatch could not prepare your data export.";
+            _messageSucceeded = false;
+            _message = L["BillWatch could not prepare your data export."];
         }
         catch (Exception)
         {
-            _messageSucceeded =
-                false;
-
-            _message =
-                "BillWatch could not prepare your data export.";
+            _messageSucceeded = false;
+            _message = L["BillWatch could not prepare your data export."];
         }
         finally
         {
-            _isExporting =
-                false;
-
+            _isExporting = false;
             StateHasChanged();
         }
     }
@@ -311,14 +194,9 @@
             return;
         }
 
-        _showDeleteConfirmation =
-            true;
-
-        _deleteConfirmation =
-            string.Empty;
-
-        _message =
-            null;
+        _showDeleteConfirmation = true;
+        _deleteConfirmation = string.Empty;
+        _message = null;
     }
 
     private void CancelDelete()
@@ -328,14 +206,9 @@
             return;
         }
 
-        _showDeleteConfirmation =
-            false;
-
-        _deleteConfirmation =
-            string.Empty;
-
-        _message =
-            null;
+        _showDeleteConfirmation = false;
+        _deleteConfirmation = string.Empty;
+        _message = null;
     }
 
     private async Task DeleteAccountAsync()
@@ -345,48 +218,33 @@
             return;
         }
 
-        _isDeleting =
-            true;
-
-        _message =
-            null;
+        _isDeleting = true;
+        _message = null;
 
         try
         {
-            var module =
-                await GetBffModuleAsync();
-
+            var module = await GetBffModuleAsync();
             await module.InvokeAsync<bool>(
                 "deleteBillWatchAccount",
                 _deleteConfirmation);
 
             Navigation.NavigateTo(
                 "/?accountDeleted=1",
-                forceLoad:
-                    true);
+                forceLoad: true);
         }
         catch (JSException ex)
         {
-            _messageSucceeded =
-                false;
-
-            _message =
-                GetSafeErrorMessage(
-                    ex);
+            _messageSucceeded = false;
+            _message = GetSafeErrorMessage(ex);
         }
         catch (Exception)
         {
-            _messageSucceeded =
-                false;
-
-            _message =
-                "BillWatch could not safely complete account deletion. Your account was not deleted.";
+            _messageSucceeded = false;
+            _message = L["BillWatch could not safely complete account deletion. Your account was not deleted."];
         }
         finally
         {
-            _isDeleting =
-                false;
-
+            _isDeleting = false;
             StateHasChanged();
         }
     }
@@ -398,42 +256,35 @@
             : "privacy-message error";
     }
 
-    private static string GetSafeErrorMessage(
-        JSException exception)
+    private string GetSafeErrorMessage(JSException exception)
     {
-        var message =
-            exception.Message?
-                .Split(
-                    '\n',
-                    StringSplitOptions
-                        .RemoveEmptyEntries)
-                .FirstOrDefault()?
-                .Trim();
+        var message = exception.Message?
+            .Split(
+                '\n',
+                StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault()?
+            .Trim();
 
-        if (string.IsNullOrWhiteSpace(
-                message))
+        if (string.IsNullOrWhiteSpace(message))
         {
-            return
-                "BillWatch could not safely complete this request.";
+            return L["BillWatch could not safely complete this request."];
         }
 
         if (message.Contains(
                 "bank connection could not be revoked",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return
-                "BillWatch could not safely revoke a connected bank, so your account was not deleted. Try again shortly.";
+            return L["BillWatch could not safely revoke a connected bank, so your account was not deleted. Try again shortly."];
         }
 
         if (message.Contains(
                 "stored statement",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return
-                "BillWatch could not securely remove all stored statement files, so your account was not deleted.";
+            return L["BillWatch could not securely remove all stored statement files, so your account was not deleted."];
         }
 
-        return message;
+        return L["BillWatch could not safely complete account deletion. Your account was not deleted."];
     }
 
     public async ValueTask DisposeAsync()
