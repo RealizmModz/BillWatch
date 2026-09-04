@@ -1,4 +1,4 @@
-﻿using BillWatch.Web.Services;
+using BillWatch.Web.Services;
 using Microsoft.AspNetCore.Antiforgery;
 
 namespace BillWatch.Web.Infrastructure;
@@ -11,50 +11,36 @@ public static class BffEndpointMappings
     private const long StatementMultipartBodyLimit =
         16L * 1024 * 1024;
 
-    public static IEndpointRouteBuilder
-        MapBillWatchBffEndpoints(
-            this IEndpointRouteBuilder endpoints)
+    public static IEndpointRouteBuilder MapBillWatchBffEndpoints(
+        this IEndpointRouteBuilder endpoints)
     {
-        ArgumentNullException.ThrowIfNull(
-            endpoints);
+        ArgumentNullException.ThrowIfNull(endpoints);
 
-        var bff =
-            endpoints.MapGroup(
-                    "/bff")
-                .RequireAuthorization();
+        var bff = endpoints.MapGroup("/bff")
+            .RequireAuthorization();
 
         bff.MapGet(
             "/antiforgery",
-            (
-                HttpContext context,
-                IAntiforgery antiforgery) =>
+            (HttpContext context, IAntiforgery antiforgery) =>
             {
-                var tokens =
-                    antiforgery.GetAndStoreTokens(
-                        context);
+                var tokens = antiforgery.GetAndStoreTokens(context);
 
-                if (string.IsNullOrWhiteSpace(
-                        tokens.RequestToken))
+                if (string.IsNullOrWhiteSpace(tokens.RequestToken))
                 {
                     return Results.Problem(
-                        statusCode:
-                            StatusCodes
-                                .Status500InternalServerError);
+                        statusCode: StatusCodes.Status500InternalServerError);
                 }
 
                 return Results.Ok(
                     new
                     {
-                        requestToken =
-                            tokens.RequestToken
+                        requestToken = tokens.RequestToken
                     });
             });
 
         bff.MapGet(
             "/subscription",
-            async (
-                HttpContext context,
-                BillWatchBffProxyService proxyService) =>
+            async (HttpContext context, BillWatchBffProxyService proxyService) =>
                 await proxyService.ForwardGetAsync(
                     context,
                     "/api/subscription",
@@ -62,9 +48,7 @@ public static class BffEndpointMappings
 
         bff.MapGet(
             "/subscription/plans",
-            async (
-                HttpContext context,
-                BillWatchBffProxyService proxyService) =>
+            async (HttpContext context, BillWatchBffProxyService proxyService) =>
                 await proxyService.ForwardGetAsync(
                     context,
                     "/api/subscription/plans",
@@ -136,16 +120,11 @@ public static class BffEndpointMappings
 
         bff.MapGet(
             "/bill-streams",
-            async (
-                HttpContext context,
-                BillWatchBffProxyService proxyService) =>
-            {
-                return await proxyService
-                    .ForwardGetAsync(
-                        context,
-                        "/api/bill-streams",
-                        context.RequestAborted);
-            });
+            async (HttpContext context, BillWatchBffProxyService proxyService) =>
+                await proxyService.ForwardGetAsync(
+                    context,
+                    "/api/bill-streams",
+                    context.RequestAborted));
 
         bff.MapGet(
             "/bill-streams/{billStreamId:guid}",
@@ -154,44 +133,32 @@ public static class BffEndpointMappings
                 BillWatchBffProxyService proxyService,
                 Guid billStreamId) =>
             {
-                if (billStreamId ==
-                    Guid.Empty)
+                if (billStreamId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                return await proxyService
-                    .ForwardGetAsync(
-                        context,
-                        $"/api/bill-streams/{billStreamId}",
-                        context.RequestAborted);
+                return await proxyService.ForwardGetAsync(
+                    context,
+                    $"/api/bill-streams/{billStreamId}",
+                    context.RequestAborted);
             });
 
         bff.MapGet(
             "/bank-accounts",
-            async (
-                HttpContext context,
-                BillWatchBffProxyService proxyService) =>
-            {
-                return await proxyService
-                    .ForwardGetAsync(
-                        context,
-                        "/api/bank-accounts",
-                        context.RequestAborted);
-            });
+            async (HttpContext context, BillWatchBffProxyService proxyService) =>
+                await proxyService.ForwardGetAsync(
+                    context,
+                    "/api/bank-accounts",
+                    context.RequestAborted));
 
         bff.MapGet(
             "/bank-connections",
-            async (
-                HttpContext context,
-                BillWatchBffProxyService proxyService) =>
-            {
-                return await proxyService
-                    .ForwardGetAsync(
-                        context,
-                        "/api/bank-connections",
-                        context.RequestAborted);
-            });
+            async (HttpContext context, BillWatchBffProxyService proxyService) =>
+                await proxyService.ForwardGetAsync(
+                    context,
+                    "/api/bank-connections",
+                    context.RequestAborted));
 
         bff.MapGet(
             "/bank-transactions",
@@ -200,17 +167,15 @@ public static class BffEndpointMappings
                 BillWatchBffProxyService proxyService,
                 int? take) =>
             {
-                var safeTake =
-                    Math.Clamp(
-                        take ?? 100,
-                        1,
-                        500);
+                var safeTake = Math.Clamp(
+                    take ?? 100,
+                    1,
+                    500);
 
-                return await proxyService
-                    .ForwardGetAsync(
-                        context,
-                        $"/api/bank-transactions?take={safeTake}",
-                        context.RequestAborted);
+                return await proxyService.ForwardGetAsync(
+                    context,
+                    $"/api/bank-transactions?take={safeTake}",
+                    context.RequestAborted);
             });
 
         bff.MapGet(
@@ -222,11 +187,10 @@ public static class BffEndpointMappings
                 bool? unreadOnly,
                 int? take) =>
             {
-                var safeTake =
-                    Math.Clamp(
-                        take ?? 50,
-                        1,
-                        100);
+                var safeTake = Math.Clamp(
+                    take ?? 50,
+                    1,
+                    100);
 
                 var requestUri =
                     "/api/alerts" +
@@ -234,11 +198,10 @@ public static class BffEndpointMappings
                     $"&unreadOnly={(unreadOnly ?? false).ToString().ToLowerInvariant()}" +
                     $"&take={safeTake}";
 
-                return await proxyService
-                    .ForwardGetAsync(
-                        context,
-                        requestUri,
-                        context.RequestAborted);
+                return await proxyService.ForwardGetAsync(
+                    context,
+                    requestUri,
+                    context.RequestAborted);
             });
 
         bff.MapPost(
@@ -249,23 +212,18 @@ public static class BffEndpointMappings
                 BillWatchBffProxyService proxyService,
                 Guid alertId) =>
             {
-                await antiforgery
-                    .ValidateRequestAsync(
-                        context);
+                await antiforgery.ValidateRequestAsync(context);
 
-                if (alertId ==
-                    Guid.Empty)
+                if (alertId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                return await proxyService
-                    .ForwardPostAsync(
-                        context,
-                        $"/api/alerts/{alertId}/read",
-                        includeEmptyJsonBody:
-                            false,
-                        context.RequestAborted);
+                return await proxyService.ForwardPostAsync(
+                    context,
+                    $"/api/alerts/{alertId}/read",
+                    includeEmptyJsonBody: false,
+                    context.RequestAborted);
             });
 
         bff.MapPost(
@@ -276,58 +234,42 @@ public static class BffEndpointMappings
                 BillWatchBffProxyService proxyService,
                 Guid alertId) =>
             {
-                await antiforgery
-                    .ValidateRequestAsync(
-                        context);
+                await antiforgery.ValidateRequestAsync(context);
 
-                if (alertId ==
-                    Guid.Empty)
+                if (alertId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                return await proxyService
-                    .ForwardPostAsync(
-                        context,
-                        $"/api/alerts/{alertId}/dismiss",
-                        includeEmptyJsonBody:
-                            false,
-                        context.RequestAborted);
+                return await proxyService.ForwardPostAsync(
+                    context,
+                    $"/api/alerts/{alertId}/dismiss",
+                    includeEmptyJsonBody: false,
+                    context.RequestAborted);
             });
 
         bff.MapGet(
             "/account/export",
-            async (
-                HttpContext context,
-                BillWatchBffProxyService proxyService) =>
-            {
-                return await proxyService
-                    .ForwardDownloadAsync(
-                        context,
-                        "/api/account/export",
-                        "billwatch-data-export.json",
-                        "application/json; charset=utf-8",
-                        context.RequestAborted);
-            });
+            async (HttpContext context, BillWatchBffProxyService proxyService) =>
+                await proxyService.ForwardDownloadAsync(
+                    context,
+                    "/api/account/export",
+                    "billwatch-data-export.json",
+                    "application/json; charset=utf-8",
+                    context.RequestAborted));
 
         bff.MapDelete(
             "/account",
             async (
                 HttpContext context,
                 IAntiforgery antiforgery,
-                BillWatchBffProxyService proxyService) =>
+                AdminBffWriteProxyService writeProxyService,
+                DeleteAccountBffRequest request) =>
             {
-                await antiforgery
-                    .ValidateRequestAsync(
-                        context);
-
-                var confirmation =
-                    context.Request.Headers[
-                        "X-BillWatch-Delete-Confirmation"]
-                        .ToString();
+                await antiforgery.ValidateRequestAsync(context);
 
                 if (!string.Equals(
-                        confirmation,
+                        request.Confirmation,
                         "DELETE",
                         StringComparison.Ordinal))
                 {
@@ -339,10 +281,22 @@ public static class BffEndpointMappings
                         });
                 }
 
-                return await proxyService
-                    .DeleteAccountAsync(
-                        context,
-                        context.RequestAborted);
+                if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+                {
+                    return Results.BadRequest(
+                        new
+                        {
+                            message =
+                                "Enter your current password to confirm permanent account deletion."
+                        });
+                }
+
+                return await writeProxyService.ForwardJsonAsync(
+                    context,
+                    HttpMethod.Delete,
+                    "/api/account",
+                    request,
+                    context.RequestAborted);
             });
 
         bff.MapPost(
@@ -352,17 +306,13 @@ public static class BffEndpointMappings
                 IAntiforgery antiforgery,
                 BillWatchBffProxyService proxyService) =>
             {
-                await antiforgery
-                    .ValidateRequestAsync(
-                        context);
+                await antiforgery.ValidateRequestAsync(context);
 
-                return await proxyService
-                    .ForwardPostAsync(
-                        context,
-                        "/api/plaid/link-token",
-                        includeEmptyJsonBody:
-                            true,
-                        context.RequestAborted);
+                return await proxyService.ForwardPostAsync(
+                    context,
+                    "/api/plaid/link-token",
+                    includeEmptyJsonBody: true,
+                    context.RequestAborted);
             });
 
         bff.MapPost(
@@ -373,23 +323,18 @@ public static class BffEndpointMappings
                 BillWatchBffProxyService proxyService,
                 Guid connectionId) =>
             {
-                await antiforgery
-                    .ValidateRequestAsync(
-                        context);
+                await antiforgery.ValidateRequestAsync(context);
 
-                if (connectionId ==
-                    Guid.Empty)
+                if (connectionId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                return await proxyService
-                    .ForwardPostAsync(
-                        context,
-                        $"/api/plaid/connections/{connectionId}/update-link-token",
-                        includeEmptyJsonBody:
-                            false,
-                        context.RequestAborted);
+                return await proxyService.ForwardPostAsync(
+                    context,
+                    $"/api/plaid/connections/{connectionId}/update-link-token",
+                    includeEmptyJsonBody: false,
+                    context.RequestAborted);
             });
 
         bff.MapPost(
@@ -400,23 +345,18 @@ public static class BffEndpointMappings
                 BillWatchBffProxyService proxyService,
                 Guid sessionId) =>
             {
-                await antiforgery
-                    .ValidateRequestAsync(
-                        context);
+                await antiforgery.ValidateRequestAsync(context);
 
-                if (sessionId ==
-                    Guid.Empty)
+                if (sessionId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                return await proxyService
-                    .ForwardPostAsync(
-                        context,
-                        $"/api/plaid/link-session/{sessionId}/complete",
-                        includeEmptyJsonBody:
-                            false,
-                        context.RequestAborted);
+                return await proxyService.ForwardPostAsync(
+                    context,
+                    $"/api/plaid/link-session/{sessionId}/complete",
+                    includeEmptyJsonBody: false,
+                    context.RequestAborted);
             });
 
         bff.MapDelete(
@@ -427,21 +367,17 @@ public static class BffEndpointMappings
                 BillWatchBffProxyService proxyService,
                 Guid connectionId) =>
             {
-                await antiforgery
-                    .ValidateRequestAsync(
-                        context);
+                await antiforgery.ValidateRequestAsync(context);
 
-                if (connectionId ==
-                    Guid.Empty)
+                if (connectionId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                return await proxyService
-                    .ForwardDeleteAsync(
-                        context,
-                        $"/api/bank-connections/{connectionId}",
-                        context.RequestAborted);
+                return await proxyService.ForwardDeleteAsync(
+                    context,
+                    $"/api/bank-connections/{connectionId}",
+                    context.RequestAborted);
             });
 
         bff.MapPost(
@@ -452,43 +388,33 @@ public static class BffEndpointMappings
                 BillWatchBffProxyService proxyService,
                 Guid billStreamId) =>
             {
-                await antiforgery
-                    .ValidateRequestAsync(
-                        context);
+                await antiforgery.ValidateRequestAsync(context);
 
-                if (billStreamId ==
-                    Guid.Empty)
+                if (billStreamId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                if (context.Request.ContentLength is >
-                    StatementMultipartBodyLimit)
+                if (context.Request.ContentLength is > StatementMultipartBodyLimit)
                 {
                     return Results.StatusCode(
-                        StatusCodes
-                            .Status413PayloadTooLarge);
+                        StatusCodes.Status413PayloadTooLarge);
                 }
 
                 IFormCollection form;
 
                 try
                 {
-                    form =
-                        await context.Request
-                            .ReadFormAsync(
-                                context.RequestAborted);
+                    form = await context.Request.ReadFormAsync(
+                        context.RequestAborted);
                 }
                 catch (InvalidDataException)
                 {
                     return Results.StatusCode(
-                        StatusCodes
-                            .Status413PayloadTooLarge);
+                        StatusCodes.Status413PayloadTooLarge);
                 }
 
-                var file =
-                    form.Files.GetFile(
-                        "file");
+                var file = form.Files.GetFile("file");
 
                 if (file is null)
                 {
@@ -510,8 +436,7 @@ public static class BffEndpointMappings
                         });
                 }
 
-                if (file.Length >
-                    StatementFileSizeLimit)
+                if (file.Length > StatementFileSizeLimit)
                 {
                     return Results.BadRequest(
                         new
@@ -521,12 +446,11 @@ public static class BffEndpointMappings
                         });
                 }
 
-                return await proxyService
-                    .ForwardMultipartFileAsync(
-                        context,
-                        $"/api/bill-streams/{billStreamId}/statement-uploads",
-                        file,
-                        context.RequestAborted);
+                return await proxyService.ForwardMultipartFileAsync(
+                    context,
+                    $"/api/bill-streams/{billStreamId}/statement-uploads",
+                    file,
+                    context.RequestAborted);
             });
 
         bff.MapGet(
@@ -537,19 +461,16 @@ public static class BffEndpointMappings
                 Guid billStreamId,
                 Guid uploadId) =>
             {
-                if (billStreamId ==
-                        Guid.Empty ||
-                    uploadId ==
-                        Guid.Empty)
+                if (billStreamId == Guid.Empty ||
+                    uploadId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                return await proxyService
-                    .ForwardGetAsync(
-                        context,
-                        $"/api/bill-streams/{billStreamId}/statement-uploads/{uploadId}",
-                        context.RequestAborted);
+                return await proxyService.ForwardGetAsync(
+                    context,
+                    $"/api/bill-streams/{billStreamId}/statement-uploads/{uploadId}",
+                    context.RequestAborted);
             });
 
         bff.MapGet(
@@ -560,25 +481,29 @@ public static class BffEndpointMappings
                 Guid billStreamId,
                 Guid uploadId) =>
             {
-                if (billStreamId ==
-                        Guid.Empty ||
-                    uploadId ==
-                        Guid.Empty)
+                if (billStreamId == Guid.Empty ||
+                    uploadId == Guid.Empty)
                 {
                     return Results.NotFound();
                 }
 
-                return await proxyService
-                    .ForwardApiDownloadAsync(
-                        context,
-                        $"/api/bill-streams/{billStreamId}/statement-uploads/{uploadId}/file",
-                        context.RequestAborted);
+                return await proxyService.ForwardApiDownloadAsync(
+                    context,
+                    $"/api/bill-streams/{billStreamId}/statement-uploads/{uploadId}/file",
+                    context.RequestAborted);
             });
 
         return endpoints;
     }
 }
 
-public sealed record SubscriptionCheckoutRequest(string BillingInterval);
+public sealed record SubscriptionCheckoutRequest(
+    string BillingInterval);
 
-public sealed record SubscriptionRedemptionRequest(string AccessKey);
+public sealed record SubscriptionRedemptionRequest(
+    string AccessKey);
+
+public sealed record DeleteAccountBffRequest(
+    string Confirmation,
+    string CurrentPassword,
+    string? TwoFactorCode);
