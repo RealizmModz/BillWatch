@@ -2,33 +2,32 @@
 
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject Microsoft.Extensions.Localization.IStringLocalizer<AdminUserControls> L
 
 <div class="admin-user-controls-shell">
     @if (IsOwner)
     {
         <span class="admin-user-protected">
-            Owner is protected from normal staff and entitlement mutations.
+            @L["Owner is protected from normal staff and entitlement mutations."]
         </span>
     }
     else if (_pending is not null)
     {
         <div class="admin-user-confirm">
-            <span>
-                Confirm: @_pending.Label
-            </span>
+            <span>@L["Confirm: {0}", _pending.Label]</span>
 
             <button type="button"
                     class="admin-user-control danger"
                     disabled="@_isBusy"
                     @onclick="ConfirmAsync">
-                @(_isBusy ? "Working…" : "Confirm")
+                @(_isBusy ? L["Working…"] : L["Confirm"])
             </button>
 
             <button type="button"
                     class="admin-user-control"
                     disabled="@_isBusy"
                     @onclick="Cancel">
-                Cancel
+                @L["Cancel"]
             </button>
         </div>
     }
@@ -39,60 +38,49 @@
                     class="admin-user-control"
                     disabled="@_isBusy"
                     @onclick="QueueAdminRole">
-                @(HasRole(AdminRole)
-                    ? "Remove admin"
-                    : "Make admin")
+                @(HasRole(AdminRole) ? L["Remove admin"] : L["Make admin"])
             </button>
 
             <button type="button"
                     class="admin-user-control"
                     disabled="@_isBusy"
                     @onclick="QueueModeratorRole">
-                @(HasRole(ModeratorRole)
-                    ? "Remove moderator"
-                    : "Make moderator")
+                @(HasRole(ModeratorRole) ? L["Remove moderator"] : L["Make moderator"])
             </button>
 
             <button type="button"
                     class="admin-user-control"
                     disabled="@_isBusy"
                     @onclick="QueueBetaProgram">
-                @(HasProgram(BetaProgram)
-                    ? "Remove beta tester"
-                    : "Add beta tester")
+                @(HasProgram(BetaProgram) ? L["Remove beta tester"] : L["Add beta tester"])
             </button>
 
             <button type="button"
                     class="admin-user-control"
                     disabled="@_isBusy"
                     @onclick="QueueInternalProgram">
-                @(HasProgram(InternalProgram)
-                    ? "Remove internal tester"
-                    : "Add internal tester")
+                @(HasProgram(InternalProgram) ? L["Remove internal tester"] : L["Add internal tester"])
             </button>
 
             <button type="button"
                     class="admin-user-control accent"
                     disabled="@_isBusy"
                     @onclick="QueueThirtyDayGrant">
-                Grant 30 days
+                @L["Grant 30 days"]
             </button>
 
             <button type="button"
                     class="admin-user-control accent"
                     disabled="@_isBusy"
                     @onclick="QueueLifetimeGrant">
-                Grant lifetime
+                @L["Grant lifetime"]
             </button>
         </div>
     }
 
     @if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
-        <span class="admin-user-control-error"
-              role="alert">
-            @_errorMessage
-        </span>
+        <span class="admin-user-control-error" role="alert">@_errorMessage</span>
     }
 </div>
 
@@ -117,43 +105,26 @@
     private bool _isBusy;
     private string? _errorMessage;
 
-    private bool IsOwner =>
-        HasRole(OwnerRole);
+    private bool IsOwner => HasRole(OwnerRole);
 
-    private void QueueAdminRole()
-    {
-        QueueRole(
-            AdminRole,
-            !HasRole(AdminRole));
-    }
+    private void QueueAdminRole() =>
+        QueueRole(AdminRole, !HasRole(AdminRole));
 
-    private void QueueModeratorRole()
-    {
-        QueueRole(
-            ModeratorRole,
-            !HasRole(ModeratorRole));
-    }
+    private void QueueModeratorRole() =>
+        QueueRole(ModeratorRole, !HasRole(ModeratorRole));
 
-    private void QueueBetaProgram()
-    {
-        QueueProgram(
-            BetaProgram,
-            !HasProgram(BetaProgram));
-    }
+    private void QueueBetaProgram() =>
+        QueueProgram(BetaProgram, !HasProgram(BetaProgram));
 
-    private void QueueInternalProgram()
-    {
-        QueueProgram(
-            InternalProgram,
-            !HasProgram(InternalProgram));
-    }
+    private void QueueInternalProgram() =>
+        QueueProgram(InternalProgram, !HasProgram(InternalProgram));
 
     private void QueueThirtyDayGrant()
     {
         _errorMessage = null;
         _pending = new PendingMutation(
             AdminMutationKind.Entitlement,
-            "Grant Standard access for 30 days",
+            L["Grant Standard access for 30 days"],
             null,
             true,
             30,
@@ -165,39 +136,35 @@
         _errorMessage = null;
         _pending = new PendingMutation(
             AdminMutationKind.Entitlement,
-            "Grant lifetime Standard access",
+            L["Grant lifetime Standard access"],
             null,
             true,
             null,
             true);
     }
 
-    private void QueueRole(
-        string role,
-        bool makeActive)
+    private void QueueRole(string role, bool makeActive)
     {
         _errorMessage = null;
         _pending = new PendingMutation(
             AdminMutationKind.Role,
             makeActive
-                ? $"Assign {role} role"
-                : $"Remove {role} role",
+                ? L["Assign {0} role", LocalizeRole(role)]
+                : L["Remove {0} role", LocalizeRole(role)],
             role,
             makeActive,
             null,
             false);
     }
 
-    private void QueueProgram(
-        string program,
-        bool makeActive)
+    private void QueueProgram(string program, bool makeActive)
     {
         _errorMessage = null;
         _pending = new PendingMutation(
             AdminMutationKind.Program,
             makeActive
-                ? $"Add {FormatProgram(program)} membership"
-                : $"Remove {FormatProgram(program)} membership",
+                ? L["Add {0} membership", FormatProgram(program)]
+                : L["Remove {0} membership", FormatProgram(program)],
             program,
             makeActive,
             null,
@@ -215,9 +182,7 @@
 
     private async Task ConfirmAsync()
     {
-        if (_isBusy ||
-            _pending is null ||
-            UserId == Guid.Empty)
+        if (_isBusy || _pending is null || UserId == Guid.Empty)
         {
             return;
         }
@@ -230,47 +195,28 @@
             var module = await GetAdminModuleAsync();
             var result = _pending.Kind switch
             {
-                AdminMutationKind.Role =>
-                    await MutateRoleAsync(
-                        module,
-                        _pending),
-
-                AdminMutationKind.Program =>
-                    await MutateProgramAsync(
-                        module,
-                        _pending),
-
-                AdminMutationKind.Entitlement =>
-                    await GrantEntitlementAsync(
-                        module,
-                        _pending),
-
-                _ =>
-                    throw new InvalidOperationException()
+                AdminMutationKind.Role => await MutateRoleAsync(module, _pending),
+                AdminMutationKind.Program => await MutateProgramAsync(module, _pending),
+                AdminMutationKind.Entitlement => await GrantEntitlementAsync(module, _pending),
+                _ => throw new InvalidOperationException()
             };
 
             if (result.AccessDenied)
             {
-                _errorMessage =
-                    "BillWatch blocked that change because your staff role cannot manage this account.";
+                _errorMessage = L["BillWatch blocked that change because your staff role cannot manage this account."];
                 return;
             }
 
             _pending = null;
-
-            Navigation.NavigateTo(
-                "/app/admin",
-                forceLoad: true);
+            Navigation.NavigateTo("/app/admin", forceLoad: true);
         }
         catch (JSException)
         {
-            _errorMessage =
-                "BillWatch could not complete that administrative change.";
+            _errorMessage = L["BillWatch could not complete that administrative change."];
         }
         catch (Exception)
         {
-            _errorMessage =
-                "BillWatch could not complete that administrative change.";
+            _errorMessage = L["BillWatch could not complete that administrative change."];
         }
         finally
         {
@@ -286,8 +232,7 @@
             ? "assignAdminRole"
             : "removeAdminRole";
 
-        return await module.InvokeAsync<
-            AdminFetchResult<object>>(
+        return await module.InvokeAsync<AdminFetchResult<object>>(
             functionName,
             UserId.ToString("D"),
             mutation.Name);
@@ -297,8 +242,7 @@
         IJSObjectReference module,
         PendingMutation mutation)
     {
-        return await module.InvokeAsync<
-            AdminFetchResult<object>>(
+        return await module.InvokeAsync<AdminFetchResult<object>>(
             "setAdminProgram",
             UserId.ToString("D"),
             mutation.Name,
@@ -313,56 +257,54 @@
         IJSObjectReference module,
         PendingMutation mutation)
     {
-        return await module.InvokeAsync<
-            AdminFetchResult<object>>(
+        return await module.InvokeAsync<AdminFetchResult<object>>(
             "grantAdminEntitlement",
             UserId.ToString("D"),
             new AdminEntitlementRequest
             {
                 Tier = "Standard",
                 DurationDays = mutation.DurationDays,
-                GrantsLifetimeAccess =
-                    mutation.GrantsLifetimeAccess
+                GrantsLifetimeAccess = mutation.GrantsLifetimeAccess
             });
     }
 
     private async Task<IJSObjectReference> GetAdminModuleAsync()
     {
-        _adminModule ??=
-            await JS.InvokeAsync<IJSObjectReference>(
-                "import",
-                "./js/admin-bff.js");
+        _adminModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/admin-bff.js");
 
         return _adminModule;
     }
 
-    private bool HasRole(string roleName)
-    {
-        return Roles.Any(
-            role => string.Equals(
-                role,
-                roleName,
-                StringComparison.OrdinalIgnoreCase));
-    }
+    private bool HasRole(string roleName) =>
+        Roles.Any(role => string.Equals(
+            role,
+            roleName,
+            StringComparison.OrdinalIgnoreCase));
 
-    private bool HasProgram(string programName)
-    {
-        return Programs.Any(
-            program => string.Equals(
-                program,
-                programName,
-                StringComparison.OrdinalIgnoreCase));
-    }
+    private bool HasProgram(string programName) =>
+        Programs.Any(program => string.Equals(
+            program,
+            programName,
+            StringComparison.OrdinalIgnoreCase));
 
-    private static string FormatProgram(string program)
-    {
-        return program switch
+    private string LocalizeRole(string role) =>
+        role switch
         {
-            BetaProgram => "beta tester",
-            InternalProgram => "internal tester",
+            OwnerRole => L["Owner"],
+            AdminRole => L["Admin"],
+            ModeratorRole => L["Moderator"],
+            _ => role
+        };
+
+    private string FormatProgram(string program) =>
+        program switch
+        {
+            BetaProgram => L["beta tester"],
+            InternalProgram => L["internal tester"],
             _ => program
         };
-    }
 
     public async ValueTask DisposeAsync()
     {
