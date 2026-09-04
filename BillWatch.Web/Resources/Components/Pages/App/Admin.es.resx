@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Admin — BillWatch" xml:space="preserve"><value>Administración — BillWatch</value></data>
+  <data name="BillWatch operations" xml:space="preserve"><value>Operaciones de BillWatch</value></data>
+  <data name="Admin" xml:space="preserve"><value>Administrador</value></data>
+  <data name="Staff access, subscription access keys, and an evidence-limited record of administrative changes." xml:space="preserve"><value>Acceso del personal, claves de acceso de suscripción y un registro limitado de los cambios administrativos.</value></data>
+  <data name="Refresh" xml:space="preserve"><value>Actualizar</value></data>
+  <data name="Loading admin summary" xml:space="preserve"><value>Cargando resumen administrativo</value></data>
+  <data name="Restricted surface" xml:space="preserve"><value>Área restringida</value></data>
+  <data name="Admin access required" xml:space="preserve"><value>Se requiere acceso administrativo</value></data>
+  <data name="Your BillWatch session is valid, but the API did not authorize this account for the Owner/Admin console. No administrative data was loaded." xml:space="preserve"><value>Tu sesión de BillWatch es válida, pero la API no autorizó esta cuenta para la consola de Propietario/Administrador. No se cargaron datos administrativos.</value></data>
+  <data name="We couldn't load the admin console" xml:space="preserve"><value>No pudimos cargar la consola administrativa</value></data>
+  <data name="Try again" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="Admin summary" xml:space="preserve"><value>Resumen administrativo</value></data>
+  <data name="Accounts loaded" xml:space="preserve"><value>Cuentas cargadas</value></data>
+  <data name="Privacy-limited administrative view" xml:space="preserve"><value>Vista administrativa limitada por privacidad</value></data>
+  <data name="Access keys" xml:space="preserve"><value>Claves de acceso</value></data>
+  <data name="{0} active in this page" xml:space="preserve"><value>{0} activas en esta página</value></data>
+  <data name="Audit events" xml:space="preserve"><value>Eventos de auditoría</value></data>
+  <data name="Newest administrative actions first" xml:space="preserve"><value>Acciones administrativas más recientes primero</value></data>
+  <data name="Staff &amp; access" xml:space="preserve"><value>Personal y acceso</value></data>
+  <data name="Users" xml:space="preserve"><value>Usuarios</value></data>
+  <data name="Showing up to 50 accounts" xml:space="preserve"><value>Mostrando hasta 50 cuentas</value></data>
+  <data name="No accounts were returned." xml:space="preserve"><value>No se devolvieron cuentas.</value></data>
+  <data name="Created" xml:space="preserve"><value>Creado</value></data>
+  <data name="Inactive" xml:space="preserve"><value>Inactivo</value></data>
+  <data name="Subscription control" xml:space="preserve"><value>Control de suscripción</value></data>
+  <data name="Plaintext is returned exactly once at creation" xml:space="preserve"><value>El texto de la clave se devuelve exactamente una vez al crearla</value></data>
+  <data name="Purpose" xml:space="preserve"><value>Propósito</value></data>
+  <data name="Complimentary" xml:space="preserve"><value>Cortesía</value></data>
+  <data name="Beta" xml:space="preserve"><value>Beta</value></data>
+  <data name="Tier" xml:space="preserve"><value>Nivel</value></data>
+  <data name="Standard" xml:space="preserve"><value>Estándar</value></data>
+  <data name="Max redemptions" xml:space="preserve"><value>Máximo de canjes</value></data>
+  <data name="Lifetime subscription grant" xml:space="preserve"><value>Otorgar suscripción de por vida</value></data>
+  <data name="Label (optional)" xml:space="preserve"><value>Etiqueta (opcional)</value></data>
+  <data name="e.g. Founding beta tester" xml:space="preserve"><value>p. ej., evaluador beta fundador</value></data>
+  <data name="Subscription days" xml:space="preserve"><value>Días de suscripción</value></data>
+  <data name="Expire unused key" xml:space="preserve"><value>Caducar clave sin usar</value></data>
+  <data name="Key valid for days" xml:space="preserve"><value>Días de validez de la clave</value></data>
+  <data name="Working…" xml:space="preserve"><value>Procesando…</value></data>
+  <data name="Create access key" xml:space="preserve"><value>Crear clave de acceso</value></data>
+  <data name="One-time access key" xml:space="preserve"><value>Clave de acceso de una sola visualización</value></data>
+  <data name="Save this key now" xml:space="preserve"><value>Guarda esta clave ahora</value></data>
+  <data name="BillWatch stored only its hash. This plaintext value exists only in this page session and cannot be retrieved again after you dismiss it or leave." xml:space="preserve"><value>BillWatch guardó solamente su hash. Este valor de texto existe únicamente durante esta sesión de la página y no puede recuperarse después de descartarlo o salir.</value></data>
+  <data name="Hide key" xml:space="preserve"><value>Ocultar clave</value></data>
+  <data name="Reveal key" xml:space="preserve"><value>Mostrar clave</value></data>
+  <data name="Copy key" xml:space="preserve"><value>Copiar clave</value></data>
+  <data name="Dismiss" xml:space="preserve"><value>Descartar</value></data>
+  <data name="No access keys have been created." xml:space="preserve"><value>No se han creado claves de acceso.</value></data>
+  <data name="Key" xml:space="preserve"><value>Clave</value></data>
+  <data name="Grant" xml:space="preserve"><value>Acceso</value></data>
+  <data name="Usage" xml:space="preserve"><value>Uso</value></data>
+  <data name="Status" xml:space="preserve"><value>Estado</value></data>
+  <data name="Confirm" xml:space="preserve"><value>Confirmar</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="Revoke" xml:space="preserve"><value>Revocar</value></data>
+  <data name="Security trail" xml:space="preserve"><value>Rastro de seguridad</value></data>
+  <data name="Audit log" xml:space="preserve"><value>Registro de auditoría</value></data>
+  <data name="Administrative metadata only" xml:space="preserve"><value>Solo metadatos administrativos</value></data>
+  <data name="No administrative actions have been recorded." xml:space="preserve"><value>No se han registrado acciones administrativas.</value></data>
+  <data name="Actor {0}" xml:space="preserve"><value>Actor {0}</value></data>
+  <data name="Target {0}" xml:space="preserve"><value>Objetivo {0}</value></data>
+
+  <data name="BillWatch could not reach the secure admin API." xml:space="preserve"><value>BillWatch no pudo comunicarse con la API administrativa segura.</value></data>
+  <data name="Something went wrong while loading the admin console." xml:space="preserve"><value>Ocurrió un problema al cargar la consola administrativa.</value></data>
+  <data name="BillWatch created an invalid access-key response." xml:space="preserve"><value>BillWatch recibió una respuesta de clave de acceso no válida.</value></data>
+  <data name="BillWatch could not create the access key." xml:space="preserve"><value>BillWatch no pudo crear la clave de acceso.</value></data>
+  <data name="Maximum redemptions must be between 1 and 10,000." xml:space="preserve"><value>El máximo de canjes debe estar entre 1 y 10,000.</value></data>
+  <data name="Subscription duration must be between 1 and 3,650 days." xml:space="preserve"><value>La duración de la suscripción debe estar entre 1 y 3,650 días.</value></data>
+  <data name="Lifetime key labels must be 120 characters or fewer." xml:space="preserve"><value>Las etiquetas de claves de por vida deben tener 120 caracteres o menos.</value></data>
+  <data name="Key lifetime must be between 1 and 3,650 days." xml:space="preserve"><value>La vigencia de la clave debe estar entre 1 y 3,650 días.</value></data>
+  <data name="BillWatch could not revoke that access key." xml:space="preserve"><value>BillWatch no pudo revocar esa clave de acceso.</value></data>
+  <data name="One-time access key revealed" xml:space="preserve"><value>Clave de acceso de una sola visualización mostrada</value></data>
+  <data name="One-time access key hidden" xml:space="preserve"><value>Clave de acceso de una sola visualización oculta</value></data>
+  <data name="Copied" xml:space="preserve"><value>Copiada</value></data>
+  <data name="Clipboard unavailable" xml:space="preserve"><value>Portapapeles no disponible</value></data>
+  <data name="Unknown account" xml:space="preserve"><value>Cuenta desconocida</value></data>
+
+  <data name="Owner" xml:space="preserve"><value>Propietario</value></data>
+  <data name="Moderator" xml:space="preserve"><value>Moderador</value></data>
+  <data name="Beta tester" xml:space="preserve"><value>Evaluador beta</value></data>
+  <data name="Internal tester" xml:space="preserve"><value>Evaluador interno</value></data>
+  <data name=" · lifetime" xml:space="preserve"><value> · de por vida</value></data>
+  <data name=" · through {0}" xml:space="preserve"><value> · hasta {0}</value></data>
+  <data name="{0} · lifetime" xml:space="preserve"><value>{0} · de por vida</value></data>
+  <data name="{0} · {1} days" xml:space="preserve"><value>{0} · {1} días</value></data>
+  <data name="Active" xml:space="preserve"><value>Activa</value></data>
+  <data name="Revoked" xml:space="preserve"><value>Revocada</value></data>
+  <data name="Expired" xml:space="preserve"><value>Caducada</value></data>
+  <data name="Exhausted" xml:space="preserve"><value>Agotada</value></data>
+
+  <data name="Staff role assigned" xml:space="preserve"><value>Rol de personal asignado</value></data>
+  <data name="Staff role removed" xml:space="preserve"><value>Rol de personal eliminado</value></data>
+  <data name="Subscription entitlement granted" xml:space="preserve"><value>Acceso de suscripción otorgado</value></data>
+  <data name="Subscription entitlement revoked" xml:space="preserve"><value>Acceso de suscripción revocado</value></data>
+  <data name="User program membership enabled" xml:space="preserve"><value>Membresía del programa de usuario activada</value></data>
+  <data name="User program membership disabled" xml:space="preserve"><value>Membresía del programa de usuario desactivada</value></data>
+  <data name="Subscription access key created" xml:space="preserve"><value>Clave de acceso de suscripción creada</value></data>
+  <data name="Subscription access key revoked" xml:space="preserve"><value>Clave de acceso de suscripción revocada</value></data>
+  <data name="Subscription access key redeemed" xml:space="preserve"><value>Clave de acceso de suscripción canjeada</value></data>
+  <data name="User administration" xml:space="preserve"><value>Administración de usuario</value></data>
+  <data name="Subscription access key" xml:space="preserve"><value>Clave de acceso de suscripción</value></data>
+  <data name="Administrative action" xml:space="preserve"><value>Acción administrativa</value></data>
+</root>
