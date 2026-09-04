@@ -7,44 +7,33 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<Admin> L
 
-<PageTitle>Admin — BillWatch</PageTitle>
+<PageTitle>@L["Admin — BillWatch"]</PageTitle>
 
 <div class="app-page admin-page">
     <header class="page-heading admin-heading">
         <div>
-            <span class="page-kicker">
-                BillWatch operations
-            </span>
-
-            <h1>
-                Admin
-            </h1>
-
-            <p>
-                Staff access, subscription access keys, and an
-                evidence-limited record of administrative changes.
-            </p>
+            <span class="page-kicker">@L["BillWatch operations"]</span>
+            <h1>@L["Admin"]</h1>
+            <p>@L["Staff access, subscription access keys, and an evidence-limited record of administrative changes."]</p>
         </div>
 
-        @if (!_isLoading &&
-             !_accessDenied &&
-             string.IsNullOrWhiteSpace(_errorMessage))
+        @if (!_isLoading && !_accessDenied && string.IsNullOrWhiteSpace(_errorMessage))
         {
             <button type="button"
                     class="admin-refresh-button"
                     disabled="@_isMutating"
                     @onclick="ReloadAsync">
                 <span aria-hidden="true">↻</span>
-                Refresh
+                @L["Refresh"]
             </button>
         }
     </header>
 
     @if (_isLoading)
     {
-        <section class="admin-summary-grid"
-                 aria-label="Loading admin summary">
+        <section class="admin-summary-grid" aria-label="@L["Loading admin summary"]">
             @for (var index = 0; index < 3; index++)
             {
                 <div class="admin-summary-card admin-skeleton"></div>
@@ -61,24 +50,12 @@
     else if (_accessDenied)
     {
         <section class="admin-access-state">
-            <div class="admin-state-icon" aria-hidden="true">
-                ⛨
-            </div>
+            <div class="admin-state-icon" aria-hidden="true">⛨</div>
 
             <div>
-                <span class="page-kicker">
-                    Restricted surface
-                </span>
-
-                <h2>
-                    Admin access required
-                </h2>
-
-                <p>
-                    Your BillWatch session is valid, but the API did
-                    not authorize this account for the Owner/Admin
-                    console. No administrative data was loaded.
-                </p>
+                <span class="page-kicker">@L["Restricted surface"]</span>
+                <h2>@L["Admin access required"]</h2>
+                <p>@L["Your BillWatch session is valid, but the API did not authorize this account for the Owner/Admin console. No administrative data was loaded."]</p>
             </div>
         </section>
     }
@@ -88,74 +65,57 @@
             <div class="state-symbol">!</div>
 
             <div>
-                <h2>
-                    We couldn't load the admin console
-                </h2>
-
-                <p>
-                    @_errorMessage
-                </p>
+                <h2>@L["We couldn't load the admin console"]</h2>
+                <p>@_errorMessage</p>
             </div>
 
             <button type="button"
                     class="secondary-action"
                     @onclick="ReloadAsync">
-                Try again
+                @L["Try again"]
             </button>
         </section>
     }
     else
     {
-        <section class="admin-summary-grid"
-                 aria-label="Admin summary">
+        <section class="admin-summary-grid" aria-label="@L["Admin summary"]">
             <article class="admin-summary-card">
-                <span>Accounts loaded</span>
+                <span>@L["Accounts loaded"]</span>
                 <strong>@_users.Count</strong>
-                <small>Privacy-limited administrative view</small>
+                <small>@L["Privacy-limited administrative view"]</small>
             </article>
 
             <article class="admin-summary-card">
-                <span>Access keys</span>
+                <span>@L["Access keys"]</span>
                 <strong>@(_accessKeys?.TotalCount ?? 0)</strong>
-                <small>@ActiveAccessKeyCount active in this page</small>
+                <small>@L["{0} active in this page", ActiveAccessKeyCount]</small>
             </article>
 
             <article class="admin-summary-card">
-                <span>Audit events</span>
+                <span>@L["Audit events"]</span>
                 <strong>@(_auditLog?.TotalCount ?? 0)</strong>
-                <small>Newest administrative actions first</small>
+                <small>@L["Newest administrative actions first"]</small>
             </article>
         </section>
 
         @if (!string.IsNullOrWhiteSpace(_mutationError))
         {
-            <div class="admin-mutation-message error" role="alert">
-                @_mutationError
-            </div>
+            <div class="admin-mutation-message error" role="alert">@_mutationError</div>
         }
 
         <section class="admin-panel">
             <div class="admin-panel-heading">
                 <div>
-                    <span class="panel-kicker">
-                        Staff & access
-                    </span>
-
-                    <h2>
-                        Users
-                    </h2>
+                    <span class="panel-kicker">@L["Staff & access"]</span>
+                    <h2>@L["Users"]</h2>
                 </div>
 
-                <span class="admin-panel-note">
-                    Showing up to 50 accounts
-                </span>
+                <span class="admin-panel-note">@L["Showing up to 50 accounts"]</span>
             </div>
 
             @if (_users.Count == 0)
             {
-                <div class="admin-empty-state">
-                    No accounts were returned.
-                </div>
+                <div class="admin-empty-state">@L["No accounts were returned."]</div>
             }
             else
             {
@@ -163,50 +123,36 @@
                     @foreach (var user in _users)
                     {
                         <article class="admin-user-row" @key="user.Id">
-                            <div class="admin-user-avatar" aria-hidden="true">
-                                @GetInitial(user.Email)
-                            </div>
+                            <div class="admin-user-avatar" aria-hidden="true">@GetInitial(user.Email)</div>
 
                             <div class="admin-user-copy">
-                                <strong>
-                                    @GetEmail(user.Email)
-                                </strong>
-
+                                <strong>@GetEmail(user.Email)</strong>
                                 <span>
-                                    Created
-                                    <time datetime="@user.CreatedAtUtc.ToString("O")">
-                                        @FormatUtc(user.CreatedAtUtc)
-                                    </time>
+                                    @L["Created"]
+                                    <time datetime="@user.CreatedAtUtc.ToString("O")">@FormatUtc(user.CreatedAtUtc)</time>
                                 </span>
                             </div>
 
                             <div class="admin-badges">
                                 @if (!user.IsActive)
                                 {
-                                    <span class="admin-badge danger">
-                                        Inactive
-                                    </span>
+                                    <span class="admin-badge danger">@L["Inactive"]</span>
                                 }
 
                                 @foreach (var role in user.Roles)
                                 {
-                                    <span class="admin-badge staff">
-                                        @role
-                                    </span>
+                                    <span class="admin-badge staff">@FormatRole(role)</span>
                                 }
 
                                 @foreach (var program in user.Programs)
                                 {
-                                    <span class="admin-badge program">
-                                        @FormatProgram(program)
-                                    </span>
+                                    <span class="admin-badge program">@FormatProgram(program)</span>
                                 }
 
-                                @if (!string.IsNullOrWhiteSpace(
-                                    user.SubscriptionTier))
+                                @if (!string.IsNullOrWhiteSpace(user.SubscriptionTier))
                                 {
                                     <span class="admin-badge subscription">
-                                        @user.SubscriptionTier
+                                        @FormatTier(user.SubscriptionTier)
                                         @GetSubscriptionSuffix(user)
                                     </span>
                                 }
@@ -224,43 +170,36 @@
         <section class="admin-panel">
             <div class="admin-panel-heading">
                 <div>
-                    <span class="panel-kicker">
-                        Subscription control
-                    </span>
-
-                    <h2>
-                        Access keys
-                    </h2>
+                    <span class="panel-kicker">@L["Subscription control"]</span>
+                    <h2>@L["Access keys"]</h2>
                 </div>
 
-                <span class="admin-panel-note">
-                    Plaintext is returned exactly once at creation
-                </span>
+                <span class="admin-panel-note">@L["Plaintext is returned exactly once at creation"]</span>
             </div>
 
             <div class="admin-key-builder">
                 <div class="admin-field">
-                    <label for="key-purpose">Purpose</label>
+                    <label for="key-purpose">@L["Purpose"]</label>
                     <select id="key-purpose"
                             disabled="@_isMutating"
                             @bind="_newKeyPurpose">
-                        <option value="Complimentary">Complimentary</option>
-                        <option value="Beta">Beta</option>
+                        <option value="Complimentary">@L["Complimentary"]</option>
+                        <option value="Beta">@L["Beta"]</option>
                     </select>
                 </div>
 
                 <div class="admin-field">
-                    <label for="key-tier">Tier</label>
+                    <label for="key-tier">@L["Tier"]</label>
                     <select id="key-tier"
                             disabled="@_isMutating"
                             @bind="_newKeyTier">
-                        <option value="Standard">Standard</option>
-                        <option value="Beta">Beta</option>
+                        <option value="Standard">@L["Standard"]</option>
+                        <option value="Beta">@L["Beta"]</option>
                     </select>
                 </div>
 
                 <div class="admin-field">
-                    <label for="key-redemptions">Max redemptions</label>
+                    <label for="key-redemptions">@L["Max redemptions"]</label>
                     <input id="key-redemptions"
                            type="number"
                            min="1"
@@ -274,18 +213,18 @@
                         <input type="checkbox"
                                disabled="@_isMutating"
                                @bind="_newKeyLifetime" />
-                        Lifetime subscription grant
+                        @L["Lifetime subscription grant"]
                     </label>
                 </div>
 
                 @if (_newKeyLifetime)
                 {
                     <div class="admin-field">
-                        <label for="key-label">Label (optional)</label>
+                        <label for="key-label">@L["Label (optional)"]</label>
                         <input id="key-label"
                                type="text"
                                maxlength="120"
-                               placeholder="e.g. Founding beta tester"
+                               placeholder="@L["e.g. Founding beta tester"]"
                                disabled="@_isMutating"
                                @bind="_newKeyLabel" />
                     </div>
@@ -293,7 +232,7 @@
                 else
                 {
                     <div class="admin-field">
-                        <label for="key-duration">Subscription days</label>
+                        <label for="key-duration">@L["Subscription days"]</label>
                         <input id="key-duration"
                                type="number"
                                min="1"
@@ -308,14 +247,14 @@
                         <input type="checkbox"
                                disabled="@_isMutating"
                                @bind="_expireNewKey" />
-                        Expire unused key
+                        @L["Expire unused key"]
                     </label>
                 </div>
 
                 @if (_expireNewKey)
                 {
                     <div class="admin-field">
-                        <label for="key-expiration">Key valid for days</label>
+                        <label for="key-expiration">@L["Key valid for days"]</label>
                         <input id="key-expiration"
                                type="number"
                                min="1"
@@ -330,7 +269,7 @@
                             class="admin-primary-button"
                             disabled="@_isMutating"
                             @onclick="CreateAccessKeyAsync">
-                        @(_isMutating ? "Working…" : "Create access key")
+                        @(_isMutating ? L["Working…"] : L["Create access key"])
                     </button>
                 </div>
             </div>
@@ -339,45 +278,31 @@
             {
                 <section class="admin-secret-card" aria-live="polite">
                     <div>
-                        <span class="panel-kicker">
-                            One-time access key
-                        </span>
-
-                        <h2>
-                            Save this key now
-                        </h2>
-
-                        <p>
-                            BillWatch stored only its hash. This plaintext
-                            value exists only in this page session and cannot
-                            be retrieved again after you dismiss it or leave.
-                        </p>
+                        <span class="panel-kicker">@L["One-time access key"]</span>
+                        <h2>@L["Save this key now"]</h2>
+                        <p>@L["BillWatch stored only its hash. This plaintext value exists only in this page session and cannot be retrieved again after you dismiss it or leave."]</p>
                     </div>
 
-                    <code aria-label="@(_newKeyRevealed
-                        ? "One-time access key revealed"
-                        : "One-time access key hidden")">
-                        @GetDisplayedNewKey()
-                    </code>
+                    <code aria-label="@GetNewKeyAriaLabel()">@GetDisplayedNewKey()</code>
 
                     <div class="admin-secret-actions">
                         <button type="button"
                                 class="admin-secondary-button"
                                 aria-pressed="@_newKeyRevealed.ToString().ToLowerInvariant()"
                                 @onclick="ToggleNewKeyVisibility">
-                            @(_newKeyRevealed ? "Hide key" : "Reveal key")
+                            @(_newKeyRevealed ? L["Hide key"] : L["Reveal key"])
                         </button>
 
                         <button type="button"
                                 class="admin-primary-button"
                                 @onclick="CopyNewKeyAsync">
-                            Copy key
+                            @L["Copy key"]
                         </button>
 
                         <button type="button"
                                 class="admin-secondary-button"
                                 @onclick="DismissNewKey">
-                            Dismiss
+                            @L["Dismiss"]
                         </button>
 
                         @if (!string.IsNullOrWhiteSpace(_copyStatus))
@@ -388,12 +313,9 @@
                 </section>
             }
 
-            @if (_accessKeys is null ||
-                 _accessKeys.Items.Count == 0)
+            @if (_accessKeys is null || _accessKeys.Items.Count == 0)
             {
-                <div class="admin-empty-state">
-                    No access keys have been created.
-                </div>
+                <div class="admin-empty-state">@L["No access keys have been created."]</div>
             }
             else
             {
@@ -401,11 +323,11 @@
                     <table class="admin-table">
                         <thead>
                             <tr>
-                                <th>Key</th>
-                                <th>Grant</th>
-                                <th>Usage</th>
-                                <th>Status</th>
-                                <th>Created</th>
+                                <th>@L["Key"]</th>
+                                <th>@L["Grant"]</th>
+                                <th>@L["Usage"]</th>
+                                <th>@L["Status"]</th>
+                                <th>@L["Created"]</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -419,29 +341,18 @@
                                         {
                                             <span>@key.Label</span>
                                         }
-                                        <span>@key.Purpose</span>
+                                        <span>@FormatPurpose(key.Purpose)</span>
+                                    </td>
+                                    <td>@GetKeyGrant(key)</td>
+                                    <td>@key.RedemptionCount / @key.MaxRedemptions</td>
+                                    <td>
+                                        <span class="admin-status @GetStatusClass(key.Status)">@FormatStatus(key.Status)</span>
                                     </td>
                                     <td>
-                                        @GetKeyGrant(key)
-                                    </td>
-                                    <td>
-                                        @key.RedemptionCount / @key.MaxRedemptions
-                                    </td>
-                                    <td>
-                                        <span class="admin-status @GetStatusClass(key.Status)">
-                                            @key.Status
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <time datetime="@key.CreatedAtUtc.ToString("O")">
-                                            @FormatUtc(key.CreatedAtUtc)
-                                        </time>
+                                        <time datetime="@key.CreatedAtUtc.ToString("O")">@FormatUtc(key.CreatedAtUtc)</time>
                                     </td>
                                     <td class="admin-row-action">
-                                        @if (string.Equals(
-                                            key.Status,
-                                            "Active",
-                                            StringComparison.OrdinalIgnoreCase))
+                                        @if (string.Equals(key.Status, "Active", StringComparison.OrdinalIgnoreCase))
                                         {
                                             @if (_pendingRevokeKeyId == key.Id)
                                             {
@@ -450,14 +361,14 @@
                                                             class="admin-danger-button"
                                                             disabled="@_isMutating"
                                                             @onclick="() => RevokeAccessKeyAsync(key.Id)">
-                                                        Confirm
+                                                        @L["Confirm"]
                                                     </button>
 
                                                     <button type="button"
                                                             class="admin-text-button"
                                                             disabled="@_isMutating"
                                                             @onclick="CancelKeyRevocation">
-                                                        Cancel
+                                                        @L["Cancel"]
                                                     </button>
                                                 </div>
                                             }
@@ -467,7 +378,7 @@
                                                         class="admin-text-button danger"
                                                         disabled="@_isMutating"
                                                         @onclick="() => BeginKeyRevocation(key.Id)">
-                                                    Revoke
+                                                    @L["Revoke"]
                                                 </button>
                                             }
                                         }
@@ -483,26 +394,16 @@
         <section class="admin-panel">
             <div class="admin-panel-heading">
                 <div>
-                    <span class="panel-kicker">
-                        Security trail
-                    </span>
-
-                    <h2>
-                        Audit log
-                    </h2>
+                    <span class="panel-kicker">@L["Security trail"]</span>
+                    <h2>@L["Audit log"]</h2>
                 </div>
 
-                <span class="admin-panel-note">
-                    Administrative metadata only
-                </span>
+                <span class="admin-panel-note">@L["Administrative metadata only"]</span>
             </div>
 
-            @if (_auditLog is null ||
-                 _auditLog.Items.Count == 0)
+            @if (_auditLog is null || _auditLog.Items.Count == 0)
             {
-                <div class="admin-empty-state">
-                    No administrative actions have been recorded.
-                </div>
+                <div class="admin-empty-state">@L["No administrative actions have been recorded."]</div>
             }
             else
             {
@@ -513,31 +414,19 @@
                             <div class="admin-audit-mark" aria-hidden="true"></div>
 
                             <div class="admin-audit-copy">
-                                <strong>
-                                    @FormatAction(item.Action)
-                                </strong>
-
-                                <span>
-                                    @item.SubjectType
-                                    @FormatId(item.SubjectId)
-                                </span>
+                                <strong>@FormatAction(item.Action)</strong>
+                                <span>@FormatSubjectType(item.SubjectType) @FormatId(item.SubjectId)</span>
                             </div>
 
                             <div class="admin-audit-meta">
-                                <span>
-                                    Actor @FormatId(item.ActorUserId)
-                                </span>
+                                <span>@L["Actor {0}", FormatId(item.ActorUserId)]</span>
 
                                 @if (item.TargetUserId.HasValue)
                                 {
-                                    <span>
-                                        Target @FormatId(item.TargetUserId)
-                                    </span>
+                                    <span>@L["Target {0}", FormatId(item.TargetUserId)]</span>
                                 }
 
-                                <time datetime="@item.CreatedAtUtc.ToString("O")">
-                                    @FormatUtc(item.CreatedAtUtc)
-                                </time>
+                                <time datetime="@item.CreatedAtUtc.ToString("O")">@FormatUtc(item.CreatedAtUtc)</time>
                             </div>
                         </article>
                     }
@@ -549,56 +438,34 @@
 
 @code {
     private IJSObjectReference? _adminModule;
-
     private List<AdminUserViewModel> _users = [];
-
     private AdminPage<AdminAccessKeyViewModel>? _accessKeys;
-
     private AdminPage<AdminAuditLogViewModel>? _auditLog;
-
     private bool _isLoading = true;
-
     private bool _isMutating;
-
     private bool _accessDenied;
-
     private string? _errorMessage;
-
     private string? _mutationError;
-
     private string? _newPlaintextKey;
-
     private bool _newKeyRevealed;
-
     private string? _copyStatus;
-
     private Guid? _pendingRevokeKeyId;
-
     private string _newKeyPurpose = "Complimentary";
-
     private string _newKeyTier = "Standard";
-
     private int _newKeyMaxRedemptions = 1;
-
     private bool _newKeyLifetime;
-
     private string _newKeyLabel = string.Empty;
-
     private int _newKeyDurationDays = 30;
-
     private bool _expireNewKey;
-
     private int _newKeyExpirationDays = 7;
 
     private int ActiveAccessKeyCount =>
-        _accessKeys?.Items.Count(
-            item => string.Equals(
-                item.Status,
-                "Active",
-                StringComparison.OrdinalIgnoreCase)) ?? 0;
+        _accessKeys?.Items.Count(item => string.Equals(
+            item.Status,
+            "Active",
+            StringComparison.OrdinalIgnoreCase)) ?? 0;
 
-    protected override async Task OnAfterRenderAsync(
-        bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
         {
@@ -611,10 +478,9 @@
 
     private async Task<IJSObjectReference> GetAdminModuleAsync()
     {
-        _adminModule ??=
-            await JS.InvokeAsync<IJSObjectReference>(
-                "import",
-                "./js/admin-bff.js");
+        _adminModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/admin-bff.js");
 
         return _adminModule;
     }
@@ -645,12 +511,10 @@
         {
             var module = await GetAdminModuleAsync();
 
-            var usersResult =
-                await module.InvokeAsync<
-                    AdminFetchResult<AdminUserViewModel[]>>(
-                    "getAdminUsers",
-                    0,
-                    50);
+            var usersResult = await module.InvokeAsync<AdminFetchResult<AdminUserViewModel[]>>(
+                "getAdminUsers",
+                0,
+                50);
 
             if (usersResult.AccessDenied)
             {
@@ -658,12 +522,10 @@
                 return;
             }
 
-            var keysResult =
-                await module.InvokeAsync<
-                    AdminFetchResult<AdminPage<AdminAccessKeyViewModel>>>(
-                    "getAdminAccessKeys",
-                    0,
-                    50);
+            var keysResult = await module.InvokeAsync<AdminFetchResult<AdminPage<AdminAccessKeyViewModel>>>(
+                "getAdminAccessKeys",
+                0,
+                50);
 
             if (keysResult.AccessDenied)
             {
@@ -671,12 +533,10 @@
                 return;
             }
 
-            var auditResult =
-                await module.InvokeAsync<
-                    AdminFetchResult<AdminPage<AdminAuditLogViewModel>>>(
-                    "getAdminAuditLog",
-                    0,
-                    50);
+            var auditResult = await module.InvokeAsync<AdminFetchResult<AdminPage<AdminAuditLogViewModel>>>(
+                "getAdminAuditLog",
+                0,
+                50);
 
             if (auditResult.AccessDenied)
             {
@@ -690,13 +550,11 @@
         }
         catch (JSException)
         {
-            _errorMessage =
-                "BillWatch could not reach the secure admin API.";
+            _errorMessage = L["BillWatch could not reach the secure admin API."];
         }
         catch (Exception)
         {
-            _errorMessage =
-                "Something went wrong while loading the admin console.";
+            _errorMessage = L["Something went wrong while loading the admin console."];
         }
         finally
         {
@@ -729,23 +587,18 @@
             {
                 Purpose = _newKeyPurpose,
                 Tier = _newKeyTier,
-                DurationDays = _newKeyLifetime
-                    ? null
-                    : _newKeyDurationDays,
+                DurationDays = _newKeyLifetime ? null : _newKeyDurationDays,
                 GrantsLifetimeAccess = _newKeyLifetime,
-                Label = _newKeyLifetime &&
-                        !string.IsNullOrWhiteSpace(_newKeyLabel)
+                Label = _newKeyLifetime && !string.IsNullOrWhiteSpace(_newKeyLabel)
                     ? _newKeyLabel.Trim()
                     : null,
                 MaxRedemptions = _newKeyMaxRedemptions,
                 ExpiresAtUtc = _expireNewKey
-                    ? DateTimeOffset.UtcNow.AddDays(
-                        _newKeyExpirationDays)
+                    ? DateTimeOffset.UtcNow.AddDays(_newKeyExpirationDays)
                     : null
             };
 
-            var result = await module.InvokeAsync<
-                AdminFetchResult<CreatedAccessKeyViewModel>>(
+            var result = await module.InvokeAsync<AdminFetchResult<CreatedAccessKeyViewModel>>(
                 "createAdminAccessKey",
                 request);
 
@@ -755,12 +608,9 @@
                 return;
             }
 
-            if (result.Value is null ||
-                string.IsNullOrWhiteSpace(
-                    result.Value.PlaintextKey))
+            if (result.Value is null || string.IsNullOrWhiteSpace(result.Value.PlaintextKey))
             {
-                _mutationError =
-                    "BillWatch created an invalid access-key response.";
+                _mutationError = L["BillWatch created an invalid access-key response."];
                 return;
             }
 
@@ -773,13 +623,11 @@
         }
         catch (JSException)
         {
-            _mutationError =
-                "BillWatch could not create the access key.";
+            _mutationError = L["BillWatch could not create the access key."];
         }
         catch (Exception)
         {
-            _mutationError =
-                "BillWatch could not create the access key.";
+            _mutationError = L["BillWatch could not create the access key."];
         }
         finally
         {
@@ -792,25 +640,22 @@
     {
         if (_newKeyMaxRedemptions is < 1 or > 10000)
         {
-            return "Maximum redemptions must be between 1 and 10,000.";
+            return L["Maximum redemptions must be between 1 and 10,000."];
         }
 
-        if (!_newKeyLifetime &&
-            _newKeyDurationDays is < 1 or > 3650)
+        if (!_newKeyLifetime && _newKeyDurationDays is < 1 or > 3650)
         {
-            return "Subscription duration must be between 1 and 3,650 days.";
+            return L["Subscription duration must be between 1 and 3,650 days."];
         }
 
-        if (_newKeyLifetime &&
-            _newKeyLabel.Trim().Length > 120)
+        if (_newKeyLifetime && _newKeyLabel.Trim().Length > 120)
         {
-            return "Lifetime key labels must be 120 characters or fewer.";
+            return L["Lifetime key labels must be 120 characters or fewer."];
         }
 
-        if (_expireNewKey &&
-            _newKeyExpirationDays is < 1 or > 3650)
+        if (_expireNewKey && _newKeyExpirationDays is < 1 or > 3650)
         {
-            return "Key lifetime must be between 1 and 3,650 days.";
+            return L["Key lifetime must be between 1 and 3,650 days."];
         }
 
         return null;
@@ -835,8 +680,7 @@
 
     private async Task RevokeAccessKeyAsync(Guid keyId)
     {
-        if (_isMutating ||
-            _pendingRevokeKeyId != keyId)
+        if (_isMutating || _pendingRevokeKeyId != keyId)
         {
             return;
         }
@@ -847,8 +691,7 @@
         try
         {
             var module = await GetAdminModuleAsync();
-            var result = await module.InvokeAsync<
-                AdminFetchResult<object>>(
+            var result = await module.InvokeAsync<AdminFetchResult<object>>(
                 "revokeAdminAccessKey",
                 keyId.ToString("D"));
 
@@ -862,13 +705,11 @@
         }
         catch (JSException)
         {
-            _mutationError =
-                "BillWatch could not revoke that access key.";
+            _mutationError = L["BillWatch could not revoke that access key."];
         }
         catch (Exception)
         {
-            _mutationError =
-                "BillWatch could not revoke that access key.";
+            _mutationError = L["BillWatch could not revoke that access key."];
         }
         finally
         {
@@ -905,14 +746,15 @@
             return new string('•', _newPlaintextKey.Length);
         }
 
-        return parts[0] + "-" +
-               string.Join(
-                   '-',
-                   parts
-                       .Skip(1)
-                       .Select(part =>
-                           new string('•', part.Length)));
+        return parts[0] + "-" + string.Join(
+            '-',
+            parts.Skip(1).Select(part => new string('•', part.Length)));
     }
+
+    private string GetNewKeyAriaLabel() =>
+        _newKeyRevealed
+            ? L["One-time access key revealed"]
+            : L["One-time access key hidden"];
 
     private async Task CopyNewKeyAsync()
     {
@@ -929,12 +771,12 @@
                 _newPlaintextKey);
 
             _copyStatus = copied
-                ? "Copied"
-                : "Clipboard unavailable";
+                ? L["Copied"]
+                : L["Clipboard unavailable"];
         }
         catch (JSException)
         {
-            _copyStatus = "Clipboard unavailable";
+            _copyStatus = L["Clipboard unavailable"];
         }
     }
 
@@ -945,56 +787,76 @@
         _copyStatus = null;
     }
 
-    private static string GetInitial(string? email)
+    private string GetInitial(string? email)
     {
         var value = GetEmail(email);
         return char.ToUpperInvariant(value[0]).ToString();
     }
 
-    private static string GetEmail(string? email)
-    {
-        return string.IsNullOrWhiteSpace(email)
-            ? "Unknown account"
+    private string GetEmail(string? email) =>
+        string.IsNullOrWhiteSpace(email)
+            ? L["Unknown account"]
             : email.Trim();
-    }
 
-    private static string FormatProgram(string program)
-    {
-        return program switch
+    private string FormatRole(string role) =>
+        role switch
         {
-            "BetaTester" => "Beta tester",
-            "InternalTester" => "Internal tester",
+            "Owner" => L["Owner"],
+            "Admin" => L["Admin"],
+            "Moderator" => L["Moderator"],
+            _ => role
+        };
+
+    private string FormatProgram(string program) =>
+        program switch
+        {
+            "BetaTester" => L["Beta tester"],
+            "InternalTester" => L["Internal tester"],
             _ => program
         };
-    }
 
-    private static string GetSubscriptionSuffix(
-        AdminUserViewModel user)
+    private string FormatTier(string tier) =>
+        tier switch
+        {
+            "Standard" => L["Standard"],
+            "Beta" => L["Beta"],
+            _ => tier
+        };
+
+    private string FormatPurpose(string purpose) =>
+        purpose switch
+        {
+            "Complimentary" => L["Complimentary"],
+            "Beta" => L["Beta"],
+            _ => purpose
+        };
+
+    private string GetSubscriptionSuffix(AdminUserViewModel user)
     {
         if (!user.SubscriptionEndsAtUtc.HasValue)
         {
-            return " · lifetime";
+            return L[" · lifetime"];
         }
 
-        return $" · through {user.SubscriptionEndsAtUtc.Value:yyyy-MM-dd}";
+        return L[" · through {0}", user.SubscriptionEndsAtUtc.Value.ToString("yyyy-MM-dd")];
     }
 
-    private static string GetKeyGrant(
-        AdminAccessKeyViewModel key)
+    private string GetKeyGrant(AdminAccessKeyViewModel key)
     {
+        var tier = FormatTier(key.Tier);
+
         if (key.GrantsLifetimeAccess)
         {
-            return $"{key.Tier} · lifetime";
+            return L["{0} · lifetime", tier];
         }
 
         return key.DurationDays.HasValue
-            ? $"{key.Tier} · {key.DurationDays.Value} days"
-            : key.Tier;
+            ? L["{0} · {1} days", tier, key.DurationDays.Value]
+            : tier;
     }
 
-    private static string GetStatusClass(string status)
-    {
-        return status.ToLowerInvariant() switch
+    private static string GetStatusClass(string status) =>
+        status.ToLowerInvariant() switch
         {
             "active" => "active",
             "revoked" => "revoked",
@@ -1002,13 +864,45 @@
             "exhausted" => "exhausted",
             _ => "neutral"
         };
-    }
 
-    private static string FormatAction(string action)
+    private string FormatStatus(string status) =>
+        status switch
+        {
+            "Active" => L["Active"],
+            "Revoked" => L["Revoked"],
+            "Expired" => L["Expired"],
+            "Exhausted" => L["Exhausted"],
+            _ => status
+        };
+
+    private string FormatAction(string action) =>
+        action switch
+        {
+            "StaffRoleAssigned" => L["Staff role assigned"],
+            "StaffRoleRemoved" => L["Staff role removed"],
+            "SubscriptionEntitlementGranted" => L["Subscription entitlement granted"],
+            "SubscriptionEntitlementRevoked" => L["Subscription entitlement revoked"],
+            "UserProgramMembershipEnabled" => L["User program membership enabled"],
+            "UserProgramMembershipDisabled" => L["User program membership disabled"],
+            "SubscriptionAccessKeyCreated" => L["Subscription access key created"],
+            "SubscriptionAccessKeyRevoked" => L["Subscription access key revoked"],
+            "SubscriptionAccessKeyRedeemed" => L["Subscription access key redeemed"],
+            _ => HumanizeAction(action)
+        };
+
+    private string FormatSubjectType(string subjectType) =>
+        subjectType switch
+        {
+            "UserAdministration" => L["User administration"],
+            "SubscriptionAccessKeyEntity" => L["Subscription access key"],
+            _ => subjectType
+        };
+
+    private string HumanizeAction(string action)
     {
         if (string.IsNullOrWhiteSpace(action))
         {
-            return "Administrative action";
+            return L["Administrative action"];
         }
 
         var builder = new System.Text.StringBuilder();
@@ -1017,9 +911,7 @@
         {
             var character = action[index];
 
-            if (index > 0 &&
-                char.IsUpper(character) &&
-                !char.IsUpper(action[index - 1]))
+            if (index > 0 && char.IsUpper(character) && !char.IsUpper(action[index - 1]))
             {
                 builder.Append(' ');
             }
@@ -1030,23 +922,14 @@
         return builder.ToString();
     }
 
-    private static string FormatId(Guid id)
-    {
-        return id.ToString("N")[..8];
-    }
+    private static string FormatId(Guid id) =>
+        id.ToString("N")[..8];
 
-    private static string FormatId(Guid? id)
-    {
-        return id.HasValue
-            ? FormatId(id.Value)
-            : "—";
-    }
+    private static string FormatId(Guid? id) =>
+        id.HasValue ? FormatId(id.Value) : "—";
 
-    private static string FormatUtc(DateTimeOffset value)
-    {
-        return value.ToUniversalTime().ToString(
-            "yyyy-MM-dd HH:mm 'UTC'");
-    }
+    private static string FormatUtc(DateTimeOffset value) =>
+        value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm 'UTC'");
 
     public async ValueTask DisposeAsync()
     {
@@ -1069,109 +952,72 @@
     private sealed class AdminFetchResult<T>
     {
         public bool AccessDenied { get; set; }
-
         public T? Value { get; set; }
     }
 
     private sealed class AdminPage<T>
     {
         public int Skip { get; set; }
-
         public int Take { get; set; }
-
         public int TotalCount { get; set; }
-
         public List<T> Items { get; set; } = [];
     }
 
     private sealed class AdminUserViewModel
     {
         public Guid Id { get; set; }
-
         public string? Email { get; set; }
-
         public bool IsActive { get; set; }
-
         public DateTimeOffset CreatedAtUtc { get; set; }
-
         public List<string> Roles { get; set; } = [];
-
         public List<string> Programs { get; set; } = [];
-
         public string? SubscriptionTier { get; set; }
-
         public DateTimeOffset? SubscriptionEndsAtUtc { get; set; }
     }
 
     private sealed class AdminAccessKeyViewModel
     {
         public Guid Id { get; set; }
-
         public string DisplayPrefix { get; set; } = string.Empty;
-
         public string? Label { get; set; }
-
         public string Purpose { get; set; } = string.Empty;
-
         public string Tier { get; set; } = string.Empty;
-
         public int? DurationDays { get; set; }
-
         public bool GrantsLifetimeAccess { get; set; }
-
         public int MaxRedemptions { get; set; }
-
         public int RedemptionCount { get; set; }
-
         public DateTimeOffset? ExpiresAtUtc { get; set; }
-
         public string Status { get; set; } = string.Empty;
-
         public DateTimeOffset? RevokedAtUtc { get; set; }
-
         public Guid CreatedByUserId { get; set; }
-
         public DateTimeOffset CreatedAtUtc { get; set; }
     }
 
     private sealed class AdminAuditLogViewModel
     {
         public Guid Id { get; set; }
-
         public Guid ActorUserId { get; set; }
-
         public Guid? TargetUserId { get; set; }
-
         public string Action { get; set; } = string.Empty;
-
         public string SubjectType { get; set; } = string.Empty;
-
         public Guid? SubjectId { get; set; }
-
         public DateTimeOffset CreatedAtUtc { get; set; }
     }
 
     private sealed class AdminCreateAccessKeyRequest
     {
         public string Purpose { get; set; } = string.Empty;
-
         public string Tier { get; set; } = string.Empty;
-
         public int? DurationDays { get; set; }
-
         public bool GrantsLifetimeAccess { get; set; }
-
         public string? Label { get; set; }
-
         public int MaxRedemptions { get; set; }
-
         public DateTimeOffset? ExpiresAtUtc { get; set; }
     }
 
     private sealed class CreatedAccessKeyViewModel
     {
         public Guid Id { get; set; }
-
         public string PlaintextKey { get; set; } = string.Empty;
     }
 }
