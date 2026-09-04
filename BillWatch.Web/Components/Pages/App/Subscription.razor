@@ -3,23 +3,34 @@
 @layout AppLayout
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 @inject Microsoft.Extensions.Localization.IStringLocalizer<Subscription> L
 
 <PageTitle>@L["Subscription — BillWatch"]</PageTitle>
 <link rel="stylesheet" href="/subscription.css" />
 
 <div class="app-page subscription-page">
-    <header class="page-heading">
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="subscription-toast @(_messageSucceeded ? "is-success" : "is-error")"
+             role="@(_messageSucceeded ? "status" : "alert")">
+            <span class="subscription-toast-icon">@(_messageSucceeded ? "✓" : "!")</span>
+            <span>@_message</span>
+            <button type="button" aria-label="@L["Dismiss notification"]" @onclick="DismissMessage">×</button>
+        </div>
+    }
+
+    <header class="page-heading subscription-heading">
         <div>
             <span class="page-kicker">@L["BillWatch access"]</span>
             <h1>@L["Subscription"]</h1>
-            <p>@L["Review your BillWatch access or redeem an access key."]</p>
+            <p>@L["Choose monthly or yearly access, manage an existing paid plan, or redeem a beta access key."]</p>
         </div>
     </header>
 
-    <section class="subscription-card">
-        @if (_loading)
-        {
+    @if (_loading)
+    {
+        <section class="subscription-card">
             <div class="subscription-loading">
                 <span class="subscription-loading-ring" aria-hidden="true"></span>
                 <div>
@@ -27,97 +38,203 @@
                     <p>@L["BillWatch is verifying the subscription attached to this account."]</p>
                 </div>
             </div>
-        }
-        else if (_status?.IsActive == true)
+        </section>
+    }
+    else
+    {
+        @if (_status?.IsActive == true)
         {
-            <div class="subscription-card-heading">
-                <div class="subscription-card-icon active" aria-hidden="true">✓</div>
+            <section class="subscription-card subscription-status-card">
+                <div class="subscription-card-heading">
+                    <div class="subscription-card-icon active" aria-hidden="true">✓</div>
 
-                <div>
-                    <span class="subscription-state active">@L["Active"]</span>
-                    <h2>@L["BillWatch access is active"]</h2>
-                    <p>
-                        @L["{0} access", _status.Tier ?? "BillWatch"] ·
-                        @if (_status.EndsAtUtc is null)
-                        {
-                            <text>@L["Lifetime access"]</text>
-                        }
-                        else
-                        {
-                            <text>@L["Active through"] </text>
-                            <time datetime="@_status.EndsAtUtc.Value.ToString("O")">
-                                @FormatTimestampFallback(_status.EndsAtUtc.Value)
-                            </time>
-                        }
-                    </p>
+                    <div>
+                        <span class="subscription-state active">@L["Active"]</span>
+                        <h2>@L["BillWatch access is active"]</h2>
+                        <p>
+                            @L["{0} access", _status.Tier ?? "BillWatch"]
+                            @if (!string.IsNullOrWhiteSpace(_status.Source))
+                            {
+                                <text> · @_status.Source</text>
+                            }
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <a class="subscription-action" href="/app">
-                @L["Continue to BillWatch"]
-                <span aria-hidden="true">→</span>
-            </a>
+                <div class="subscription-status-grid">
+                    <div>
+                        <span>@L["Access"]</span>
+                        <strong>@(_status.IsPaid ? L["Paid subscription"] : L["Included access"])</strong>
+                    </div>
 
-            <div class="subscription-card-footer">
-                <span>@L["Your account and data controls remain available at any time."]</span>
-                <a href="/app/account/privacy">@L["Data and privacy options"]</a>
-            </div>
+                    <div>
+                        <span>@L["Billing"]</span>
+                        <strong>@FormatBillingInterval(_status.BillingInterval)</strong>
+                    </div>
+
+                    <div>
+                        <span>@(_status.CancelAtPeriodEnd ? L["Access ends"] : L["Current period"])</span>
+                        <strong>
+                            @if (_status.EndsAtUtc is null)
+                            {
+                                <text>@L["Lifetime access"]</text>
+                            }
+                            else
+                            {
+                                <time datetime="@_status.EndsAtUtc.Value.ToString("O")">
+                                    @FormatDate(_status.EndsAtUtc.Value)
+                                </time>
+                            }
+                        </strong>
+                    </div>
+                </div>
+
+                @if (_status.IsPaid && _status.CancelAtPeriodEnd)
+                {
+                    <div class="subscription-notice warning">
+                        <strong>@L["Cancellation scheduled"]</strong>
+                        <span>@L["Your paid plan will not renew after the current billing period."]</span>
+                    </div>
+                }
+
+                <div class="subscription-actions-row">
+                    <a class="subscription-action secondary" href="/app">
+                        @L["Continue to BillWatch"]
+                    </a>
+
+                    @if (_status.IsPaid && _status.BillingAvailable)
+                    {
+                        <button class="subscription-action"
+                                disabled="@_working"
+                                @onclick="OpenBillingPortalAsync">
+                            @(_working ? L["Opening…"] : L["Manage billing"])
+                        </button>
+                    }
+                </div>
+            </section>
         }
-        else
+
+        @if (_status?.IsActive != true && _status?.BillingAvailable == true && _plans.Count > 0)
         {
-            <div class="subscription-card-heading">
-                <div class="subscription-card-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="1.8"
-                         stroke-linecap="round"
-                         stroke-linejoin="round">
-                        <circle cx="8" cy="15" r="4" />
-                        <path d="M11 12l8-8" />
-                        <path d="M16 7l2 2" />
-                        <path d="M18 5l2 2" />
-                    </svg>
+            <section class="subscription-pricing-section">
+                <div class="subscription-section-heading">
+                    <span class="page-kicker">@L["Simple pricing"]</span>
+                    <h2>@L["Choose how you want to pay"]</h2>
+                    <p>@L["Both plans include the same BillWatch bill-monitoring experience. Yearly billing simply renews less often."]</p>
                 </div>
 
-                <div>
-                    <span class="subscription-state">@L["No active plan"]</span>
-                    <h2>@L["Activate BillWatch access"]</h2>
-                    <p>@L["This account does not currently have an active BillWatch entitlement. If you received an access key, redeem it below."]</p>
+                <div class="subscription-plan-grid">
+                    @foreach (var plan in _plans.OrderBy(plan => plan.BillingInterval == "yearly" ? 1 : 0))
+                    {
+                        var isYearly = string.Equals(plan.BillingInterval, "yearly", StringComparison.OrdinalIgnoreCase);
+
+                        <article class="subscription-plan-card @(isYearly ? "featured" : null)">
+                            @if (isYearly)
+                            {
+                                <span class="subscription-plan-badge">@L["Best value"]</span>
+                            }
+
+                            <div>
+                                <span class="subscription-plan-label">
+                                    @(isYearly ? L["Yearly"] : L["Monthly"])
+                                </span>
+
+                                <div class="subscription-plan-price">
+                                    <strong>@FormatMoney(plan.UnitAmount, plan.Currency)</strong>
+                                    <span>/ @(isYearly ? L["year"] : L["month"])</span>
+                                </div>
+
+                                @if (isYearly)
+                                {
+                                    <small>@L["About {0} per month when billed yearly", FormatMoney(plan.UnitAmount / 12, plan.Currency)]</small>
+                                }
+                                else
+                                {
+                                    <small>@L["Billed every month until you cancel"]</small>
+                                }
+                            </div>
+
+                            <div class="subscription-feature-list">
+                                <span>✓ @L["Recurring bill monitoring"]</span>
+                                <span>✓ @L["Bill change detection"]</span>
+                                <span>✓ @L["Monthly and annual impact"]</span>
+                                <span>✓ @L["Statement-backed explanations when evidence is available"]</span>
+                            </div>
+
+                            <button class="subscription-action subscription-plan-action"
+                                    disabled="@_working"
+                                    @onclick="() => StartCheckoutAsync(plan.BillingInterval)">
+                                @(_working ? L["Opening secure checkout…"] : L["Choose {0}", isYearly ? L["yearly"] : L["monthly"]])
+                            </button>
+                        </article>
+                    }
                 </div>
-            </div>
 
-            <div class="subscription-key-panel">
-                <label for="access-key">@L["Access key"]</label>
-
-                <div class="subscription-key-entry">
-                    <input id="access-key"
-                           @bind="_accessKey"
-                           autocomplete="off"
-                           spellcheck="false"
-                           placeholder="BW-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" />
-
-                    <button class="subscription-action"
-                            disabled="@_working"
-                            @onclick="RedeemAsync">
-                        @(_working ? L["Activating…"] : L["Redeem key"])
-                    </button>
-                </div>
-
-                <small>@L["Access keys are redeemed once and attached securely to your account."]</small>
-            </div>
-
-            <div class="subscription-card-footer">
-                <span>@L["Your account and privacy controls do not depend on an active entitlement."]</span>
-                <a href="/app/account/privacy">@L["Data and privacy options"]</a>
-            </div>
+                <p class="subscription-legal-copy">
+                    @L["Checkout is handled by our payment provider. By subscribing, you agree to the"]
+                    <a href="/terms" target="_blank">@L["Terms of Service"]</a>
+                    @L["and acknowledge the"]
+                    <a href="/privacy" target="_blank">@L["Privacy Policy"]</a>.
+                </p>
+            </section>
         }
-
-        @if (!string.IsNullOrWhiteSpace(_message))
+        else if (_status?.IsActive != true && _status?.BillingAvailable != true)
         {
-            <p class="subscription-message" role="alert">@_message</p>
+            <section class="subscription-card">
+                <div class="subscription-card-heading">
+                    <div class="subscription-card-icon" aria-hidden="true">◇</div>
+                    <div>
+                        <span class="subscription-state">@L["Paid plans not configured"]</span>
+                        <h2>@L["BillWatch paid checkout is not available yet"]</h2>
+                        <p>@L["This environment is still using controlled beta access. No payment button is shown until real billing is configured."]</p>
+                    </div>
+                </div>
+            </section>
         }
-    </section>
+
+        @if (_status?.IsActive != true)
+        {
+            <section class="subscription-card subscription-access-key-card">
+                <div class="subscription-card-heading">
+                    <div class="subscription-card-icon" aria-hidden="true">⌁</div>
+                    <div>
+                        <span class="subscription-state">@L["Beta access"]</span>
+                        <h2>@L["Have an access key?"]</h2>
+                        <p>@L["Controlled beta and complimentary access keys can still be redeemed without entering payment information."]</p>
+                    </div>
+                </div>
+
+                <div class="subscription-key-panel">
+                    <label for="access-key">@L["Access key"]</label>
+
+                    <div class="subscription-key-entry">
+                        <input id="access-key"
+                               @bind="_accessKey"
+                               autocomplete="off"
+                               spellcheck="false"
+                               placeholder="BW-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" />
+
+                        <button class="subscription-action secondary"
+                                disabled="@_working"
+                                @onclick="RedeemAsync">
+                            @(_working ? L["Activating…"] : L["Redeem key"])
+                        </button>
+                    </div>
+
+                    <small>@L["Access keys are redeemed once and attached securely to your BillWatch account."]</small>
+                </div>
+            </section>
+        }
+
+        <footer class="subscription-footer">
+            <span>@L["Account export and deletion controls remain available regardless of subscription status."]</span>
+            <div>
+                <a href="/app/account/privacy">@L["Data controls"]</a>
+                <a href="/terms">@L["Terms"]</a>
+                <a href="/privacy">@L["Privacy"]</a>
+            </div>
+        </footer>
+    }
 </div>
 
 @code {
@@ -126,8 +243,10 @@
 
     private IJSObjectReference? _module;
     private SubscriptionStatus? _status;
+    private List<SubscriptionPlan> _plans = [];
     private string _accessKey = string.Empty;
     private string? _message;
+    private bool _messageSucceeded;
     private bool _loading = true;
     private bool _working;
 
@@ -144,16 +263,100 @@
                 "import",
                 "./js/subscription-bff.js");
 
-            _status = await _module.InvokeAsync<SubscriptionStatus>(
-                "getSubscription");
+            var query = new Uri(Navigation.Uri).Query;
+
+            if (query.Contains("checkout=success", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    await _module.InvokeAsync<object>("syncPaidSubscription");
+                    SetMessage(L["Payment received. BillWatch refreshed your subscription."], succeeded: true);
+                }
+                catch (JSException)
+                {
+                    SetMessage(
+                        L["Checkout completed, but BillWatch is still waiting for the billing confirmation. Refresh this page shortly."],
+                        succeeded: false);
+                }
+            }
+            else if (query.Contains("checkout=cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                SetMessage(L["Checkout was cancelled. You were not subscribed by BillWatch."], succeeded: false);
+            }
+
+            await RefreshAsync();
         }
-        catch
+        catch (JSException ex)
         {
-            _message = L["BillWatch could not load your subscription status."];
+            SetMessage(GetSafeJsMessage(ex, L["BillWatch could not load your subscription status."]), succeeded: false);
         }
         finally
         {
             _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (_module is null)
+        {
+            return;
+        }
+
+        _status = await _module.InvokeAsync<SubscriptionStatus>("getSubscription");
+
+        if (_status.BillingAvailable)
+        {
+            var plans = await _module.InvokeAsync<SubscriptionPlan[]>("getSubscriptionPlans");
+            _plans = plans.ToList();
+        }
+        else
+        {
+            _plans.Clear();
+        }
+    }
+
+    private async Task StartCheckoutAsync(string billingInterval)
+    {
+        if (_working || _module is null)
+        {
+            return;
+        }
+
+        _working = true;
+        _message = null;
+
+        try
+        {
+            await _module.InvokeVoidAsync("startCheckout", billingInterval);
+        }
+        catch (JSException ex)
+        {
+            SetMessage(GetSafeJsMessage(ex, L["BillWatch could not start secure checkout."]), succeeded: false);
+            _working = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenBillingPortalAsync()
+    {
+        if (_working || _module is null)
+        {
+            return;
+        }
+
+        _working = true;
+        _message = null;
+
+        try
+        {
+            await _module.InvokeVoidAsync("openBillingPortal");
+        }
+        catch (JSException ex)
+        {
+            SetMessage(GetSafeJsMessage(ex, L["BillWatch could not open subscription management."]), succeeded: false);
+            _working = false;
             StateHasChanged();
         }
     }
@@ -176,24 +379,66 @@
                 "redeemAccessKey",
                 _accessKey.Trim());
 
-            _status = await _module.InvokeAsync<SubscriptionStatus>(
-                "getSubscription");
-
             _accessKey = string.Empty;
-            _message = L["Your BillWatch access is active."];
+            await RefreshAsync();
+            SetMessage(L["Your BillWatch access is active."], succeeded: true);
         }
-        catch
+        catch (JSException ex)
         {
-            _message = L["That access key could not be redeemed."];
+            SetMessage(GetSafeJsMessage(ex, L["That access key could not be redeemed."]), succeeded: false);
         }
         finally
         {
             _working = false;
+            StateHasChanged();
         }
     }
 
-    private static string FormatTimestampFallback(DateTimeOffset value) =>
-        value.ToUniversalTime().ToString("MM/dd/yyyy HH:mm 'UTC'", UsCulture);
+    private void SetMessage(string message, bool succeeded)
+    {
+        _message = message;
+        _messageSucceeded = succeeded;
+    }
+
+    private void DismissMessage()
+    {
+        _message = null;
+    }
+
+    private static string GetSafeJsMessage(JSException exception, string fallback)
+    {
+        var message = exception.Message?
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault()?
+            .Trim();
+
+        return string.IsNullOrWhiteSpace(message)
+            ? fallback
+            : message;
+    }
+
+    private static string FormatDate(DateTimeOffset value) =>
+        value.ToLocalTime().ToString("MMM d, yyyy", UsCulture);
+
+    private string FormatBillingInterval(string? interval) =>
+        interval?.ToLowerInvariant() switch
+        {
+            "monthly" => L["Monthly"],
+            "yearly" => L["Yearly"],
+            _ => L["Not applicable"]
+        };
+
+    private static string FormatMoney(long unitAmount, string? currency)
+    {
+        var amount = unitAmount / 100m;
+
+        if (string.Equals(currency, "USD", StringComparison.OrdinalIgnoreCase))
+        {
+            return amount.ToString("C2", UsCulture);
+        }
+
+        return $"{amount:0.00} {currency?.ToUpperInvariant()}";
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -215,6 +460,20 @@
     {
         public bool IsActive { get; set; }
         public string? Tier { get; set; }
+        public DateTimeOffset? StartsAtUtc { get; set; }
         public DateTimeOffset? EndsAtUtc { get; set; }
+        public string? Source { get; set; }
+        public bool BillingAvailable { get; set; }
+        public bool IsPaid { get; set; }
+        public string? BillingInterval { get; set; }
+        public bool CancelAtPeriodEnd { get; set; }
+        public string? ProviderStatus { get; set; }
+    }
+
+    private sealed class SubscriptionPlan
+    {
+        public string BillingInterval { get; set; } = string.Empty;
+        public long UnitAmount { get; set; }
+        public string Currency { get; set; } = "USD";
     }
 }
