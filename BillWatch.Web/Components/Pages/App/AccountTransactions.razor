@@ -7,8 +7,9 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Localization.IStringLocalizer<AccountTransactions> L
 
-<PageTitle>Transactions — BillWatch</PageTitle>
+<PageTitle>@L["Transactions — BillWatch"]</PageTitle>
 
 <link rel="stylesheet"
       href="/account-transactions.css" />
@@ -16,22 +17,21 @@
 <div class="app-page">
     <a class="transaction-back-link"
        href="/app/account">
-        ← Account
+        ← @L["Account"]
     </a>
 
     <header class="page-heading">
         <div>
             <span class="page-kicker">
-                Transaction-first intelligence
+                @L["Transaction-first intelligence"]
             </span>
 
             <h1>
-                Transactions
+                @L["Transactions"]
             </h1>
 
             <p>
-                The connected-bank activity BillWatch uses
-                to discover recurring bills.
+                @L["The connected-bank activity BillWatch uses to discover recurring bills."]
             </p>
         </div>
     </header>
@@ -56,7 +56,7 @@
 
             <div>
                 <h2>
-                    We couldn't load transactions
+                    @L["We couldn't load transactions"]
                 </h2>
 
                 <p>
@@ -67,7 +67,7 @@
             <button type="button"
                     class="secondary-action"
                     @onclick="ReloadAsync">
-                Try again
+                @L["Try again"]
             </button>
         </div>
     }
@@ -76,7 +76,7 @@
         <section class="transaction-summary-grid">
             <article>
                 <span>
-                    Loaded
+                    @L["Loaded"]
                 </span>
 
                 <strong>
@@ -84,13 +84,13 @@
                 </strong>
 
                 <small>
-                    Latest @TransactionLoadLimit transactions
+                    @L["Latest {0} transactions", TransactionLoadLimit]
                 </small>
             </article>
 
             <article>
                 <span>
-                    Posted outflow
+                    @L["Posted outflow"]
                 </span>
 
                 <strong>
@@ -99,13 +99,13 @@
                 </strong>
 
                 <small>
-                    Across the loaded transaction history
+                    @L["Across the loaded transaction history"]
                 </small>
             </article>
 
             <article>
                 <span>
-                    Pending
+                    @L["Pending"]
                 </span>
 
                 <strong>
@@ -113,7 +113,7 @@
                 </strong>
 
                 <small>
-                    Not yet final
+                    @L["Not yet final"]
                 </small>
             </article>
         </section>
@@ -125,7 +125,7 @@
                 </span>
 
                 <input type="search"
-                       placeholder="Search merchant or transaction"
+                       placeholder="@L["Search merchant or transaction"]"
                        autocomplete="off"
                        @bind="_searchText"
                        @bind:event="oninput" />
@@ -135,7 +135,7 @@
                     @bind="_selectedAccountId">
 
                 <option value="">
-                    All accounts
+                    @L["All accounts"]
                 </option>
 
                 @foreach (var account
@@ -151,14 +151,13 @@
 
         <div class="transaction-result-line">
             <span>
-                @FilteredTransactions.Count
-                transaction@(FilteredTransactions.Count == 1 ? "" : "s")
+                @_transactionsResultLabel
             </span>
 
             @if (_transactions.Count == TransactionLoadLimit)
             {
                 <small>
-                    Showing the newest @TransactionLoadLimit records
+                    @L["Showing the newest {0} records", TransactionLoadLimit]
                 </small>
             }
         </div>
@@ -171,12 +170,11 @@
                 </div>
 
                 <h2>
-                    No transactions yet.
+                    @L["No transactions yet."]
                 </h2>
 
                 <p>
-                    Transactions appear after an active bank
-                    connection completes synchronization.
+                    @L["Transactions appear after an active bank connection completes synchronization."]
                 </p>
             </section>
         }
@@ -184,11 +182,11 @@
         {
             <section class="transaction-empty compact">
                 <h2>
-                    No matching transactions.
+                    @L["No matching transactions."]
                 </h2>
 
                 <p>
-                    Change the account or search filter.
+                    @L["Change the account or search filter."]
                 </p>
             </section>
         }
@@ -215,7 +213,7 @@
                                 @if (transaction.IsPending)
                                 {
                                     <span class="pending-pill">
-                                        Pending
+                                        @L["Pending"]
                                     </span>
                                 }
                             </div>
@@ -247,8 +245,9 @@
                         <div class="transaction-date">
                             <strong>
                                 @transaction.PostedDate
-                                .ToString(
-                                "MMM d")
+                                    .ToString(
+                                        "MMM d",
+                                        System.Globalization.CultureInfo.CurrentUICulture)
                             </strong>
 
                             <span>
@@ -267,9 +266,7 @@
         }
 
         <div class="transaction-explanation">
-            Plaid reports purchase/outflow amounts as positive
-            transaction values. BillWatch displays those as money
-            leaving the account and credits as money returning.
+            @L["Plaid reports purchase/outflow amounts as positive transaction values. BillWatch displays those as money leaving the account and credits as money returning."]
         </div>
     }
 </div>
@@ -309,6 +306,11 @@
         _transactions.Count(
             transaction =>
                 transaction.IsPending);
+
+    private string _transactionsResultLabel =>
+        FilteredTransactions.Count == 1
+            ? L["1 transaction"]
+            : L["{0} transactions", FilteredTransactions.Count];
 
     private IReadOnlyList<
         TransactionAccountOption>
@@ -406,12 +408,12 @@
         catch (JSException)
         {
             _errorMessage =
-                "BillWatch could not reach the secure API.";
+                L["BillWatch could not reach the secure API."];
         }
         catch (Exception)
         {
             _errorMessage =
-                "Something went wrong while loading your transactions.";
+                L["Something went wrong while loading your transactions."];
         }
         finally
         {
@@ -479,7 +481,7 @@
                 StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string GetTransactionName(
+    private string GetTransactionName(
         BankTransactionViewModel transaction)
     {
         if (!string.IsNullOrWhiteSpace(
@@ -494,7 +496,7 @@
             return transaction.Name;
         }
 
-        return "Transaction";
+        return L["Transaction"];
     }
 
     private static string FormatLedgerAmount(
@@ -559,15 +561,17 @@
             : "↑";
     }
 
-    private static string FormatCategory(
+    private string FormatCategory(
         string value)
     {
-        return value
+        var display = value
             .Replace(
                 "_",
                 " ",
                 StringComparison.Ordinal)
             .Trim();
+
+        return L[display];
     }
 
     private static string GetAccountFilterLabel(
