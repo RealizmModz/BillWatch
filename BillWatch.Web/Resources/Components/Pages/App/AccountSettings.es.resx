@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Account &amp; security — BillWatch" xml:space="preserve"><value>Cuenta y seguridad — BillWatch</value></data>
+  <data name="Account" xml:space="preserve"><value>Cuenta</value></data>
+  <data name="Account &amp; security" xml:space="preserve"><value>Cuenta y seguridad</value></data>
+  <data name="Manage your sign-in, recovery protection, and account preferences." xml:space="preserve"><value>Administra tu inicio de sesión, la protección de recuperación y las preferencias de tu cuenta.</value></data>
+  <data name="Identity" xml:space="preserve"><value>Identidad</value></data>
+  <data name="Email address" xml:space="preserve"><value>Correo electrónico</value></data>
+  <data name="Your email is your BillWatch sign-in and recovery address." xml:space="preserve"><value>Tu correo electrónico es la dirección de inicio de sesión y recuperación de BillWatch.</value></data>
+  <data name="Loading account security…" xml:space="preserve"><value>Cargando seguridad de la cuenta…</value></data>
+  <data name="Current email" xml:space="preserve"><value>Correo actual</value></data>
+  <data name="Verified" xml:space="preserve"><value>Verificado</value></data>
+  <data name="Not verified" xml:space="preserve"><value>No verificado</value></data>
+  <data name="New email address" xml:space="preserve"><value>Nueva dirección de correo</value></data>
+  <data name="Current password" xml:space="preserve"><value>Contraseña actual</value></data>
+  <data name="Authenticator code" xml:space="preserve"><value>Código del autenticador</value></data>
+  <data name="Send verification email" xml:space="preserve"><value>Enviar correo de verificación</value></data>
+  <data name="The address changes only after the new inbox opens the verification link." xml:space="preserve"><value>La dirección solo cambia después de abrir el enlace de verificación desde la nueva bandeja de entrada.</value></data>
+
+  <data name="Password" xml:space="preserve"><value>Contraseña</value></data>
+  <data name="Change password" xml:space="preserve"><value>Cambiar contraseña</value></data>
+  <data name="Changing your password invalidates Identity security state and protects future sign-ins." xml:space="preserve"><value>Cambiar tu contraseña invalida el estado de seguridad anterior de Identity y protege futuros inicios de sesión.</value></data>
+  <data name="New password" xml:space="preserve"><value>Nueva contraseña</value></data>
+  <data name="Confirm new password" xml:space="preserve"><value>Confirmar nueva contraseña</value></data>
+  <data name="BillWatch password requirements" xml:space="preserve"><value>Requisitos de contraseña de BillWatch</value></data>
+  <data name="At least 12 characters" xml:space="preserve"><value>Al menos 12 caracteres</value></data>
+  <data name="Uppercase and lowercase letters" xml:space="preserve"><value>Letras mayúsculas y minúsculas</value></data>
+  <data name="At least one number and one symbol" xml:space="preserve"><value>Al menos un número y un símbolo</value></data>
+
+  <data name="Two-factor authentication" xml:space="preserve"><value>Autenticación en dos pasos</value></data>
+  <data name="Authenticator app" xml:space="preserve"><value>Aplicación de autenticación</value></data>
+  <data name="Add a second factor from Microsoft Authenticator, Google Authenticator, 1Password, Authy, or another TOTP app." xml:space="preserve"><value>Añade un segundo factor con Microsoft Authenticator, Google Authenticator, 1Password, Authy u otra aplicación TOTP.</value></data>
+  <data name="Enabled" xml:space="preserve"><value>Activada</value></data>
+  <data name="Off" xml:space="preserve"><value>Desactivada</value></data>
+  <data name="Recovery codes remaining" xml:space="preserve"><value>Códigos de recuperación restantes</value></data>
+  <data name="Current authenticator code" xml:space="preserve"><value>Código actual del autenticador</value></data>
+  <data name="New recovery codes" xml:space="preserve"><value>Nuevos códigos de recuperación</value></data>
+  <data name="Replace authenticator" xml:space="preserve"><value>Reemplazar autenticador</value></data>
+  <data name="Disable 2FA" xml:space="preserve"><value>Desactivar 2FA</value></data>
+  <data name="Setup requires your current password. BillWatch never stores the authenticator secret in browser storage." xml:space="preserve"><value>La configuración requiere tu contraseña actual. BillWatch nunca almacena el secreto del autenticador en el almacenamiento del navegador.</value></data>
+  <data name="Set up authenticator" xml:space="preserve"><value>Configurar autenticador</value></data>
+  <data name="Authenticator setup key" xml:space="preserve"><value>Clave de configuración del autenticador</value></data>
+  <data name="In your authenticator app, add a TOTP account named BillWatch and enter the key above." xml:space="preserve"><value>En tu aplicación de autenticación, añade una cuenta TOTP llamada BillWatch e introduce la clave anterior.</value></data>
+  <data name="6-digit code from the app" xml:space="preserve"><value>Código de 6 dígitos de la aplicación</value></data>
+  <data name="Verify and enable 2FA" xml:space="preserve"><value>Verificar y activar 2FA</value></data>
+  <data name="Save these now" xml:space="preserve"><value>Guárdalos ahora</value></data>
+  <data name="Recovery codes" xml:space="preserve"><value>Códigos de recuperación</value></data>
+  <data name="Each code works once. Store them somewhere safe outside BillWatch. They will not be shown again after you leave this page." xml:space="preserve"><value>Cada código funciona una sola vez. Guárdalos en un lugar seguro fuera de BillWatch. No volverán a mostrarse después de salir de esta página.</value></data>
+  <data name="I saved these codes" xml:space="preserve"><value>Ya guardé estos códigos</value></data>
+
+  <data name="Date &amp; time" xml:space="preserve"><value>Fecha y hora</value></data>
+  <data name="Timestamp display" xml:space="preserve"><value>Visualización de fecha y hora</value></data>
+  <data name="This preference follows your BillWatch account across devices." xml:space="preserve"><value>Esta preferencia sigue tu cuenta de BillWatch en todos tus dispositivos.</value></data>
+  <data name="Loading preference…" xml:space="preserve"><value>Cargando preferencia…</value></data>
+  <data name="Timestamp format" xml:space="preserve"><value>Formato de fecha y hora</value></data>
+  <data name="Local — 09/03/2026 12:26 AM" xml:space="preserve"><value>Local — 09/03/2026 12:26 AM</value></data>
+  <data name="UTC — 09/03/2026 06:26 UTC" xml:space="preserve"><value>UTC — 09/03/2026 06:26 UTC</value></data>
+  <data name="Save preference" xml:space="preserve"><value>Guardar preferencia</value></data>
+
+  <data name="BillWatch could not load account security settings." xml:space="preserve"><value>BillWatch no pudo cargar la configuración de seguridad de la cuenta.</value></data>
+  <data name="Enter the new email address and your current password." xml:space="preserve"><value>Introduce la nueva dirección de correo y tu contraseña actual.</value></data>
+  <data name="Verification email sent to the new address." xml:space="preserve"><value>Se envió un correo de verificación a la nueva dirección.</value></data>
+  <data name="Enter your current password and a new password." xml:space="preserve"><value>Introduce tu contraseña actual y una contraseña nueva.</value></data>
+  <data name="The new passwords do not match." xml:space="preserve"><value>Las contraseñas nuevas no coinciden.</value></data>
+  <data name="Password changed successfully." xml:space="preserve"><value>Contraseña cambiada correctamente.</value></data>
+  <data name="Enter your current password to set up two-factor authentication." xml:space="preserve"><value>Introduce tu contraseña actual para configurar la autenticación en dos pasos.</value></data>
+  <data name="Authenticator key created. Verify one code to finish setup." xml:space="preserve"><value>Se creó la clave del autenticador. Verifica un código para terminar la configuración.</value></data>
+  <data name="Enter your current password and the code from your authenticator app." xml:space="preserve"><value>Introduce tu contraseña actual y el código de tu aplicación de autenticación.</value></data>
+  <data name="Two-factor authentication is enabled." xml:space="preserve"><value>La autenticación en dos pasos está activada.</value></data>
+  <data name="New recovery codes generated. Previous codes no longer work." xml:space="preserve"><value>Se generaron nuevos códigos de recuperación. Los códigos anteriores ya no funcionan.</value></data>
+  <data name="Two-factor authentication is disabled." xml:space="preserve"><value>La autenticación en dos pasos está desactivada.</value></data>
+  <data name="Old authenticator disabled. Add the new key and verify a code to re-enable 2FA." xml:space="preserve"><value>El autenticador anterior se desactivó. Añade la nueva clave y verifica un código para volver a activar la autenticación en dos pasos.</value></data>
+  <data name="Enter your current password and current authenticator code." xml:space="preserve"><value>Introduce tu contraseña actual y el código actual del autenticador.</value></data>
+  <data name="Timestamp preference saved." xml:space="preserve"><value>Preferencia de fecha y hora guardada.</value></data>
+  <data name="BillWatch could not complete that account security change." xml:space="preserve"><value>BillWatch no pudo completar ese cambio de seguridad de la cuenta.</value></data>
+</root>
