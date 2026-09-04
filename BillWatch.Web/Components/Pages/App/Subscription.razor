@@ -37,7 +37,7 @@
                     <span class="subscription-state active">@L["Active"]</span>
                     <h2>@L["BillWatch access is active"]</h2>
                     <p>
-                        @L["{0} access", _status.Tier ?? L["BillWatch"]] ·
+                        @L["{0} access", _status.Tier ?? "BillWatch"] ·
                         @if (_status.EndsAtUtc is null)
                         {
                             <text>@L["Lifetime access"]</text>
