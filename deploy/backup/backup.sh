@@ -37,10 +37,59 @@ complete_tag="billwatch-complete"
 bundle_path="/work/bundle"
 restore_path="/work/restore"
 restore_database_host="${RESTORE_DATABASE_HOST:-restore-database}"
+retention_enabled="${BILLWATCH_BACKUP_RETENTION_ENABLED:-false}"
+retention_keep_daily="${BILLWATCH_BACKUP_KEEP_DAILY:-14}"
+retention_keep_weekly="${BILLWATCH_BACKUP_KEEP_WEEKLY:-8}"
+retention_keep_monthly="${BILLWATCH_BACKUP_KEEP_MONTHLY:-12}"
+retention_keep_yearly="${BILLWATCH_BACKUP_KEEP_YEARLY:-3}"
 
 cleanup_work()
 {
     rm -rf "$bundle_path" "$restore_path"
+}
+
+require_positive_integer()
+{
+    name="$1"
+    value="$2"
+
+    case "$value" in
+        ''|*[!0-9]*)
+            echo "$name must be a positive integer." >&2
+            exit 64
+            ;;
+    esac
+
+    if [ "$value" -lt 1 ]; then
+        echo "$name must be at least 1." >&2
+        exit 64
+    fi
+}
+
+validate_retention_policy()
+{
+    case "$retention_enabled" in
+        true|false) ;;
+        *)
+            echo "BILLWATCH_BACKUP_RETENTION_ENABLED must be true or false." >&2
+            exit 64
+            ;;
+    esac
+
+    require_positive_integer BILLWATCH_BACKUP_KEEP_DAILY "$retention_keep_daily"
+    require_positive_integer BILLWATCH_BACKUP_KEEP_WEEKLY "$retention_keep_weekly"
+    require_positive_integer BILLWATCH_BACKUP_KEEP_MONTHLY "$retention_keep_monthly"
+    require_positive_integer BILLWATCH_BACKUP_KEEP_YEARLY "$retention_keep_yearly"
+
+    if [ "$retention_enabled" = true ]; then
+        if [ "$retention_keep_daily" -lt 14 ] ||
+           [ "$retention_keep_weekly" -lt 8 ] ||
+           [ "$retention_keep_monthly" -lt 12 ] ||
+           [ "$retention_keep_yearly" -lt 3 ]; then
+            echo "BillWatch backup retention cannot be configured below 14 daily, 8 weekly, 12 monthly, and 3 yearly completed snapshots." >&2
+            exit 64
+        fi
+    fi
 }
 
 require_repository()
@@ -56,8 +105,45 @@ initialize_repository()
     restic init
 }
 
+apply_retention_policy()
+{
+    validate_retention_policy
+    require_repository
+
+    if [ "$retention_enabled" != true ]; then
+        echo "BillWatch backup retention is disabled."
+        return 0
+    fi
+
+    restic forget \
+        --host "$backup_host" \
+        --tag "$complete_tag" \
+        --keep-daily "$retention_keep_daily" \
+        --keep-weekly "$retention_keep_weekly" \
+        --keep-monthly "$retention_keep_monthly" \
+        --keep-yearly "$retention_keep_yearly" \
+        --prune
+
+    restic check
+
+    echo "BillWatch backup retention applied: daily=$retention_keep_daily weekly=$retention_keep_weekly monthly=$retention_keep_monthly yearly=$retention_keep_yearly."
+}
+
+print_retention_policy()
+{
+    validate_retention_policy
+
+    if [ "$retention_enabled" != true ]; then
+        echo "BillWatch backup retention is disabled." >&2
+        exit 69
+    fi
+
+    echo "BillWatch backup retention is enabled: daily=$retention_keep_daily weekly=$retention_keep_weekly monthly=$retention_keep_monthly yearly=$retention_keep_yearly."
+}
+
 create_backup()
 {
+    validate_retention_policy
     require_repository
     cleanup_work
     mkdir -p "$bundle_path"
@@ -143,6 +229,10 @@ create_backup()
     rm -f "$backup_output"
 
     echo "Encrypted backup completed as snapshot $snapshot_id."
+
+    if [ "$retention_enabled" = true ]; then
+        apply_retention_policy
+    fi
 }
 
 list_completed_snapshot()
@@ -285,9 +375,11 @@ case "${1:-backup}" in
     init) initialize_repository ;;
     backup) create_backup ;;
     snapshot) list_completed_snapshot ;;
+    retention) apply_retention_policy ;;
+    policy) print_retention_policy ;;
     verify) verify_restore ;;
     *)
-        echo "Supported commands: init, backup, snapshot, verify." >&2
+        echo "Supported commands: init, backup, snapshot, retention, policy, verify." >&2
         exit 64
         ;;
 esac

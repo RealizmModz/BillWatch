@@ -108,6 +108,18 @@ validate_public_hostname()
     esac
 }
 
+validate_positive_integer()
+{
+    key=$1
+    value=$2
+
+    case "$value" in
+        ''|*[!0-9]*) fail "$key must be a positive integer." ;;
+    esac
+
+    [ "$value" -ge 1 ] || fail "$key must be at least 1."
+}
+
 host=$(read_value BILLWATCH_HOST)
 web_host=$(read_value BILLWATCH_WEB_HOST)
 release_id=$(read_value BILLWATCH_RELEASE_ID)
@@ -152,9 +164,7 @@ esac
 
 case "$acme_email" in
     *@*.*) ;;
-    *)
-        fail "ACME_EMAIL must be a valid operational email address."
-        ;;
+    *) fail "ACME_EMAIL must be a valid operational email address." ;;
 esac
 
 [ "${#database_password}" -ge 32 ] ||
@@ -165,9 +175,7 @@ esac
 
 case "$plaid_environment" in
     sandbox|production) ;;
-    *)
-        fail "PLAID_ENVIRONMENT must be sandbox or production."
-        ;;
+    *) fail "PLAID_ENVIRONMENT must be sandbox or production." ;;
 esac
 
 identity_email_enabled=$(read_optional_value BILLWATCH_IDENTITY_EMAIL_ENABLED)
@@ -175,9 +183,7 @@ identity_email_enabled=$(read_optional_value BILLWATCH_IDENTITY_EMAIL_ENABLED)
 
 case "$identity_email_enabled" in
     true|false) ;;
-    *)
-        fail "BILLWATCH_IDENTITY_EMAIL_ENABLED must be true or false when present."
-        ;;
+    *) fail "BILLWATCH_IDENTITY_EMAIL_ENABLED must be true or false when present." ;;
 esac
 
 if [ "$identity_email_enabled" = "true" ]; then
@@ -195,9 +201,7 @@ if [ "$identity_email_enabled" = "true" ]; then
 
     case "$identity_from_address" in
         *@*.*) ;;
-        *)
-            fail "BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS must be a valid sender email address."
-            ;;
+        *) fail "BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS must be a valid sender email address." ;;
     esac
 fi
 
@@ -206,9 +210,7 @@ stripe_enabled=$(read_optional_value BILLWATCH_STRIPE_ENABLED)
 
 case "$stripe_enabled" in
     true|false) ;;
-    *)
-        fail "BILLWATCH_STRIPE_ENABLED must be true or false when present."
-        ;;
+    *) fail "BILLWATCH_STRIPE_ENABLED must be true or false when present." ;;
 esac
 
 if [ "$stripe_enabled" = "true" ]; then
@@ -256,14 +258,71 @@ case "$restic_repository" in
         fail "RESTIC_REPOSITORY must be an off-host repository."
         ;;
     *:*) ;;
-    *)
-        fail "RESTIC_REPOSITORY must use an explicit remote backend."
-        ;;
+    *) fail "RESTIC_REPOSITORY must use an explicit remote backend." ;;
 esac
 
 printf '%s' "$backup_work_size" |
     grep -Eq '^[1-9][0-9]*[mMgG]$' ||
     fail "BILLWATCH_BACKUP_WORK_SIZE must be a positive value such as 8g."
+
+backup_retention_enabled=$(read_optional_value BILLWATCH_BACKUP_RETENTION_ENABLED)
+[ -n "$backup_retention_enabled" ] || backup_retention_enabled=false
+
+case "$backup_retention_enabled" in
+    true|false) ;;
+    *) fail "BILLWATCH_BACKUP_RETENTION_ENABLED must be true or false when present." ;;
+esac
+
+backup_keep_daily=$(read_optional_value BILLWATCH_BACKUP_KEEP_DAILY)
+backup_keep_weekly=$(read_optional_value BILLWATCH_BACKUP_KEEP_WEEKLY)
+backup_keep_monthly=$(read_optional_value BILLWATCH_BACKUP_KEEP_MONTHLY)
+backup_keep_yearly=$(read_optional_value BILLWATCH_BACKUP_KEEP_YEARLY)
+
+[ -n "$backup_keep_daily" ] || backup_keep_daily=14
+[ -n "$backup_keep_weekly" ] || backup_keep_weekly=8
+[ -n "$backup_keep_monthly" ] || backup_keep_monthly=12
+[ -n "$backup_keep_yearly" ] || backup_keep_yearly=3
+
+validate_positive_integer BILLWATCH_BACKUP_KEEP_DAILY "$backup_keep_daily"
+validate_positive_integer BILLWATCH_BACKUP_KEEP_WEEKLY "$backup_keep_weekly"
+validate_positive_integer BILLWATCH_BACKUP_KEEP_MONTHLY "$backup_keep_monthly"
+validate_positive_integer BILLWATCH_BACKUP_KEEP_YEARLY "$backup_keep_yearly"
+
+if [ "$backup_retention_enabled" = true ]; then
+    [ "$backup_keep_daily" -ge 14 ] || fail "BILLWATCH_BACKUP_KEEP_DAILY cannot be below 14 when retention is enabled."
+    [ "$backup_keep_weekly" -ge 8 ] || fail "BILLWATCH_BACKUP_KEEP_WEEKLY cannot be below 8 when retention is enabled."
+    [ "$backup_keep_monthly" -ge 12 ] || fail "BILLWATCH_BACKUP_KEEP_MONTHLY cannot be below 12 when retention is enabled."
+    [ "$backup_keep_yearly" -ge 3 ] || fail "BILLWATCH_BACKUP_KEEP_YEARLY cannot be below 3 when retention is enabled."
+fi
+
+operations_alerting_enabled=$(read_optional_value BILLWATCH_OPERATIONS_ALERTING_ENABLED)
+[ -n "$operations_alerting_enabled" ] || operations_alerting_enabled=false
+
+case "$operations_alerting_enabled" in
+    true|false) ;;
+    *) fail "BILLWATCH_OPERATIONS_ALERTING_ENABLED must be true or false when present." ;;
+esac
+
+if [ "$operations_alerting_enabled" = true ]; then
+    operations_alert_webhook_url=$(read_optional_value BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL)
+
+    [ -n "$operations_alert_webhook_url" ] ||
+        fail "BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL is required when operations alerting is enabled."
+
+    case "$operations_alert_webhook_url" in
+        https://*) ;;
+        *) fail "BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL must use HTTPS." ;;
+    esac
+
+    case "$operations_alert_webhook_url" in
+        *replace-with*|*example.com*|*placeholder*|*change-me*|*changeme*)
+            fail "BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL still contains an example or placeholder value."
+            ;;
+        *[[:space:]]*|*\"*|*\'*|*\`*|*\\*)
+            fail "BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL contains whitespace, quoting, interpolation, or unsupported characters."
+            ;;
+    esac
+fi
 
 case "$restic_repository" in
     s3:*)

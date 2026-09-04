@@ -66,8 +66,9 @@ Do not enable subscription enforcement merely because this checklist exists. Enf
 - [ ] Restic repository is confirmed off-host.
 - [ ] Clean-host restore drill succeeds.
 - [ ] Database, statements, and Data Protection keys restore coherently.
-- [ ] Backup retention/immutability policy is established.
-- [ ] Backup failure alerting is configured and tested.
+- [ ] Repository retention is explicitly enabled at or above 14 daily / 8 weekly / 12 monthly / 3 yearly completed snapshots.
+- [ ] Provider-side immutable/Object-Lock/WORM or equivalent protection is configured and recovery from that protected storage has been tested.
+- [ ] Backup failure alerting is configured and a manual `readiness-test` event is observed in the external alert destination.
 - [ ] External readiness monitor is configured and a forced-failure notification is proven.
 - [ ] Controlled VPS reboot returns BillWatch to healthy automatically.
 

@@ -36,9 +36,11 @@ This composes the production verification with:
 - exactly-one-Owner verification;
 - confirmation that subscription enforcement remains disabled;
 - enabled/active daily backup timer verification;
-- existence of a completed encrypted `billwatch-complete` Restic snapshot.
+- existence of a completed encrypted `billwatch-complete` Restic snapshot;
+- enabled backup retention at or above BillWatch's minimum retention floors;
+- installed backup-failure alert routing with an HTTPS external webhook configured.
 
-Passing this command does **not** prove the browser, Plaid, provider-statement, clean-host restore, reboot, or alert-delivery gates. Those remain explicit operator checks in `deploy/README-BETA-CHECKLIST.md`.
+Passing this command does **not** prove the browser, Plaid, provider-statement, clean-host restore, controlled reboot, storage-provider immutability, or actual external alert delivery. Those remain explicit operator checks in `deploy/README-BETA-CHECKLIST.md`.
 
 ## First Owner
 
@@ -88,6 +90,18 @@ Then inspect its status without printing secrets:
 sudo systemctl status billwatch-backup.service --no-pager
 ```
 
+Install all backup/alert systemd units together so `OnFailure` routing cannot point at a missing template:
+
+```sh
+sudo cp \
+  deploy/systemd/billwatch-backup.service \
+  deploy/systemd/billwatch-backup.timer \
+  deploy/systemd/billwatch-operations-alert@.service \
+  /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now billwatch-backup.timer
+```
+
 Verify the timer with:
 
 ```sh
@@ -99,6 +113,53 @@ Verify a completed encrypted snapshot with:
 ```sh
 sh deploy/check-backup-snapshot.sh /opt/billwatch
 ```
+
+### Retention
+
+Retention is intentionally opt-in and applies only to completed `billwatch-complete` snapshots. Configure at least:
+
+```text
+BILLWATCH_BACKUP_RETENTION_ENABLED=true
+BILLWATCH_BACKUP_KEEP_DAILY=14
+BILLWATCH_BACKUP_KEEP_WEEKLY=8
+BILLWATCH_BACKUP_KEEP_MONTHLY=12
+BILLWATCH_BACKUP_KEEP_YEARLY=3
+```
+
+The backup container refuses a lower policy before any `restic forget --prune` operation. Each successful backup applies the enabled retention policy only after the new snapshot has passed `restic check` and been promoted from the candidate tag to `billwatch-complete`.
+
+Verify configuration non-destructively with:
+
+```sh
+sh deploy/check-backup-policy.sh /opt/billwatch
+```
+
+This repository-level policy does **not** provide immutability against a compromised host that possesses delete-capable storage credentials. Configure provider-side Object Lock/WORM/append-only retention where supported, and use separate backup-write versus retention-delete credentials when possible.
+
+### Backup-failure alerts
+
+Configure a private HTTPS webhook in `.env.production`:
+
+```text
+BILLWATCH_OPERATIONS_ALERTING_ENABLED=true
+BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL=https://your-private-alert-endpoint.example/path
+```
+
+`billwatch-backup.service` uses systemd `OnFailure` to invoke the dedicated alert unit. The alert payload contains only a fixed BillWatch source identifier, event name, systemd unit name, hostname, and UTC timestamp. It does not attach service logs, financial data, request bodies, credentials, or tokens.
+
+Verify local wiring without sending an alert:
+
+```sh
+sh deploy/check-operations-alerting.sh /opt/billwatch
+```
+
+Then prove real external delivery once before beta invitations:
+
+```sh
+sh deploy/send-operations-alert.sh /opt/billwatch readiness-test manual
+```
+
+Confirm the external system received the test event. A configured-but-unproven webhook does not close the external alert-delivery gate.
 
 Do not remove a backup lock unless you have first confirmed no backup process is active.
 
