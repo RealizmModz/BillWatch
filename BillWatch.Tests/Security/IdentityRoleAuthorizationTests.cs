@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using BillWatch.API.Authorization;
 using BillWatch.API.Data.Entities;
+using BillWatch.Core.Legal;
 using BillWatch.Tests.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -155,7 +156,9 @@ public sealed class IdentityRoleAuthorizationTests
                 new
                 {
                     email,
-                    password = Password
+                    password = Password,
+                    acceptedTermsAndPrivacy = true,
+                    legalTermsVersion = BillWatchLegalDocuments.CurrentVersion
                 });
 
         registerResponse.EnsureSuccessStatusCode();

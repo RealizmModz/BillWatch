@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
@@ -140,6 +140,8 @@ public sealed class WebAuthenticationService
             HttpContext httpContext,
             string email,
             string password,
+            bool acceptedTermsAndPrivacy,
+            string legalTermsVersion,
             CancellationToken cancellationToken = default)
     {
         email =
@@ -156,7 +158,9 @@ public sealed class WebAuthenticationService
                 new
                 {
                     email,
-                    password
+                    password,
+                    acceptedTermsAndPrivacy,
+                    legalTermsVersion
                 },
                 cancellationToken);
 

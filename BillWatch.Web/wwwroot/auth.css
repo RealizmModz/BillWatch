@@ -262,6 +262,39 @@
             color: #667ef3;
         }
 
+.legal-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 13px;
+    border: 1px solid var(--bw-border);
+    border-radius: 12px;
+    color: var(--bw-text-muted);
+    background: rgba(100, 120, 170, 0.035);
+    font-size: 0.72rem;
+    line-height: 1.55;
+    cursor: pointer;
+}
+
+    .legal-consent input {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+        margin: 2px 0 0;
+        accent-color: #536df2;
+    }
+
+    .legal-consent a {
+        color: #8095ff;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+        .legal-consent a:hover,
+        .legal-consent a:focus-visible {
+            text-decoration: underline;
+        }
+
 .auth-choice-separator {
     display: flex;
     align-items: center;

@@ -141,7 +141,7 @@ jobs:
           curl --fail --silent --show-error --insecure \
             --request POST https://localhost/api/auth/register \
             --header 'Content-Type: application/json' \
-            --data "{\"email\":\"${email}\",\"password\":\"${password}\"}" \
+            --data "{\"email\":\"${email}\",\"password\":\"${password}\",\"acceptedTermsAndPrivacy\":true,\"legalTermsVersion\":\"2026-09-04-beta\"}" \
             >/dev/null
           login_json="$(curl --fail --silent --show-error --insecure \
             --request POST https://localhost/api/auth/login \

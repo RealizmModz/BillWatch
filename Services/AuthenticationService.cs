@@ -47,6 +47,8 @@ public sealed class AuthenticationService
     public async Task RegisterAsync(
         string email,
         string password,
+        bool acceptedTermsAndPrivacy,
+        string legalTermsVersion,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(
@@ -65,6 +67,13 @@ public sealed class AuthenticationService
                 nameof(password));
         }
 
+        if (!acceptedTermsAndPrivacy ||
+            string.IsNullOrWhiteSpace(legalTermsVersion))
+        {
+            throw new AccountRegistrationException(
+                "Accept the current BillWatch Terms and Privacy Notice to create an account.");
+        }
+
         using var response =
             await _httpClient
                 .PostAsJsonAsync(
@@ -74,7 +83,9 @@ public sealed class AuthenticationService
                         email =
                             email.Trim(),
 
-                        password
+                        password,
+                        acceptedTermsAndPrivacy,
+                        legalTermsVersion
                     },
                     cancellationToken);
 
@@ -109,6 +120,14 @@ public sealed class AuthenticationService
                     "An account with that email already exists. Sign in instead.");
             }
 
+            if (responseBody.Contains(
+                    "Terms and Privacy Notice",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AccountRegistrationException(
+                    "Accept the current BillWatch Terms and Privacy Notice to create an account.");
+            }
+
             throw new AccountRegistrationException(
                 "BillWatch could not create the account. Use a valid email and a password with at least 12 characters, including uppercase, lowercase, a number, and a symbol.");
         }
@@ -134,11 +153,15 @@ public sealed class AuthenticationService
     public async Task RegisterAndLoginAsync(
         string email,
         string password,
+        bool acceptedTermsAndPrivacy,
+        string legalTermsVersion,
         CancellationToken cancellationToken = default)
     {
         await RegisterAsync(
             email,
             password,
+            acceptedTermsAndPrivacy,
+            legalTermsVersion,
             cancellationToken);
 
         await LoginAsync(
@@ -206,11 +229,6 @@ public sealed class AuthenticationService
         }
         catch (HttpRequestException)
         {
-            /*
-             * Preserve a refresh token through a temporary network
-             * outage. Network failure is not proof that the session
-             * itself is invalid.
-             */
             return !string.IsNullOrWhiteSpace(
                 refreshToken);
         }

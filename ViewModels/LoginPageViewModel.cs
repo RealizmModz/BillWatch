@@ -1,3 +1,4 @@
+using BillWatch.Core.Legal;
 using BillWatch.Services;
 using System.ComponentModel;
 using System.Net;
@@ -21,6 +22,7 @@ public sealed class LoginPageViewModel : INotifyPropertyChanged
     private string _errorMessage = string.Empty;
     private bool _isBusy;
     private bool _isCreateAccount;
+    private bool _hasAcceptedTermsAndPrivacy;
 
     public LoginPageViewModel(AuthenticationService authenticationService)
     {
@@ -56,6 +58,17 @@ public sealed class LoginPageViewModel : INotifyPropertyChanged
         {
             if (_confirmPassword == value) return;
             _confirmPassword = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool HasAcceptedTermsAndPrivacy
+    {
+        get => _hasAcceptedTermsAndPrivacy;
+        set
+        {
+            if (_hasAcceptedTermsAndPrivacy == value) return;
+            _hasAcceptedTermsAndPrivacy = value;
             OnPropertyChanged();
         }
     }
@@ -111,6 +124,7 @@ public sealed class LoginPageViewModel : INotifyPropertyChanged
         IsCreateAccount = !IsCreateAccount;
         Password = string.Empty;
         ConfirmPassword = string.Empty;
+        HasAcceptedTermsAndPrivacy = false;
         ErrorMessage = string.Empty;
     }
 
@@ -157,6 +171,12 @@ public sealed class LoginPageViewModel : INotifyPropertyChanged
             return LoginPageDestination.None;
         }
 
+        if (IsCreateAccount && !HasAcceptedTermsAndPrivacy)
+        {
+            ErrorMessage = "Accept the BillWatch Terms and Privacy Notice to create an account.";
+            return LoginPageDestination.None;
+        }
+
         var accountWasCreated = false;
 
         try
@@ -165,10 +185,16 @@ public sealed class LoginPageViewModel : INotifyPropertyChanged
 
             if (IsCreateAccount)
             {
-                await _authenticationService.RegisterAsync(email, Password, cancellationToken);
+                await _authenticationService.RegisterAsync(
+                    email,
+                    Password,
+                    HasAcceptedTermsAndPrivacy,
+                    BillWatchLegalDocuments.CurrentVersion,
+                    cancellationToken);
                 accountWasCreated = true;
                 await _authenticationService.LoginAsync(email, Password, cancellationToken);
                 ClearPasswords();
+                HasAcceptedTermsAndPrivacy = false;
                 return LoginPageDestination.ConnectBank;
             }
 
@@ -186,6 +212,7 @@ public sealed class LoginPageViewModel : INotifyPropertyChanged
         {
             IsCreateAccount = false;
             ClearPasswords();
+            HasAcceptedTermsAndPrivacy = false;
             ErrorMessage = "Your account was created. Sign in with your new password to continue.";
             return LoginPageDestination.None;
         }

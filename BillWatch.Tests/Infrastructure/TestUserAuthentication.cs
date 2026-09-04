@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
+using BillWatch.Core.Legal;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -206,7 +207,9 @@ public static class TestUserAuthentication
                 new
                 {
                     email,
-                    password = DefaultPassword
+                    password = DefaultPassword,
+                    acceptedTermsAndPrivacy = true,
+                    legalTermsVersion = BillWatchLegalDocuments.CurrentVersion
                 },
                 cancellationToken);
 

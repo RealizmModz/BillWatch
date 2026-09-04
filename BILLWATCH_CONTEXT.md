@@ -59,7 +59,7 @@ Production repository path: `/opt/billwatch`
 
 ## PR #44 milestone state
 
-PR #44 contains three substantial overnight commits. Temporary per-file GitHub persistence commits should continue to be reconsolidated into those milestone commits rather than growing hourly history.
+PR #44 is the shared overnight P0 verification PR. Connector persistence may temporarily create per-file commits, but coherent work should be reconsolidated before its definitive milestone CI gate rather than treating hourly runs as commit boundaries.
 
 ### Security and Web/API boundaries
 
@@ -88,55 +88,52 @@ Implemented and regression-tested:
 - Automatic retries stop after a persisted RequiresAttention provider failure while the original exception still propagates.
 - Disconnect revokes provider access, removes local protected credentials/cursor, deactivates accounts, preserves cross-user isolation, handles already-removed Items safely, and preserves local state on other provider failures.
 
-### Recovery, retention, and operations alerts
+### Statement ingestion and client semantics
 
-Implemented:
+Implemented and regression-tested:
+
+- PDF/JPG/JPEG/PNG upload boundaries rely on detected signatures rather than claimed MIME type.
+- Extension/signature mismatches, unsupported extensions, empty files, missing multipart files, and untrusted filenames fail safely without exposing storage paths.
+- Native Tesseract and scanned-PDF OCR coverage already exist in the test suite.
+- Web statement upload polling treats `Processed`, `Failed`, `NeedsOcr`, and `ReadyForParsing` as terminal states so unsupported/manual-review outcomes do not poll forever.
+
+### Recovery, retention, alerts, release integrity, and runtime watchdog
+
+Implemented and regression-tested:
 
 - Guarded encrypted Restic backup workflow and isolated recovery verification.
 - Opt-in retention with minimum enabled floors of 14 daily / 8 weekly / 12 monthly / 3 yearly completed snapshots.
 - Weak/malformed retention is rejected before destructive `restic forget --prune` operations.
-- Retention runs only after a completed backup passes repository verification.
-- Non-destructive retention-policy verification.
-- Backup failures route through a dedicated systemd operations-alert unit.
-- Operations alert payloads contain fixed metadata only and never service logs, financial data, statements, request bodies, credentials, or tokens.
-- Private alert webhook URL remains in protected configuration and out of curl process arguments.
-- Provider-side Object Lock/WORM/append-only protection remains a separate required real-environment beta gate; repository pruning is not treated as equivalent immutability.
-
-### Release/deployment integrity
-
-Implemented and regression-tested:
-
+- Backup/runtime failures route through a metadata-only systemd operations-alert unit whose private HTTPS webhook remains out of process arguments.
+- Provider-side Object Lock/WORM/append-only protection remains a separate required real-environment gate.
 - `.billwatch-release`, `BILLWATCH_RELEASE_ID`, Git HEAD, clean source, and first-party OCI revision labels must agree.
-- Protected release marker is deployment-owned, mode 600, non-symlinked, Git-ignored, untracked, and exactly one lowercase 40-character SHA.
-- Production deployment rejects stale/missing API, Web, or backup image revisions before startup.
-- Existing API/Web/edge runtime must be consistently running and match the last verified release before replacement.
-- Encrypted recovery point is taken before replacing a verified running release.
 - Candidate startup/readiness/HTTP-security failure stops unverified API/Web/edge services while leaving PostgreSQL and the last verified marker untouched.
 - Automatic code rollback is intentionally not performed after candidate startup because forward migrations may already have changed database schema.
+- Runtime watchdog executes the guarded production verifier after boot and repeatedly thereafter, fails on missing trusted state, and alerts without deploying, rolling back, restarting PostgreSQL, or rewriting the release marker.
+- Independent off-host readiness monitoring also exists; real observed forced-failure delivery remains an external proof gate.
 
-### Runtime watchdog / reboot readiness — current slice
+### Terms, Privacy, and registration acceptance — current slice
 
-Implemented on the same third milestone commit and awaiting its definitive CI gate:
+Implemented in the current working tree and awaiting the next definitive full CI gate:
 
-- `billwatch-runtime-readiness.service` runs the complete guarded production verifier as the deployment account.
-- The service requires Docker/network ordering and routes failures through the existing metadata-only operations alert service.
-- Missing `.env.production`, missing `.billwatch-release`, dirty source, stale runtime revisions, unhealthy containers, bad exposure, or public readiness failures are allowed to fail the verifier and alert; systemd conditions do not silently skip missing protected state.
-- `billwatch-runtime-readiness.timer` verifies shortly after boot and then five minutes after each completed verification, avoiding overlapping checks.
-- `deploy/check-runtime-watchdog.sh` verifies installation, enabled/active timer state, safe service wiring, and the next scheduled run.
-- `deploy/verify-beta-readiness.sh` now requires the runtime watchdog.
-- Operations-alert verification now requires both backup and runtime-readiness failure routing.
-- Dedicated shell regression tests cover unit wiring, fail-closed missing-state behavior, scheduling semantics, disabled/inactive timer rejection, beta-readiness integration, and alert integration.
-- CI now runs the runtime-watchdog regression suite.
+- Shared legal contract version: `2026-09-04-beta`.
+- Public Web `/terms` and `/privacy` beta legal drafts describe the current read-only financial-data, statement/OCR, security, retention, and AI/deterministic architecture.
+- Web account creation requires an explicit Terms/Privacy checkbox and submits the exact current legal version.
+- MAUI account creation requires the same explicit checkbox and exposes Terms/Privacy links through the public Web origin.
+- Direct API registration is fail-closed: missing, false, or stale acceptance is rejected before Identity creates a user.
+- Registration request bodies are bounded to 16 KB at the API boundary.
+- Test registration helpers and the production-container recovery fixture submit the current acceptance contract.
+- Integration tests cover missing/false/stale/current acceptance, oversized registration requests, public legal pages, and the required versioned Web consent surface.
 
-The watchdog deliberately does **not** automatically deploy, roll back, restart PostgreSQL, or rewrite the verified release marker. An actual controlled VPS reboot remains a real-host proof gate even after automated watchdog checks pass.
+Important limitation: this slice enforces explicit current-version acceptance at account creation but does **not** create an audit-grade historical consent ledger for existing/future users. Do not claim legal review or compliance completion from this implementation. Qualified counsel review and any future existing-user re-consent/consent-ledger requirements remain separate launch work.
 
 ## Last definitive green baseline
 
-Head `35ce21e9725a7c8c5b8731c79ed50af6c1186ca4` passed BillWatch CI #287 completely before the runtime-watchdog slice was added.
+Head `e0629e7c41455f7f3db0f4f1d1a001ebbf55f600` passed BillWatch CI #313 completely before the current legal-acceptance slice.
 
-That gate covered Release build, EF pending-model verification, full xUnit tests, production operation/release-integrity suites, production API/Web images, HTTPS readiness, HTTP security boundaries, encrypted backup, isolated database/statement/Data Protection restore, and post-recovery API readiness.
+That gate covered Release build, EF pending-model verification, full xUnit tests, production operation/beta/watchdog suites, production API/Web images, HTTPS readiness, HTTP security boundaries, release-label verification, encrypted backup creation, isolated database/statement/Data Protection restore, and post-recovery API readiness.
 
-The runtime-watchdog head must receive a new complete CI gate before the current milestone is considered closed.
+The legal-acceptance working tree must receive a new complete CI/container/recovery gate before this milestone is considered closed.
 
 ## Production backup / operations state
 
@@ -165,13 +162,15 @@ Implemented alerts include bill increase/decrease, new fee, removed discount, ev
 - AI-derived persistence remains disabled.
 - Startup EF migrations mean production should remain one API instance until migration ownership is redesigned.
 - Never run `docker compose down --volumes` against production.
+- Beta Terms/Privacy documents are operational drafts, not a substitute for qualified legal review before broader public/commercial launch.
 
 ## Immediate resume point
 
-1. Reconsolidate the runtime-watchdog/context persistence commits into the existing third substantial milestone commit.
-2. Run one definitive full CI/container/recovery gate on that exact consolidated head.
-3. Fix any failure caused by current work before progressing.
-4. If green, keep PR #44 draft/unmerged and continue the remaining real-environment or automatable P0 beta-readiness gates without reopening already-green audits.
+1. Finish consistency review of the versioned Terms/Privacy registration-acceptance slice.
+2. Reconsolidate its temporary persistence commits onto the last green baseline rather than leaving per-file history.
+3. Run one definitive full CI/container/recovery gate on the exact consolidated head.
+4. Fix any failure caused by current work before progressing.
+5. If green, keep PR #44 draft/unmerged and continue only genuinely remaining P0 gates; do not duplicate already-green off-host-monitor, statement/OCR, security, or recovery audits.
 
 ## Remaining private-beta launch gates
 
@@ -181,14 +180,14 @@ Before trusted external beta invitations:
 - production Owner/Admin browser/API smoke after guarded deployment;
 - real access-key create/redeem/revoke smoke;
 - Plaid Hosted Link, RequiresAttention, update-mode reconnect, and disconnect smoke with real sandbox/production configuration;
-- real PDF/JPG/PNG/OCR statement fixtures and ownership checks;
+- real representative PDF/JPG/PNG statement fixtures against production-like configuration and ownership checks;
 - real clean-host/off-host recovery drill;
 - provider-side immutable backup protection and recovery proof;
 - observed external operations-alert delivery;
-- independent external readiness monitoring with forced-failure proof;
+- independent external readiness monitoring forced-failure proof;
 - controlled VPS reboot/recovery test;
 - internal Beta 0 on real bills before inviting 3–5 trusted testers;
-- Terms/Privacy review before broader public beta.
+- qualified Terms/Privacy review before broader public/commercial beta.
 
 ## Development workflow
 
