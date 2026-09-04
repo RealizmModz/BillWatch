@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Owner is protected from normal staff and entitlement mutations." xml:space="preserve"><value>La cuenta de Propietario está protegida contra cambios normales de personal y acceso.</value></data>
+  <data name="Confirm: {0}" xml:space="preserve"><value>Confirmar: {0}</value></data>
+  <data name="Working…" xml:space="preserve"><value>Procesando…</value></data>
+  <data name="Confirm" xml:space="preserve"><value>Confirmar</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="Remove admin" xml:space="preserve"><value>Quitar administrador</value></data>
+  <data name="Make admin" xml:space="preserve"><value>Hacer administrador</value></data>
+  <data name="Remove moderator" xml:space="preserve"><value>Quitar moderador</value></data>
+  <data name="Make moderator" xml:space="preserve"><value>Hacer moderador</value></data>
+  <data name="Remove beta tester" xml:space="preserve"><value>Quitar evaluador beta</value></data>
+  <data name="Add beta tester" xml:space="preserve"><value>Agregar evaluador beta</value></data>
+  <data name="Remove internal tester" xml:space="preserve"><value>Quitar evaluador interno</value></data>
+  <data name="Add internal tester" xml:space="preserve"><value>Agregar evaluador interno</value></data>
+  <data name="Grant 30 days" xml:space="preserve"><value>Otorgar 30 días</value></data>
+  <data name="Grant lifetime" xml:space="preserve"><value>Otorgar acceso de por vida</value></data>
+  <data name="Grant Standard access for 30 days" xml:space="preserve"><value>Otorgar acceso Estándar por 30 días</value></data>
+  <data name="Grant lifetime Standard access" xml:space="preserve"><value>Otorgar acceso Estándar de por vida</value></data>
+  <data name="Assign {0} role" xml:space="preserve"><value>Asignar el rol {0}</value></data>
+  <data name="Remove {0} role" xml:space="preserve"><value>Quitar el rol {0}</value></data>
+  <data name="Add {0} membership" xml:space="preserve"><value>Agregar membresía de {0}</value></data>
+  <data name="Remove {0} membership" xml:space="preserve"><value>Quitar membresía de {0}</value></data>
+  <data name="BillWatch blocked that change because your staff role cannot manage this account." xml:space="preserve"><value>BillWatch bloqueó ese cambio porque tu rol de personal no puede administrar esta cuenta.</value></data>
+  <data name="BillWatch could not complete that administrative change." xml:space="preserve"><value>BillWatch no pudo completar ese cambio administrativo.</value></data>
+  <data name="Owner" xml:space="preserve"><value>Propietario</value></data>
+  <data name="Admin" xml:space="preserve"><value>Administrador</value></data>
+  <data name="Moderator" xml:space="preserve"><value>Moderador</value></data>
+  <data name="beta tester" xml:space="preserve"><value>evaluador beta</value></data>
+  <data name="internal tester" xml:space="preserve"><value>evaluador interno</value></data>
+</root>
