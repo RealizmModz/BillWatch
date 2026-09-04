@@ -6,9 +6,13 @@ public sealed class StatementUploadStatusSemanticsTests
 {
     [Theory]
     [InlineData("Processed")]
+    [InlineData("processed")]
     [InlineData("Failed")]
+    [InlineData("failed")]
     [InlineData("NeedsOcr")]
+    [InlineData("needsocr")]
     [InlineData("ReadyForParsing")]
+    [InlineData("readyforparsing")]
     public void StableStatementStatuses_AreTerminal(
         string status)
     {
@@ -36,6 +40,10 @@ public sealed class StatementUploadStatusSemanticsTests
         Assert.True(
             StatementUploadStatusSemantics.IsProcessed(
                 "Processed"));
+
+        Assert.True(
+            StatementUploadStatusSemantics.IsProcessed(
+                "processed"));
 
         Assert.False(
             StatementUploadStatusSemantics.IsProcessed(
