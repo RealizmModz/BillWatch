@@ -3,6 +3,131 @@
 const statementFileSizeLimit =
     15 * 1024 * 1024;
 
+const plaidUiText = {
+    en: {
+        preparingWindow:
+            "Preparing secure bank connection…",
+
+        defaultInstitution:
+            "Your bank",
+
+        canceled:
+            "Bank connection was canceled.",
+
+        expired:
+            "The secure Plaid session expired. Try again.",
+
+        completionFailed:
+            "The bank connection could not be completed.",
+
+        waitTimedOut:
+            "BillWatch stopped waiting for the Plaid session. You can try again.",
+
+        popupBlocked:
+            "Your browser blocked the Plaid window. Allow pop-ups for BillWatch and try again.",
+
+        preparing:
+            "Preparing…",
+
+        preparingConnection:
+            "Preparing secure connection with Plaid…",
+
+        finishConnection:
+            "Complete the secure connection in the Plaid window. BillWatch is waiting…",
+
+        connected:
+            institution =>
+                `${institution} is connected. BillWatch will begin automatic monitoring.`,
+
+        connectionFailed:
+            "BillWatch could not start or complete the secure bank connection.",
+
+        preparingReauthorization:
+            institution =>
+                `Preparing secure reauthorization for ${institution}…`,
+
+        finishReauthorization:
+            "Finish reauthorizing the connection in the Plaid window. BillWatch is waiting…",
+
+        reconnected:
+            institution =>
+                `${institution} is reconnected. Automatic monitoring will resume.`,
+
+        reauthorizationFailed:
+            institution =>
+                `BillWatch could not reauthorize ${institution}.`
+    },
+
+    es: {
+        preparingWindow:
+            "Preparando la conexión bancaria segura…",
+
+        defaultInstitution:
+            "Tu banco",
+
+        canceled:
+            "Se canceló la conexión bancaria.",
+
+        expired:
+            "La sesión segura de Plaid caducó. Inténtalo de nuevo.",
+
+        completionFailed:
+            "No se pudo completar la conexión bancaria.",
+
+        waitTimedOut:
+            "BillWatch dejó de esperar la sesión de Plaid. Puedes intentarlo de nuevo.",
+
+        popupBlocked:
+            "Tu navegador bloqueó la ventana de Plaid. Permite las ventanas emergentes para BillWatch e inténtalo de nuevo.",
+
+        preparing:
+            "Preparando…",
+
+        preparingConnection:
+            "Preparando la conexión segura con Plaid…",
+
+        finishConnection:
+            "Completa la conexión segura en la ventana de Plaid. BillWatch está esperando…",
+
+        connected:
+            institution =>
+                `La conexión con ${institution} está activa. BillWatch comenzará el monitoreo automático.`,
+
+        connectionFailed:
+            "BillWatch no pudo iniciar o completar la conexión bancaria segura.",
+
+        preparingReauthorization:
+            institution =>
+                `Preparando la reautorización segura de ${institution}…`,
+
+        finishReauthorization:
+            "Termina de reautorizar la conexión en la ventana de Plaid. BillWatch está esperando…",
+
+        reconnected:
+            institution =>
+                `La conexión con ${institution} se restableció. El monitoreo automático se reanudará.`,
+
+        reauthorizationFailed:
+            institution =>
+                `BillWatch no pudo reautorizar la conexión con ${institution}.`
+    }
+};
+
+function getPlaidUiText() {
+    const language =
+        document.documentElement
+            ?.lang
+            ?.trim()
+            ?.toLowerCase() ?? "";
+
+    if (language === "es" ||
+        language.startsWith("es-")) {
+        return plaidUiText.es;
+    }
+
+    return plaidUiText.en;
+}
+
 async function getSafeErrorMessage(
     response) {
 
@@ -229,6 +354,9 @@ function openPlaidWindow() {
         return null;
     }
 
+    const text =
+        getPlaidUiText();
+
     try {
         plaidWindow.opener =
             null;
@@ -236,8 +364,22 @@ function openPlaidWindow() {
         plaidWindow.document.title =
             "BillWatch";
 
-        plaidWindow.document.body.innerHTML =
-            "<p style=\"font-family:system-ui;padding:30px\">Preparing secure bank connection…</p>";
+        const message =
+            plaidWindow.document.createElement(
+                "p");
+
+        message.style.fontFamily =
+            "system-ui";
+
+        message.style.padding =
+            "30px";
+
+        message.textContent =
+            text.preparingWindow;
+
+        plaidWindow.document.body
+            .replaceChildren(
+                message);
     } catch {
     }
 
@@ -250,6 +392,9 @@ async function waitForPlaidCompletion(
     statusElement,
     completedMessage,
     completedDestination) {
+
+    const text =
+        getPlaidUiText();
 
     const deadline =
         Date.now() +
@@ -281,7 +426,7 @@ async function waitForPlaidCompletion(
             const institution =
                 result?.connection
                     ?.institutionName ??
-                "Your bank";
+                text.defaultInstitution;
 
             setConnectStatus(
                 statusElement,
@@ -309,7 +454,7 @@ async function waitForPlaidCompletion(
             "exited") {
             setConnectStatus(
                 statusElement,
-                "Bank connection was canceled.",
+                text.canceled,
                 "neutral");
 
             return;
@@ -319,7 +464,7 @@ async function waitForPlaidCompletion(
             "expired") {
             setConnectStatus(
                 statusElement,
-                "The secure Plaid session expired. Try again.",
+                text.expired,
                 "error");
 
             return;
@@ -327,7 +472,7 @@ async function waitForPlaidCompletion(
 
         setConnectStatus(
             statusElement,
-            "The bank connection could not be completed.",
+            text.completionFailed,
             "error");
 
         return;
@@ -335,7 +480,7 @@ async function waitForPlaidCompletion(
 
     setConnectStatus(
         statusElement,
-        "BillWatch stopped waiting for the Plaid session. You can try again.",
+        text.waitTimedOut,
         "error");
 }
 
@@ -774,13 +919,16 @@ export function wirePlaidConnectButton(
                 return;
             }
 
+            const text =
+                getPlaidUiText();
+
             const plaidWindow =
                 openPlaidWindow();
 
             if (!plaidWindow) {
                 setConnectStatus(
                     status,
-                    "Your browser blocked the Plaid window. Allow pop-ups for BillWatch and try again.",
+                    text.popupBlocked,
                     "error");
 
                 return;
@@ -796,11 +944,11 @@ export function wirePlaidConnectButton(
                 button.textContent;
 
             button.textContent =
-                "Preparing…";
+                text.preparing;
 
             setConnectStatus(
                 status,
-                "Preparing secure connection with Plaid…",
+                text.preparingConnection,
                 "working");
 
             try {
@@ -824,7 +972,7 @@ export function wirePlaidConnectButton(
 
                 setConnectStatus(
                     status,
-                    "Complete the secure connection in the Plaid window. BillWatch is waiting…",
+                    text.finishConnection,
                     "working");
 
                 await waitForPlaidCompletion(
@@ -832,7 +980,8 @@ export function wirePlaidConnectButton(
                     plaidWindow,
                     status,
                     institution =>
-                        `${institution} is connected. BillWatch will begin automatic monitoring.`,
+                        text.connected(
+                            institution),
                     "/app");
             } catch {
                 try {
@@ -844,7 +993,7 @@ export function wirePlaidConnectButton(
 
                 setConnectStatus(
                     status,
-                    "BillWatch could not start or complete the secure bank connection.",
+                    text.connectionFailed,
                     "error");
             } finally {
                 button.dataset.busy =
@@ -892,13 +1041,16 @@ export function wirePlaidReconnectButton(
                 return;
             }
 
+            const text =
+                getPlaidUiText();
+
             const plaidWindow =
                 openPlaidWindow();
 
             if (!plaidWindow) {
                 setConnectStatus(
                     status,
-                    "Your browser blocked the Plaid window. Allow pop-ups for BillWatch and try again.",
+                    text.popupBlocked,
                     "error");
 
                 return;
@@ -914,15 +1066,16 @@ export function wirePlaidReconnectButton(
                 button.textContent;
 
             button.textContent =
-                "Preparing…";
+                text.preparing;
 
             const displayInstitution =
                 institutionName ||
-                "Your bank";
+                text.defaultInstitution;
 
             setConnectStatus(
                 status,
-                `Preparing secure reauthorization for ${displayInstitution}…`,
+                text.preparingReauthorization(
+                    displayInstitution),
                 "working");
 
             try {
@@ -947,7 +1100,7 @@ export function wirePlaidReconnectButton(
 
                 setConnectStatus(
                     status,
-                    "Finish reauthorizing the connection in the Plaid window. BillWatch is waiting…",
+                    text.finishReauthorization,
                     "working");
 
                 await waitForPlaidCompletion(
@@ -955,7 +1108,8 @@ export function wirePlaidReconnectButton(
                     plaidWindow,
                     status,
                     institution =>
-                        `${institution} is reconnected. Automatic monitoring will resume.`,
+                        text.reconnected(
+                            institution),
                     "/app/account");
             } catch {
                 try {
@@ -967,7 +1121,8 @@ export function wirePlaidReconnectButton(
 
                 setConnectStatus(
                     status,
-                    `BillWatch could not reauthorize ${displayInstitution}.`,
+                    text.reauthorizationFailed(
+                        displayInstitution),
                     "error");
             } finally {
                 button.dataset.busy =
