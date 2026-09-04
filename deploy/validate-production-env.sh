@@ -201,6 +201,56 @@ if [ "$identity_email_enabled" = "true" ]; then
     esac
 fi
 
+stripe_enabled=$(read_optional_value BILLWATCH_STRIPE_ENABLED)
+[ -n "$stripe_enabled" ] || stripe_enabled=false
+
+case "$stripe_enabled" in
+    true|false) ;;
+    *)
+        fail "BILLWATCH_STRIPE_ENABLED must be true or false when present."
+        ;;
+esac
+
+if [ "$stripe_enabled" = "true" ]; then
+    stripe_secret_key=$(read_optional_value STRIPE_SECRET_KEY)
+    stripe_webhook_secret=$(read_optional_value STRIPE_WEBHOOK_SECRET)
+    stripe_monthly_price_id=$(read_optional_value STRIPE_MONTHLY_PRICE_ID)
+    stripe_yearly_price_id=$(read_optional_value STRIPE_YEARLY_PRICE_ID)
+
+    reject_placeholder STRIPE_SECRET_KEY "$stripe_secret_key"
+    reject_placeholder STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
+    reject_placeholder STRIPE_MONTHLY_PRICE_ID "$stripe_monthly_price_id"
+    reject_placeholder STRIPE_YEARLY_PRICE_ID "$stripe_yearly_price_id"
+
+    reject_unsafe_env_value STRIPE_SECRET_KEY "$stripe_secret_key"
+    reject_unsafe_env_value STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
+    reject_unsafe_env_value STRIPE_MONTHLY_PRICE_ID "$stripe_monthly_price_id"
+    reject_unsafe_env_value STRIPE_YEARLY_PRICE_ID "$stripe_yearly_price_id"
+
+    case "$stripe_secret_key" in
+        sk_live_*|sk_test_*) ;;
+        *) fail "STRIPE_SECRET_KEY must be a Stripe secret key." ;;
+    esac
+
+    case "$stripe_webhook_secret" in
+        whsec_*) ;;
+        *) fail "STRIPE_WEBHOOK_SECRET must be a Stripe webhook signing secret." ;;
+    esac
+
+    case "$stripe_monthly_price_id" in
+        price_*) ;;
+        *) fail "STRIPE_MONTHLY_PRICE_ID must be a Stripe price ID." ;;
+    esac
+
+    case "$stripe_yearly_price_id" in
+        price_*) ;;
+        *) fail "STRIPE_YEARLY_PRICE_ID must be a Stripe price ID." ;;
+    esac
+
+    [ "$stripe_monthly_price_id" != "$stripe_yearly_price_id" ] ||
+        fail "Monthly and yearly Stripe price IDs must be different."
+fi
+
 case "$restic_repository" in
     /*|./*|../*|[A-Za-z]:\\*|file:*|local:*)
         fail "RESTIC_REPOSITORY must be an off-host repository."
