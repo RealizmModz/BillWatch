@@ -21,6 +21,7 @@ $root_dir/deploy/check-backup-snapshot.sh
 $root_dir/deploy/check-backup-timer.sh
 $root_dir/deploy/check-operations-alerting.sh
 $root_dir/deploy/send-operations-alert.sh
+$root_dir/deploy/send-readiness-alert.sh
 $root_dir/deploy/run-clean-host-recovery-drill.sh
 $root_dir/deploy/smoke-admin-api.sh
 $root_dir/deploy/smoke-authenticated-api.sh
@@ -66,6 +67,7 @@ sh "$root_dir/deploy/tests/web-bff-smoke-tests.sh" || fail "authenticated Web/BF
 sh "$root_dir/deploy/tests/plaid-lifecycle-smoke-tests.sh" || fail "guarded Plaid lifecycle smoke harness regression suite failed."
 sh "$root_dir/deploy/tests/statement-lifecycle-smoke-tests.sh" || fail "guarded statement lifecycle smoke harness regression suite failed."
 sh "$root_dir/deploy/tests/clean-host-recovery-drill-tests.sh" || fail "clean-host recovery drill regression suite failed."
+sh "$root_dir/deploy/tests/readiness-alert-tests.sh" || fail "external readiness alert regression suite failed."
 
 grep -q 'snapshot) list_completed_snapshot ;;' "$root_dir/deploy/backup/backup.sh" || fail "backup entrypoint must expose the constrained completed-snapshot query."
 grep -q 'retention) apply_retention_policy ;;' "$root_dir/deploy/backup/backup.sh" || fail "backup entrypoint must expose guarded retention application."
@@ -103,6 +105,14 @@ grep -Fq 'chmod 600 "$curl_config"' "$root_dir/deploy/send-operations-alert.sh" 
 grep -Fq -- '--config "$curl_config"' "$root_dir/deploy/send-operations-alert.sh" || fail "operations alert sender must keep the private webhook URL out of curl argv."
 if grep -F -- 'curl "$webhook_url"' "$root_dir/deploy/send-operations-alert.sh" >/dev/null; then fail "operations alert sender must not expose the private webhook URL in process arguments."; fi
 if grep -Eq 'docker compose .*logs|journalctl' "$root_dir/deploy/send-operations-alert.sh"; then fail "operations alert sender must not attach service logs to external alerts."; fi
+
+grep -Fq 'BILLWATCH_READINESS_ALERT_WEBHOOK_URL' "$root_dir/.github/workflows/production-monitor.yml" || fail "external readiness workflow must consume the protected alert webhook secret."
+grep -Fq 'if: ${{ failure() }}' "$root_dir/.github/workflows/production-monitor.yml" || fail "external readiness workflow must deliver alerts after failed readiness jobs."
+grep -Fq 'send-readiness-alert.sh' "$root_dir/.github/workflows/production-monitor.yml" || fail "external readiness workflow must invoke the dedicated alert sender."
+grep -Fq 'chmod 600 "$curl_config"' "$root_dir/deploy/send-readiness-alert.sh" || fail "external readiness alert sender must protect its temporary curl configuration."
+grep -Fq -- '--config "$curl_config"' "$root_dir/deploy/send-readiness-alert.sh" || fail "external readiness alert sender must keep the private webhook URL out of curl argv."
+grep -Fq -- '--max-redirs 0' "$root_dir/deploy/send-readiness-alert.sh" || fail "external readiness alert sender must refuse redirects."
+if grep -Eq 'docker compose .*logs|journalctl' "$root_dir/deploy/send-readiness-alert.sh"; then fail "external readiness alert sender must not attach production logs."; fi
 
 grep -q 'current_user_count <> 1' "$root_dir/deploy/bootstrap-owner.sh" || fail "Owner bootstrap must re-check the single-user invariant inside its transaction."
 grep -q 'current_owner_count <> 0' "$root_dir/deploy/bootstrap-owner.sh" || fail "Owner bootstrap must fail after an Owner already exists."
