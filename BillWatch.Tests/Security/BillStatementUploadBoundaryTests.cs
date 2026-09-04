@@ -23,28 +23,23 @@ public sealed class BillStatementUploadBoundaryTests
         using var client = _factory.CreateHttpsClient();
         await AuthorizeNewUserAsync(client);
         var billStreamId = await CreateBillStreamAsync(client);
-
         var pngBytes = CreatePngBytes();
 
         using var content = CreateMultipartFile(
             pngBytes,
             "utility-statement.png",
             "application/pdf");
-
         using var response = await client.PostAsync(
             $"/api/bill-streams/{billStreamId:D}/statement-uploads",
             content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-
         var result = await ReadUploadAsync(response);
-
         Assert.Equal(billStreamId, result.BillStreamId);
         Assert.Equal("image/png", result.MediaType);
         Assert.Equal(".png", result.FileExtension);
         Assert.Equal(pngBytes.LongLength, result.SizeBytes);
         Assert.Equal("Uploaded", result.Status);
-
         await AssertResponseDoesNotExposeStorageOrOriginalNameAsync(
             response,
             "utility-statement.png");
@@ -59,26 +54,21 @@ public sealed class BillStatementUploadBoundaryTests
         using var client = _factory.CreateHttpsClient();
         await AuthorizeNewUserAsync(client);
         var billStreamId = await CreateBillStreamAsync(client);
-
         var jpegBytes = CreateJpegBytes();
 
         using var content = CreateMultipartFile(
             jpegBytes,
             fileName,
             "application/octet-stream");
-
         using var response = await client.PostAsync(
             $"/api/bill-streams/{billStreamId:D}/statement-uploads",
             content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-
         var result = await ReadUploadAsync(response);
-
         Assert.Equal("image/jpeg", result.MediaType);
         Assert.Equal(".jpg", result.FileExtension);
         Assert.Equal(jpegBytes.LongLength, result.SizeBytes);
-
         await AssertResponseDoesNotExposeStorageOrOriginalNameAsync(
             response,
             fileName);
@@ -95,15 +85,12 @@ public sealed class BillStatementUploadBoundaryTests
             CreatePngBytes(),
             "disguised.pdf",
             "application/pdf");
-
         using var response = await client.PostAsync(
             $"/api/bill-streams/{billStreamId:D}/statement-uploads",
             content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
         var body = await response.Content.ReadAsStringAsync();
-
         Assert.Contains(
             "extension does not match",
             body,
@@ -129,15 +116,12 @@ public sealed class BillStatementUploadBoundaryTests
             CreatePdfBytes(),
             "statement.txt",
             "application/pdf");
-
         using var response = await client.PostAsync(
             $"/api/bill-streams/{billStreamId:D}/statement-uploads",
             content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
         var body = await response.Content.ReadAsStringAsync();
-
         Assert.Contains(
             "Only PDF, JPG, JPEG, and PNG",
             body,
@@ -155,15 +139,12 @@ public sealed class BillStatementUploadBoundaryTests
             [],
             "empty.pdf",
             "application/pdf");
-
         using var response = await client.PostAsync(
             $"/api/bill-streams/{billStreamId:D}/statement-uploads",
             content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
         var body = await response.Content.ReadAsStringAsync();
-
         Assert.Contains(
             "empty",
             body,
@@ -176,13 +157,10 @@ public sealed class BillStatementUploadBoundaryTests
         using var client = _factory.CreateHttpsClient();
         await AuthorizeNewUserAsync(client);
         var billStreamId = await CreateBillStreamAsync(client);
-
         using var content = new MultipartFormDataContent();
-
         using var response = await client.PostAsync(
             $"/api/bill-streams/{billStreamId:D}/statement-uploads",
             content);
-
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -192,7 +170,6 @@ public sealed class BillStatementUploadBoundaryTests
         using var client = _factory.CreateHttpsClient();
         await AuthorizeNewUserAsync(client);
         var billStreamId = await CreateBillStreamAsync(client);
-
         const string untrustedFileName =
             "../../private-account-number-1234.png";
 
@@ -200,16 +177,80 @@ public sealed class BillStatementUploadBoundaryTests
             CreatePngBytes(),
             untrustedFileName,
             "image/png");
-
         using var response = await client.PostAsync(
             $"/api/bill-streams/{billStreamId:D}/statement-uploads",
             content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-
         await AssertResponseDoesNotExposeStorageOrOriginalNameAsync(
             response,
             "private-account-number-1234.png");
+    }
+
+    [Fact]
+    public async Task AcceptedButUnreadablePdf_ReachesFailedTerminalStatusWithoutEvidenceLeak()
+    {
+        using var client = _factory.CreateHttpsClient();
+        await AuthorizeNewUserAsync(client);
+        var billStreamId = await CreateBillStreamAsync(client);
+        const string originalFileName =
+            "private-billing-evidence.pdf";
+
+        using var content = CreateMultipartFile(
+            Encoding.ASCII.GetBytes(
+                "%PDF-1.7\nthis is intentionally not a valid PDF structure"),
+            originalFileName,
+            "application/pdf");
+        using var uploadResponse = await client.PostAsync(
+            $"/api/bill-streams/{billStreamId:D}/statement-uploads",
+            content);
+
+        Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
+        var upload = await ReadUploadAsync(uploadResponse);
+
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+        string? lastStatus = null;
+
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            using var statusResponse = await client.GetAsync(
+                $"/api/bill-streams/{billStreamId:D}/statement-uploads/{upload.Id:D}");
+            Assert.Equal(HttpStatusCode.OK, statusResponse.StatusCode);
+            var statusBody = await statusResponse.Content.ReadAsStringAsync();
+            Assert.DoesNotContain(
+                originalFileName,
+                statusBody,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                "storageKey",
+                statusBody,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                "physicalPath",
+                statusBody,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                "intentionally not a valid PDF structure",
+                statusBody,
+                StringComparison.OrdinalIgnoreCase);
+
+            var status = await statusResponse.Content
+                .ReadFromJsonAsync<BillStatementUploadStatusPayload>();
+            lastStatus = status?.Status;
+
+            if (string.Equals(
+                    lastStatus,
+                    "Failed",
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException(
+            $"Unreadable statement upload did not reach Failed. Last status: {lastStatus ?? "not found"}.");
     }
 
     private static async Task AuthorizeNewUserAsync(
@@ -229,12 +270,9 @@ public sealed class BillStatementUploadBoundaryTests
                 providerName = $"Boundary Test {Guid.NewGuid():N}",
                 category = "Internet"
             });
-
         response.EnsureSuccessStatusCode();
-
         var billStream = await response.Content
             .ReadFromJsonAsync<BillStreamPayload>();
-
         return billStream?.Id
             ?? throw new InvalidOperationException(
                 "The test bill stream response was empty.");
@@ -266,7 +304,6 @@ public sealed class BillStatementUploadBoundaryTests
         string originalFileName)
     {
         var responseText = await response.Content.ReadAsStringAsync();
-
         Assert.DoesNotContain(
             "storageKey",
             responseText,
@@ -313,5 +350,10 @@ public sealed class BillStatementUploadBoundaryTests
         public long SizeBytes { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTimeOffset CreatedAtUtc { get; set; }
+    }
+
+    private sealed class BillStatementUploadStatusPayload
+    {
+        public string Status { get; set; } = string.Empty;
     }
 }
