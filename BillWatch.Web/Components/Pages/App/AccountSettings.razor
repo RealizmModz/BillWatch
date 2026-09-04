@@ -1,5 +1,8 @@
 @page "/app/account/settings"
 
+@using System.Text
+@using QRCoder
+
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 @layout AppLayout
@@ -261,6 +264,20 @@
         @if (_twoFactorSetup is not null)
         {
             <div class="authenticator-setup">
+                @if (!string.IsNullOrWhiteSpace(_twoFactorQrDataUri))
+                {
+                    <div class="authenticator-qr-section">
+                        <div>
+                            <span class="security-label">@L["Scan QR code"]</span>
+                            <p>@L["Scan this QR code with your authenticator app."]</p>
+                        </div>
+
+                        <img class="authenticator-qr"
+                             src="@_twoFactorQrDataUri"
+                             alt="@L["Authenticator setup QR code"]" />
+                    </div>
+                }
+
                 <span class="security-label">@L["Authenticator setup key"]</span>
                 <code>@_twoFactorSetup.SharedKey</code>
                 <p>@L["In your authenticator app, add a TOTP account named BillWatch and enter the key above."]</p>
@@ -364,6 +381,7 @@
     private string? _pageSuccess;
     private AccountSecurityViewModel? _security;
     private TwoFactorSetupViewModel? _twoFactorSetup;
+    private string? _twoFactorQrDataUri;
     private List<string> _recoveryCodes = [];
 
     private string _newEmail = string.Empty;
@@ -510,6 +528,8 @@
                     _twoFactorCurrentPassword,
                     NullIfBlank(_twoFactorCurrentCode));
 
+                _twoFactorQrDataUri = CreateAuthenticatorQrDataUri(
+                    _twoFactorSetup.OtpAuthUri);
                 _twoFactorCurrentPassword = string.Empty;
                 _twoFactorCurrentCode = string.Empty;
                 _pageSuccess = L["Authenticator key created. Verify one code to finish setup."].Value;
@@ -541,6 +561,7 @@
 
                 _recoveryCodes = result.RecoveryCodes.ToList();
                 _twoFactorSetup = null;
+                _twoFactorQrDataUri = null;
                 _twoFactorEnablePassword = string.Empty;
                 _twoFactorEnableCode = string.Empty;
                 _pageSuccess = L["Two-factor authentication is enabled."].Value;
@@ -584,6 +605,7 @@
                     _twoFactorCurrentCode);
 
                 _twoFactorSetup = null;
+                _twoFactorQrDataUri = null;
                 _recoveryCodes.Clear();
                 _pageSuccess = L["Two-factor authentication is disabled."].Value;
                 await RefreshSecurityAsync();
@@ -605,6 +627,8 @@
                     _twoFactorCurrentPassword,
                     _twoFactorCurrentCode);
 
+                _twoFactorQrDataUri = CreateAuthenticatorQrDataUri(
+                    _twoFactorSetup.OtpAuthUri);
                 _recoveryCodes.Clear();
                 _pageSuccess = L["Old authenticator disabled. Add the new key and verify a code to re-enable 2FA."].Value;
                 await RefreshSecurityAsync();
@@ -707,6 +731,25 @@
             : "Local12Hour";
     }
 
+    private static string? CreateAuthenticatorQrDataUri(string? otpAuthUri)
+    {
+        if (string.IsNullOrWhiteSpace(otpAuthUri))
+        {
+            return null;
+        }
+
+        using var generator = new QRCodeGenerator();
+        using var qrCodeData = generator.CreateQrCode(
+            otpAuthUri,
+            QRCodeGenerator.ECCLevel.Q);
+        using var qrCode = new SvgQRCode(qrCodeData);
+
+        var svg = qrCode.GetGraphic(8);
+        var bytes = Encoding.UTF8.GetBytes(svg);
+
+        return $"data:image/svg+xml;base64,{Convert.ToBase64String(bytes)}";
+    }
+
     public async ValueTask DisposeAsync()
     {
         _passwordCurrent = string.Empty;
@@ -719,6 +762,8 @@
         _twoFactorCurrentCode = string.Empty;
         _twoFactorEnablePassword = string.Empty;
         _twoFactorEnableCode = string.Empty;
+        _twoFactorSetup = null;
+        _twoFactorQrDataUri = null;
         _recoveryCodes.Clear();
 
         if (_securityModule is not null)
