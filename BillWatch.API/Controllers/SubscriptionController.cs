@@ -26,14 +26,16 @@ public sealed class SubscriptionController(
     public async Task<ActionResult<SubscriptionStatusResponse>> GetStatus(
         CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(userManager.GetUserId(User), out var userId))
+        var user = await userManager.GetUserAsync(User);
+
+        if (user is null)
         {
             return Unauthorized();
         }
 
         var entitlements = await dbContext.SubscriptionEntitlements
             .AsNoTracking()
-            .Where(candidate => candidate.UserId == userId)
+            .Where(candidate => candidate.UserId == user.Id)
             .ToListAsync(cancellationToken);
 
         var effective = SubscriptionEntitlementRules.SelectEffectiveEntitlement(
@@ -48,7 +50,8 @@ public sealed class SubscriptionController(
             try
             {
                 providerState = await billing.GetCurrentSubscriptionAsync(
-                    userId,
+                    user.Id,
+                    user.Email,
                     cancellationToken);
             }
             catch (StripeBillingException)
@@ -161,7 +164,9 @@ public sealed class SubscriptionController(
     public async Task<ActionResult<SubscriptionRedirectResponse>> CreateBillingPortal(
         CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(userManager.GetUserId(User), out var userId))
+        var user = await userManager.GetUserAsync(User);
+
+        if (user is null)
         {
             return Unauthorized();
         }
@@ -178,7 +183,8 @@ public sealed class SubscriptionController(
         try
         {
             var url = await billing.CreatePortalUrlAsync(
-                userId,
+                user.Id,
+                user.Email,
                 cancellationToken);
 
             return Ok(new SubscriptionRedirectResponse(url));
@@ -199,7 +205,9 @@ public sealed class SubscriptionController(
     public async Task<ActionResult<SubscriptionSyncResponse>> SyncPaidSubscription(
         CancellationToken cancellationToken)
     {
-        if (!Guid.TryParse(userManager.GetUserId(User), out var userId))
+        var user = await userManager.GetUserAsync(User);
+
+        if (user is null)
         {
             return Unauthorized();
         }
@@ -216,7 +224,8 @@ public sealed class SubscriptionController(
         try
         {
             await billing.SyncCurrentSubscriptionAsync(
-                userId,
+                user.Id,
+                user.Email,
                 cancellationToken);
 
             return Ok(new SubscriptionSyncResponse(true));
