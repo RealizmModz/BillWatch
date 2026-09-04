@@ -5,19 +5,27 @@ public static class StatementUploadStatusSemantics
     public static bool IsTerminal(
         string? status)
     {
-        return status is
-            "Processed" or
-            "Failed" or
-            "NeedsOcr" or
-            "ReadyForParsing";
+        return IsStatus(status, "Processed") ||
+               IsStatus(status, "Failed") ||
+               IsStatus(status, "NeedsOcr") ||
+               IsStatus(status, "ReadyForParsing");
     }
 
     public static bool IsProcessed(
         string? status)
     {
-        return string.Equals(
+        return IsStatus(
             status,
-            "Processed",
-            StringComparison.Ordinal);
+            "Processed");
+    }
+
+    private static bool IsStatus(
+        string? actual,
+        string expected)
+    {
+        return string.Equals(
+            actual,
+            expected,
+            StringComparison.OrdinalIgnoreCase);
     }
 }
