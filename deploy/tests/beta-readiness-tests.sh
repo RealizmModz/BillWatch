@@ -23,6 +23,7 @@ $root_dir/deploy/check-operations-alerting.sh
 $root_dir/deploy/send-operations-alert.sh
 $root_dir/deploy/smoke-admin-api.sh
 $root_dir/deploy/smoke-authenticated-api.sh
+$root_dir/deploy/smoke-private-beta.sh
 $root_dir/deploy/verify-beta-admin.sh
 $root_dir/deploy/verify-beta-readiness.sh
 $root_dir/deploy/verify-identity-role-schema.sh
@@ -74,6 +75,9 @@ do
         fail "smoke test must not place the bearer token directly in curl argv: $smoke_script"
     fi
 done
+
+sh "$root_dir/deploy/tests/private-beta-smoke-tests.sh" ||
+    fail "private-beta smoke harness regression suite failed."
 
 grep -q \
     'snapshot) list_completed_snapshot ;;' \

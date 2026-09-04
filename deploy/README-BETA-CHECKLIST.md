@@ -2,6 +2,27 @@
 
 Do not enable subscription enforcement merely because this checklist exists. Enforcement remains a separate deliberate rollout decision.
 
+## Repeatable authenticated smoke gate
+
+Use `deploy/smoke-private-beta.sh` after a guarded deployment to exercise the non-destructive authenticated production boundary with one credential exchange instead of manually probing each API surface.
+
+Create a temporary password file outside the repository, owned by the operator and mode `600`, then set `BILLWATCH_SMOKE_EMAIL` and `BILLWATCH_SMOKE_PASSWORD_FILE`. Run:
+
+```sh
+BILLWATCH_SMOKE_EMAIL='controlled-beta@example.com' \
+BILLWATCH_SMOKE_PASSWORD_FILE='/run/user/1000/billwatch-smoke-password' \
+BILLWATCH_SMOKE_ADMIN_EXPECTATION='deny' \
+sh deploy/smoke-private-beta.sh \
+    'https://api.billbeacon.net' \
+    'https://billbeacon.net'
+```
+
+For the production Owner/Admin account, set `BILLWATCH_SMOKE_ADMIN_EXPECTATION=allow`. For a normal tester, set it to `deny`. The harness verifies login, token refresh, public Web routes, authenticated financial reads, account-export secret/storage boundaries, and the selected admin expectation. Optional known foreign Bill Stream/statement IDs can be supplied through `BILLWATCH_SMOKE_FOREIGN_BILL_STREAM_ID` and `BILLWATCH_SMOKE_FOREIGN_STATEMENT_UPLOAD_ID` to prove ownership-scoped 404 behavior.
+
+Mutations are **off by default**. Do not enable `BILLWATCH_SMOKE_ALLOW_MUTATIONS=true` unless the supplied alert IDs are disposable controlled test fixtures. The smoke harness intentionally does not automate Plaid disconnect, account deletion, statement upload, access-key creation/revocation, or other high-impact actions.
+
+Remove the temporary password file immediately after the smoke gate. Never put production credentials, bearer tokens, Plaid secrets, access keys, or the password file in the repository or shell command arguments.
+
 ## Release
 
 - [ ] Full solution build completes with zero errors and zero warnings where reasonably achievable.
@@ -18,7 +39,9 @@ Do not enable subscription enforcement merely because this checklist exists. Enf
 - [ ] Login succeeds.
 - [ ] Logout clears the Web session.
 - [ ] Access-token refresh survives normal use without exposing tokens to JavaScript.
+- [ ] `deploy/smoke-private-beta.sh` passes for a normal tester with `BILLWATCH_SMOKE_ADMIN_EXPECTATION=deny`.
 - [ ] Production Owner receives a role-aware bearer session after fresh login.
+- [ ] `deploy/smoke-private-beta.sh` passes for Owner/Admin with `BILLWATCH_SMOKE_ADMIN_EXPECTATION=allow`.
 - [ ] `/app/admin` authorizes Owner.
 - [ ] Non-staff authenticated accounts cannot access admin endpoints.
 - [ ] Access-key plaintext is visible once only.
