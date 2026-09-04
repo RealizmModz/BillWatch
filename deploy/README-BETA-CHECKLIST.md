@@ -42,6 +42,28 @@ Optional known foreign Bill Stream/statement IDs can be supplied through `BILLWA
 
 Remove all temporary password/second-factor files immediately after the gate. The harness keeps password, second-factor, antiforgery, and encrypted session material out of curl command arguments.
 
+## Guarded Plaid lifecycle smoke gate
+
+Use `deploy/smoke-plaid-lifecycle.sh` with a controlled account that already owns a disposable or explicitly approved Plaid connection. The default path is non-destructive: it authenticates, proves that the configured connection belongs to the account, creates an update-mode Hosted Link session, validates that only a BillWatch session ID and an HTTPS `plaid.com` Hosted Link URL are returned, and rejects responses containing provider credentials or internal storage fields.
+
+Create a mode-`600` password file outside the repository and run:
+
+```sh
+BILLWATCH_PLAID_SMOKE_EMAIL='controlled-beta@example.com' \
+BILLWATCH_PLAID_SMOKE_PASSWORD_FILE='/run/user/1000/billwatch-plaid-smoke-password' \
+BILLWATCH_PLAID_SMOKE_CONNECTION_ID='00000000-0000-0000-0000-000000000000' \
+sh deploy/smoke-plaid-lifecycle.sh \
+    'https://api.billbeacon.net'
+```
+
+When a known connection owned by another controlled account is available, set `BILLWATCH_PLAID_SMOKE_FOREIGN_CONNECTION_ID` to prove that update mode returns 404 across the ownership boundary. The harness does not print the Hosted Link URL, bearer token, password, or provider credentials.
+
+Disconnect is **disabled by default**. To prove the provider-revocation/local-disconnect path, use only a disposable controlled connection and explicitly set both `BILLWATCH_PLAID_SMOKE_ALLOW_DISCONNECT=true` and `BILLWATCH_PLAID_SMOKE_DISCONNECT_CONNECTION_ID`. The harness first confirms that the disconnect target belongs to the authenticated account, requires DELETE to return 204, then proves the same disconnected connection is rejected from update mode with 409. Do not point this mutation at a tester's live financial connection.
+
+This harness proves BillWatch's real API/provider update-mode and disconnect boundary; it does not pretend to complete the human Plaid Hosted Link institution flow. A person must still open the returned Hosted Link through the product, finish the provider flow, and verify account/transaction synchronization and any `RequiresAttention` repair path with controlled provider data.
+
+Remove the password file immediately after the smoke gate. Never save the one-time Hosted Link URL or any Plaid credential in tickets, logs, shell history, or the repository.
+
 ## Release
 
 - [ ] Full solution build completes with zero errors and zero warnings where reasonably achievable.
@@ -89,9 +111,11 @@ Remove all temporary password/second-factor files immediately after the gate. Th
 - [ ] Successful connection persists accounts and transactions.
 - [ ] Recurring discovery runs after transaction sync.
 - [ ] RequiresAttention is surfaced truthfully.
-- [ ] Update-mode reconnect works.
-- [ ] Disconnect works.
-- [ ] Plaid tokens never appear in browser-visible content or logs.
+- [ ] `deploy/smoke-plaid-lifecycle.sh` passes update-mode Hosted Link validation for a controlled owned connection.
+- [ ] A known foreign controlled connection returns 404 through the Plaid lifecycle harness when that fixture is available.
+- [ ] Update-mode reconnect is completed through Hosted Link with controlled provider data.
+- [ ] Guarded disconnect smoke passes with an explicitly disposable connection and post-disconnect update mode returns 409.
+- [ ] Plaid tokens and Hosted Link URLs never appear in browser-visible content, logs, tickets, or shell command arguments.
 
 ## Statements
 
