@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Data &amp; Privacy — BillWatch" xml:space="preserve"><value>Datos y privacidad — BillWatch</value></data>
+  <data name="Account" xml:space="preserve"><value>Cuenta</value></data>
+  <data name="Your data" xml:space="preserve"><value>Tus datos</value></data>
+  <data name="Data &amp; privacy" xml:space="preserve"><value>Datos y privacidad</value></data>
+  <data name="Export the BillWatch data associated with your account or permanently delete it." xml:space="preserve"><value>Exporta los datos de BillWatch asociados con tu cuenta o elimínalos permanentemente.</value></data>
+  <data name="Portable data" xml:space="preserve"><value>Datos portátiles</value></data>
+  <data name="Export your BillWatch data" xml:space="preserve"><value>Exporta tus datos de BillWatch</value></data>
+  <data name="Download a JSON copy of the financial records BillWatch stores for your account." xml:space="preserve"><value>Descarga una copia JSON de los registros financieros que BillWatch almacena para tu cuenta.</value></data>
+  <data name="Bank connections and masked accounts" xml:space="preserve"><value>Conexiones bancarias y cuentas enmascaradas</value></data>
+  <data name="Transactions, Bill Streams and alerts" xml:space="preserve"><value>Transacciones, flujos de facturas y alertas</value></data>
+  <data name="Statement metadata and extracted bill history" xml:space="preserve"><value>Metadatos de estados de cuenta e historial de facturas extraído</value></data>
+  <data name="No protected Plaid access tokens" xml:space="preserve"><value>No incluye tokens de acceso protegidos de Plaid</value></data>
+  <data name="No internal statement storage paths" xml:space="preserve"><value>No incluye rutas internas de almacenamiento de estados de cuenta</value></data>
+  <data name="Preparing export…" xml:space="preserve"><value>Preparando exportación…</value></data>
+  <data name="Download data" xml:space="preserve"><value>Descargar datos</value></data>
+  <data name="What BillWatch keeps" xml:space="preserve"><value>Lo que BillWatch conserva</value></data>
+  <data name="Data exists to explain your bills." xml:space="preserve"><value>Los datos existen para explicar tus facturas.</value></data>
+  <data name="Transactions are used to discover recurring bills. Statements and extracted line items provide evidence for what changed and why. Alerts surface meaningful findings. BillWatch does not use this data to move money." xml:space="preserve"><value>Las transacciones se usan para detectar facturas recurrentes. Los estados de cuenta y las partidas extraídas aportan evidencia de qué cambió y por qué. Las alertas destacan hallazgos importantes. BillWatch no usa estos datos para mover dinero.</value></data>
+  <data name="Danger zone" xml:space="preserve"><value>Zona de peligro</value></data>
+  <data name="Permanently delete BillWatch" xml:space="preserve"><value>Eliminar permanentemente tu cuenta de BillWatch</value></data>
+  <data name="Account deletion attempts to revoke active bank connections first. If BillWatch cannot safely revoke one of them, deletion stops rather than claiming your account was removed." xml:space="preserve"><value>La eliminación de la cuenta intenta revocar primero las conexiones bancarias activas. Si BillWatch no puede revocar una de forma segura, la eliminación se detiene en lugar de afirmar que tu cuenta fue eliminada.</value></data>
+  <data name="Permanent deletion removes:" xml:space="preserve"><value>La eliminación permanente borra:</value></data>
+  <data name="Financial connections and account records" xml:space="preserve"><value>Conexiones financieras y registros de cuentas</value></data>
+  <data name="Imported bank transactions" xml:space="preserve"><value>Transacciones bancarias importadas</value></data>
+  <data name="Bill Streams, statements, line items and changes" xml:space="preserve"><value>Flujos de facturas, estados de cuenta, partidas y cambios</value></data>
+  <data name="BillWatch alerts and stored statement files" xml:space="preserve"><value>Alertas de BillWatch y archivos de estados de cuenta almacenados</value></data>
+  <data name="Your BillWatch Identity account" xml:space="preserve"><value>Tu cuenta de identidad de BillWatch</value></data>
+  <data name="Delete account permanently" xml:space="preserve"><value>Eliminar cuenta permanentemente</value></data>
+  <data name="This cannot be undone." xml:space="preserve"><value>Esto no se puede deshacer.</value></data>
+  <data name="Type DELETE below to confirm permanent account deletion." xml:space="preserve"><value>Escribe DELETE abajo para confirmar la eliminación permanente de la cuenta.</value></data>
+  <data name="Keep my account" xml:space="preserve"><value>Conservar mi cuenta</value></data>
+  <data name="Deleting securely…" xml:space="preserve"><value>Eliminando de forma segura…</value></data>
+  <data name="Delete permanently" xml:space="preserve"><value>Eliminar permanentemente</value></data>
+  <data name="Your BillWatch data export was prepared securely." xml:space="preserve"><value>Tu exportación de datos de BillWatch se preparó de forma segura.</value></data>
+  <data name="BillWatch could not prepare your data export." xml:space="preserve"><value>BillWatch no pudo preparar tu exportación de datos.</value></data>
+  <data name="BillWatch could not safely complete account deletion. Your account was not deleted." xml:space="preserve"><value>BillWatch no pudo completar de forma segura la eliminación de la cuenta. Tu cuenta no fue eliminada.</value></data>
+  <data name="BillWatch could not safely complete this request." xml:space="preserve"><value>BillWatch no pudo completar esta solicitud de forma segura.</value></data>
+  <data name="BillWatch could not safely revoke a connected bank, so your account was not deleted. Try again shortly." xml:space="preserve"><value>BillWatch no pudo revocar de forma segura un banco conectado, por lo que tu cuenta no fue eliminada. Inténtalo de nuevo en breve.</value></data>
+  <data name="BillWatch could not securely remove all stored statement files, so your account was not deleted." xml:space="preserve"><value>BillWatch no pudo eliminar de forma segura todos los archivos de estados de cuenta almacenados, por lo que tu cuenta no fue eliminada.</value></data>
+</root>
