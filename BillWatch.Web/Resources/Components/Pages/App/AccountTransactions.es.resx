@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Transactions — BillWatch" xml:space="preserve"><value>Transacciones — BillWatch</value></data>
+  <data name="Account" xml:space="preserve"><value>Cuenta</value></data>
+  <data name="Transaction-first intelligence" xml:space="preserve"><value>Inteligencia basada primero en transacciones</value></data>
+  <data name="Transactions" xml:space="preserve"><value>Transacciones</value></data>
+  <data name="The connected-bank activity BillWatch uses to discover recurring bills." xml:space="preserve"><value>La actividad bancaria conectada que BillWatch usa para descubrir facturas recurrentes.</value></data>
+  <data name="We couldn't load transactions" xml:space="preserve"><value>No pudimos cargar las transacciones</value></data>
+  <data name="Try again" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="Loaded" xml:space="preserve"><value>Cargadas</value></data>
+  <data name="Latest {0} transactions" xml:space="preserve"><value>Últimas {0} transacciones</value></data>
+  <data name="Posted outflow" xml:space="preserve"><value>Salidas contabilizadas</value></data>
+  <data name="Across the loaded transaction history" xml:space="preserve"><value>En el historial de transacciones cargado</value></data>
+  <data name="Pending" xml:space="preserve"><value>Pendiente</value></data>
+  <data name="Not yet final" xml:space="preserve"><value>Aún no es definitivo</value></data>
+  <data name="Search merchant or transaction" xml:space="preserve"><value>Buscar comercio o transacción</value></data>
+  <data name="All accounts" xml:space="preserve"><value>Todas las cuentas</value></data>
+  <data name="1 transaction" xml:space="preserve"><value>1 transacción</value></data>
+  <data name="{0} transactions" xml:space="preserve"><value>{0} transacciones</value></data>
+  <data name="Showing the newest {0} records" xml:space="preserve"><value>Mostrando los {0} registros más recientes</value></data>
+  <data name="No transactions yet." xml:space="preserve"><value>Aún no hay transacciones.</value></data>
+  <data name="Transactions appear after an active bank connection completes synchronization." xml:space="preserve"><value>Las transacciones aparecen después de que una conexión bancaria activa complete la sincronización.</value></data>
+  <data name="No matching transactions." xml:space="preserve"><value>No hay transacciones que coincidan.</value></data>
+  <data name="Change the account or search filter." xml:space="preserve"><value>Cambia la cuenta o el filtro de búsqueda.</value></data>
+  <data name="Transaction" xml:space="preserve"><value>Transacción</value></data>
+  <data name="Plaid reports purchase/outflow amounts as positive transaction values. BillWatch displays those as money leaving the account and credits as money returning." xml:space="preserve"><value>Plaid informa las compras y salidas como valores positivos. BillWatch las muestra como dinero que sale de la cuenta y los créditos como dinero que regresa.</value></data>
+  <data name="BillWatch could not reach the secure API." xml:space="preserve"><value>BillWatch no pudo conectarse con la API segura.</value></data>
+  <data name="Something went wrong while loading your transactions." xml:space="preserve"><value>Ocurrió un problema al cargar tus transacciones.</value></data>
+  <data name="RENT AND UTILITIES" xml:space="preserve"><value>ALQUILER Y SERVICIOS</value></data>
+  <data name="FOOD AND DRINK" xml:space="preserve"><value>ALIMENTOS Y BEBIDAS</value></data>
+  <data name="GENERAL MERCHANDISE" xml:space="preserve"><value>MERCANCÍA GENERAL</value></data>
+  <data name="GENERAL SERVICES" xml:space="preserve"><value>SERVICIOS GENERALES</value></data>
+  <data name="TRANSPORTATION" xml:space="preserve"><value>TRANSPORTE</value></data>
+  <data name="TRAVEL" xml:space="preserve"><value>VIAJES</value></data>
+  <data name="MEDICAL" xml:space="preserve"><value>MÉDICO</value></data>
+  <data name="ENTERTAINMENT" xml:space="preserve"><value>ENTRETENIMIENTO</value></data>
+  <data name="PERSONAL CARE" xml:space="preserve"><value>CUIDADO PERSONAL</value></data>
+  <data name="LOAN PAYMENTS" xml:space="preserve"><value>PAGOS DE PRÉSTAMOS</value></data>
+  <data name="BANK FEES" xml:space="preserve"><value>COMISIONES BANCARIAS</value></data>
+</root>
