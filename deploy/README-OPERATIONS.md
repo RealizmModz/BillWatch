@@ -131,6 +131,33 @@ Verify a completed encrypted snapshot with:
 sh deploy/check-backup-snapshot.sh /opt/billwatch
 ```
 
+### Clean-host/off-host recovery drill
+
+Run this gate from a separate clean recovery host, not from the live production host. Check out the exact release commit, ensure the checkout is clean, and create a Git-ignored mode-`600` `.env.recovery` owned by the operator. It must contain only the recovery credentials/configuration needed by the isolated drill, including:
+
+```text
+BILLWATCH_RECOVERY_DRILL_ALLOW=true
+BILLWATCH_RELEASE_ID=<exact-lowercase-40-character-release-sha>
+BILLWATCH_DATABASE_PASSWORD=<temporary-isolated-postgres-password>
+RESTIC_REPOSITORY=<off-host-restic-repository>
+RESTIC_PASSWORD=<protected-restic-password>
+```
+
+Include the storage-provider credentials required by that Restic backend (for example AWS variables for S3). Do not copy Plaid, Stripe, identity-email, Web, or other unrelated production secrets to the recovery host.
+
+Run:
+
+```sh
+cd /opt/billwatch-recovery
+sh deploy/run-clean-host-recovery-drill.sh .env.recovery
+```
+
+The runner refuses dirty or release-mismatched source, symlinked/wrong-owner/non-`600` recovery files, missing explicit opt-in, and local Restic repository paths. It uses `compose.recovery-drill.yml`, which contains only an ephemeral PostgreSQL restore target and the hardened backup verifier. The restore database is on an internal-only data network; only the verifier receives outbound network access so it can reach the remote Restic backend. No host ports are published and no production database, statement, Data Protection, Caddy, API, or Web volumes are mounted.
+
+A pass proves that the selected off-host encrypted snapshot can be decrypted, checksum-validated, restored into fresh PostgreSQL, and reconciled with its migration history, statement manifest/files, and Data Protection key material using a clean checkout. The drill tears down its isolated containers, tmpfs database, and Compose volumes afterward. Delete the recovery env file and clean-host credentials according to the provider/operator procedure when the drill is complete.
+
+Provider-side immutability remains a separate proof: repeat recovery using a snapshot retained by Object Lock/WORM/append-only protection before closing that launch gate.
+
 ### Retention
 
 Retention is intentionally opt-in and applies only to completed `billwatch-complete` snapshots. Configure at least:

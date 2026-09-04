@@ -21,6 +21,7 @@ $root_dir/deploy/check-backup-snapshot.sh
 $root_dir/deploy/check-backup-timer.sh
 $root_dir/deploy/check-operations-alerting.sh
 $root_dir/deploy/send-operations-alert.sh
+$root_dir/deploy/run-clean-host-recovery-drill.sh
 $root_dir/deploy/smoke-admin-api.sh
 $root_dir/deploy/smoke-authenticated-api.sh
 $root_dir/deploy/smoke-private-beta.sh
@@ -64,6 +65,7 @@ sh "$root_dir/deploy/tests/access-key-smoke-tests.sh" || fail "access-key lifecy
 sh "$root_dir/deploy/tests/web-bff-smoke-tests.sh" || fail "authenticated Web/BFF smoke harness regression suite failed."
 sh "$root_dir/deploy/tests/plaid-lifecycle-smoke-tests.sh" || fail "guarded Plaid lifecycle smoke harness regression suite failed."
 sh "$root_dir/deploy/tests/statement-lifecycle-smoke-tests.sh" || fail "guarded statement lifecycle smoke harness regression suite failed."
+sh "$root_dir/deploy/tests/clean-host-recovery-drill-tests.sh" || fail "clean-host recovery drill regression suite failed."
 
 grep -q 'snapshot) list_completed_snapshot ;;' "$root_dir/deploy/backup/backup.sh" || fail "backup entrypoint must expose the constrained completed-snapshot query."
 grep -q 'retention) apply_retention_policy ;;' "$root_dir/deploy/backup/backup.sh" || fail "backup entrypoint must expose guarded retention application."
