@@ -36,10 +36,10 @@
   <data name="The statement is queued for secure processing." xml:space="preserve"><value>El estado de cuenta está en cola para un procesamiento seguro.</value></data>
   <data name="Reading statement" xml:space="preserve"><value>Leyendo estado de cuenta</value></data>
   <data name="BillWatch is extracting the document contents." xml:space="preserve"><value>BillWatch está extrayendo el contenido del documento.</value></data>
-  <data name="Reading image text" xml:space="preserve"><value>Leyendo texto de la imagen</value></data>
-  <data name="This statement needs OCR before BillWatch can validate its bill data." xml:space="preserve"><value>Este estado de cuenta necesita OCR antes de que BillWatch pueda validar los datos de la factura.</value></data>
-  <data name="Validating facts" xml:space="preserve"><value>Validando datos</value></data>
-  <data name="Document text is available and BillWatch is validating structured bill evidence." xml:space="preserve"><value>El texto del documento está disponible y BillWatch está validando la evidencia estructurada de la factura.</value></data>
+  <data name="Clearer statement needed" xml:space="preserve"><value>Se necesita un estado de cuenta más claro</value></data>
+  <data name="BillWatch could not confidently read this statement automatically. Try a clearer PDF, screenshot, or photo." xml:space="preserve"><value>BillWatch no pudo leer este estado de cuenta automáticamente con suficiente confianza. Prueba con un PDF, una captura de pantalla o una foto más clara.</value></data>
+  <data name="Statement needs review" xml:space="preserve"><value>El estado de cuenta necesita revisión</value></data>
+  <data name="BillWatch read the document, but it could not safely validate enough structured bill evidence to update this bill automatically." xml:space="preserve"><value>BillWatch leyó el documento, pero no pudo validar de forma segura suficiente evidencia estructurada de la factura para actualizarla automáticamente.</value></data>
   <data name="The statement was successfully processed." xml:space="preserve"><value>El estado de cuenta se procesó correctamente.</value></data>
   <data name="BillWatch could not safely process this statement." xml:space="preserve"><value>BillWatch no pudo procesar este estado de cuenta de forma segura.</value></data>
   <data name="Processing" xml:space="preserve"><value>Procesando</value></data>
