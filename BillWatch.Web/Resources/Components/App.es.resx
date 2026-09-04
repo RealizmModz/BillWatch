@@ -47,6 +47,36 @@
   <data name="New to BillWatch?" xml:space="preserve"><value>¿Nuevo en BillWatch?</value></data>
   <data name="Create an account" xml:space="preserve"><value>Crear una cuenta</value></data>
   <data name="Back to BillWatch" xml:space="preserve"><value>Volver a BillWatch</value></data>
+  <data name="Two-factor verification — BillWatch" xml:space="preserve"><value>Verificación en dos pasos — BillWatch</value></data>
+  <data name="Account security" xml:space="preserve"><value>Seguridad de la cuenta</value></data>
+  <data name="Two-factor verification" xml:space="preserve"><value>Verificación en dos pasos</value></data>
+  <data name="Your password was accepted. Sign in again with your password plus a code from your authenticator app or one recovery code." xml:space="preserve"><value>Tu contraseña fue aceptada. Vuelve a iniciar sesión con tu contraseña y un código de tu aplicación de autenticación o un código de recuperación.</value></data>
+  <data name="Authenticator code" xml:space="preserve"><value>Código del autenticador</value></data>
+  <data name="or" xml:space="preserve"><value>o</value></data>
+  <data name="Recovery code" xml:space="preserve"><value>Código de recuperación</value></data>
+  <data name="Enter a recovery code" xml:space="preserve"><value>Introduce un código de recuperación</value></data>
+  <data name="Enter either an authenticator code or one unused recovery code." xml:space="preserve"><value>Introduce un código del autenticador o un código de recuperación sin usar.</value></data>
+  <data name="Forgot password?" xml:space="preserve"><value>¿Olvidaste tu contraseña?</value></data>
+  <data name="Verify and sign in" xml:space="preserve"><value>Verificar e iniciar sesión</value></data>
+  <data name="Start sign-in over" xml:space="preserve"><value>Reiniciar inicio de sesión</value></data>
+
+  <data name="Password recovery — BillWatch" xml:space="preserve"><value>Recuperación de contraseña — BillWatch</value></data>
+  <data name="Account recovery" xml:space="preserve"><value>Recuperación de cuenta</value></data>
+  <data name="Reset your password" xml:space="preserve"><value>Restablece tu contraseña</value></data>
+  <data name="Enter the confirmed email address on your BillWatch account. If it matches an eligible account, we'll send a secure reset link." xml:space="preserve"><value>Introduce la dirección de correo confirmada de tu cuenta de BillWatch. Si corresponde a una cuenta elegible, enviaremos un enlace seguro para restablecerla.</value></data>
+  <data name="If that email belongs to a confirmed BillWatch account, a password reset link has been sent." xml:space="preserve"><value>Si ese correo pertenece a una cuenta confirmada de BillWatch, se ha enviado un enlace para restablecer la contraseña.</value></data>
+  <data name="Send reset link" xml:space="preserve"><value>Enviar enlace de restablecimiento</value></data>
+  <data name="Back to sign in" xml:space="preserve"><value>Volver a iniciar sesión</value></data>
+
+  <data name="Reset password — BillWatch" xml:space="preserve"><value>Restablecer contraseña — BillWatch</value></data>
+  <data name="Secure password reset" xml:space="preserve"><value>Restablecimiento seguro de contraseña</value></data>
+  <data name="Choose a new password" xml:space="preserve"><value>Elige una contraseña nueva</value></data>
+  <data name="Create a new password for your BillWatch account. The reset link can only be used for the email address it was issued to." xml:space="preserve"><value>Crea una contraseña nueva para tu cuenta de BillWatch. El enlace de restablecimiento solo puede usarse con la dirección de correo para la que fue emitido.</value></data>
+  <data name="This password reset link is incomplete or invalid." xml:space="preserve"><value>Este enlace para restablecer la contraseña está incompleto o no es válido.</value></data>
+  <data name="Request a new reset link" xml:space="preserve"><value>Solicitar un nuevo enlace</value></data>
+  <data name="New password" xml:space="preserve"><value>Nueva contraseña</value></data>
+  <data name="Confirm new password" xml:space="preserve"><value>Confirmar nueva contraseña</value></data>
+  <data name="Reset password" xml:space="preserve"><value>Restablecer contraseña</value></data>
 
   <data name="Create account — BillWatch" xml:space="preserve"><value>Crear cuenta — BillWatch</value></data>
   <data name="Create your account" xml:space="preserve"><value>Crea tu cuenta</value></data>
@@ -61,6 +91,35 @@
   <data name="Create account" xml:space="preserve"><value>Crear cuenta</value></data>
   <data name="BillWatch accounts are used to keep financial records isolated to their owner." xml:space="preserve"><value>Las cuentas de BillWatch mantienen los registros financieros aislados para su propietario.</value></data>
   <data name="Already have an account?" xml:space="preserve"><value>¿Ya tienes una cuenta?</value></data>
+
+  <data name="Enter your email and password." xml:space="preserve"><value>Introduce tu correo electrónico y contraseña.</value></data>
+  <data name="Enter an authenticator code or a recovery code." xml:space="preserve"><value>Introduce un código del autenticador o un código de recuperación.</value></data>
+  <data name="Unable to sign in." xml:space="preserve"><value>No se pudo iniciar sesión.</value></data>
+  <data name="Enter an email address." xml:space="preserve"><value>Introduce una dirección de correo electrónico.</value></data>
+  <data name="Create a password." xml:space="preserve"><value>Crea una contraseña.</value></data>
+  <data name="The passwords do not match." xml:space="preserve"><value>Las contraseñas no coinciden.</value></data>
+  <data name="Unable to create your account." xml:space="preserve"><value>No se pudo crear tu cuenta.</value></data>
+  <data name="Enter your email address." xml:space="preserve"><value>Introduce tu dirección de correo electrónico.</value></data>
+  <data name="Password recovery is unavailable right now." xml:space="preserve"><value>La recuperación de contraseña no está disponible en este momento.</value></data>
+  <data name="Create a new password." xml:space="preserve"><value>Crea una contraseña nueva.</value></data>
+  <data name="Unable to reset your password." xml:space="preserve"><value>No se pudo restablecer tu contraseña.</value></data>
+  <data name="Your password has been reset. Sign in with your new password." xml:space="preserve"><value>Tu contraseña se ha restablecido. Inicia sesión con tu nueva contraseña.</value></data>
+  <data name="This email confirmation link is incomplete or invalid." xml:space="preserve"><value>Este enlace de confirmación de correo está incompleto o no es válido.</value></data>
+  <data name="Your email address is confirmed." xml:space="preserve"><value>Tu dirección de correo electrónico está confirmada.</value></data>
+  <data name="Your email address was changed. Sign in with the new address." xml:space="preserve"><value>Tu dirección de correo electrónico se cambió. Inicia sesión con la nueva dirección.</value></data>
+  <data name="Unable to confirm this email address." xml:space="preserve"><value>No se pudo confirmar esta dirección de correo electrónico.</value></data>
+  <data name="The authenticator or recovery code is invalid." xml:space="preserve"><value>El código del autenticador o de recuperación no es válido.</value></data>
+  <data name="Email or password is incorrect." xml:space="preserve"><value>El correo electrónico o la contraseña son incorrectos.</value></data>
+  <data name="Too many sign-in attempts. Wait a minute and try again." xml:space="preserve"><value>Demasiados intentos de inicio de sesión. Espera un minuto y vuelve a intentarlo.</value></data>
+  <data name="BillWatch could not sign you in right now." xml:space="preserve"><value>BillWatch no pudo iniciar tu sesión en este momento.</value></data>
+  <data name="BillWatch received an invalid sign-in response." xml:space="preserve"><value>BillWatch recibió una respuesta de inicio de sesión no válida.</value></data>
+  <data name="Too many recovery attempts. Wait a minute and try again." xml:space="preserve"><value>Demasiados intentos de recuperación. Espera un minuto y vuelve a intentarlo.</value></data>
+  <data name="BillWatch could not send a recovery email right now." xml:space="preserve"><value>BillWatch no pudo enviar el correo de recuperación en este momento.</value></data>
+  <data name="This password reset link is invalid or expired." xml:space="preserve"><value>Este enlace para restablecer la contraseña no es válido o ha caducado.</value></data>
+  <data name="Too many attempts. Wait a minute and try again." xml:space="preserve"><value>Demasiados intentos. Espera un minuto y vuelve a intentarlo.</value></data>
+  <data name="BillWatch could not create the account." xml:space="preserve"><value>BillWatch no pudo crear la cuenta.</value></data>
+  <data name="BillWatch could not create the account. Check the information and try again." xml:space="preserve"><value>BillWatch no pudo crear la cuenta. Revisa la información y vuelve a intentarlo.</value></data>
+  <data name="This email confirmation link is invalid or expired." xml:space="preserve"><value>Este enlace de confirmación de correo no es válido o ha caducado.</value></data>
 
   <data name="BillWatch — Know when your bills change" xml:space="preserve"><value>BillWatch — Sepa cuándo cambian sus facturas</value></data>
   <data name="Automated bill intelligence" xml:space="preserve"><value>Inteligencia automatizada de facturas</value></data>

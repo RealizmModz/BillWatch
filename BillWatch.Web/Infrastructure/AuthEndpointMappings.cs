@@ -1,5 +1,7 @@
-﻿using BillWatch.Web.Services;
+using BillWatch.Web.Components;
+using BillWatch.Web.Services;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.Extensions.Localization;
 
 namespace BillWatch.Web.Infrastructure;
 
@@ -17,7 +19,8 @@ public static class AuthEndpointMappings
             async (
                 HttpContext context,
                 IAntiforgery antiforgery,
-                WebAuthenticationService authenticationService) =>
+                WebAuthenticationService authenticationService,
+                IStringLocalizer<App> localizer) =>
             {
                 await antiforgery
                     .ValidateRequestAsync(
@@ -66,7 +69,8 @@ public static class AuthEndpointMappings
                 {
                     return Results.Redirect(
                         BuildLoginRedirect(
-                            "Enter your email and password.",
+                            localizer[
+                                "Enter your email and password."],
                             isTwoFactorStep));
                 }
 
@@ -78,7 +82,8 @@ public static class AuthEndpointMappings
                 {
                     return Results.Redirect(
                         BuildLoginRedirect(
-                            "Enter an authenticator code or a recovery code.",
+                            localizer[
+                                "Enter an authenticator code or a recovery code."],
                             twoFactor: true));
                 }
 
@@ -103,8 +108,10 @@ public static class AuthEndpointMappings
                 {
                     return Results.Redirect(
                         BuildLoginRedirect(
-                            result.ErrorMessage ??
-                            "Unable to sign in.",
+                            LocalizeResultMessage(
+                                localizer,
+                                result.ErrorMessage,
+                                "Unable to sign in."),
                             isTwoFactorStep));
                 }
 
@@ -117,7 +124,8 @@ public static class AuthEndpointMappings
             async (
                 HttpContext context,
                 IAntiforgery antiforgery,
-                WebAuthenticationService authenticationService) =>
+                WebAuthenticationService authenticationService,
+                IStringLocalizer<App> localizer) =>
             {
                 await antiforgery
                     .ValidateRequestAsync(
@@ -147,7 +155,8 @@ public static class AuthEndpointMappings
                     return Results.Redirect(
                         "/register?error=" +
                         Uri.EscapeDataString(
-                            "Enter an email address."));
+                            localizer[
+                                "Enter an email address."]));
                 }
 
                 if (string.IsNullOrWhiteSpace(
@@ -156,7 +165,8 @@ public static class AuthEndpointMappings
                     return Results.Redirect(
                         "/register?error=" +
                         Uri.EscapeDataString(
-                            "Create a password."));
+                            localizer[
+                                "Create a password."]));
                 }
 
                 if (!string.Equals(
@@ -167,7 +177,8 @@ public static class AuthEndpointMappings
                     return Results.Redirect(
                         "/register?error=" +
                         Uri.EscapeDataString(
-                            "The passwords do not match."));
+                            localizer[
+                                "The passwords do not match."]));
                 }
 
                 var result =
@@ -183,8 +194,10 @@ public static class AuthEndpointMappings
                     return Results.Redirect(
                         "/register?error=" +
                         Uri.EscapeDataString(
-                            result.ErrorMessage ??
-                            "Unable to create your account."));
+                            LocalizeResultMessage(
+                                localizer,
+                                result.ErrorMessage,
+                                "Unable to create your account.")));
                 }
 
                 return Results.Redirect(
@@ -196,7 +209,8 @@ public static class AuthEndpointMappings
             async (
                 HttpContext context,
                 IAntiforgery antiforgery,
-                WebAuthenticationService authenticationService) =>
+                WebAuthenticationService authenticationService,
+                IStringLocalizer<App> localizer) =>
             {
                 await antiforgery
                     .ValidateRequestAsync(
@@ -218,7 +232,8 @@ public static class AuthEndpointMappings
                     return Results.Redirect(
                         "/forgot-password?error=" +
                         Uri.EscapeDataString(
-                            "Enter your email address."));
+                            localizer[
+                                "Enter your email address."]));
                 }
 
                 var result =
@@ -232,8 +247,10 @@ public static class AuthEndpointMappings
                     return Results.Redirect(
                         "/forgot-password?error=" +
                         Uri.EscapeDataString(
-                            result.ErrorMessage ??
-                            "Password recovery is unavailable right now."));
+                            LocalizeResultMessage(
+                                localizer,
+                                result.ErrorMessage,
+                                "Password recovery is unavailable right now.")));
                 }
 
                 return Results.Redirect(
@@ -245,7 +262,8 @@ public static class AuthEndpointMappings
             async (
                 HttpContext context,
                 IAntiforgery antiforgery,
-                WebAuthenticationService authenticationService) =>
+                WebAuthenticationService authenticationService,
+                IStringLocalizer<App> localizer) =>
             {
                 await antiforgery
                     .ValidateRequestAsync(
@@ -287,7 +305,8 @@ public static class AuthEndpointMappings
                     return Results.Redirect(
                         "/reset-password?error=" +
                         Uri.EscapeDataString(
-                            "This password reset link is incomplete or invalid."));
+                            localizer[
+                                "This password reset link is incomplete or invalid."]));
                 }
 
                 if (string.IsNullOrWhiteSpace(
@@ -298,7 +317,8 @@ public static class AuthEndpointMappings
                         returnQuery +
                         "&error=" +
                         Uri.EscapeDataString(
-                            "Create a new password."));
+                            localizer[
+                                "Create a new password."]));
                 }
 
                 if (!string.Equals(
@@ -311,7 +331,8 @@ public static class AuthEndpointMappings
                         returnQuery +
                         "&error=" +
                         Uri.EscapeDataString(
-                            "The passwords do not match."));
+                            localizer[
+                                "The passwords do not match."]));
                 }
 
                 var result =
@@ -329,21 +350,25 @@ public static class AuthEndpointMappings
                         returnQuery +
                         "&error=" +
                         Uri.EscapeDataString(
-                            result.ErrorMessage ??
-                            "Unable to reset your password."));
+                            LocalizeResultMessage(
+                                localizer,
+                                result.ErrorMessage,
+                                "Unable to reset your password.")));
                 }
 
                 return Results.Redirect(
                     "/login?message=" +
                     Uri.EscapeDataString(
-                        "Your password has been reset. Sign in with your new password."));
+                        localizer[
+                            "Your password has been reset. Sign in with your new password."]));
             });
 
         endpoints.MapGet(
             "/auth/confirm-email",
             async (
                 HttpContext context,
-                WebAuthenticationService authenticationService) =>
+                WebAuthenticationService authenticationService,
+                IStringLocalizer<App> localizer) =>
             {
                 var userId =
                     context.Request.Query["userId"]
@@ -365,7 +390,8 @@ public static class AuthEndpointMappings
                     return Results.Redirect(
                         "/login?error=" +
                         Uri.EscapeDataString(
-                            "This email confirmation link is incomplete or invalid."));
+                            localizer[
+                                "This email confirmation link is incomplete or invalid."]));
                 }
 
                 var result =
@@ -389,13 +415,16 @@ public static class AuthEndpointMappings
                     result.Succeeded
                         ? "/login?message=" +
                           Uri.EscapeDataString(
-                              string.IsNullOrWhiteSpace(changedEmail)
-                                  ? "Your email address is confirmed."
-                                  : "Your email address was changed. Sign in with the new address.")
+                              localizer[
+                                  string.IsNullOrWhiteSpace(changedEmail)
+                                      ? "Your email address is confirmed."
+                                      : "Your email address was changed. Sign in with the new address."])
                         : "/login?error=" +
                           Uri.EscapeDataString(
-                              result.ErrorMessage ??
-                              "Unable to confirm this email address."));
+                              LocalizeResultMessage(
+                                  localizer,
+                                  result.ErrorMessage,
+                                  "Unable to confirm this email address.")));
             });
 
         endpoints.MapPost(
@@ -418,6 +447,19 @@ public static class AuthEndpointMappings
             });
 
         return endpoints;
+    }
+
+    private static string LocalizeResultMessage(
+        IStringLocalizer<App> localizer,
+        string? message,
+        string fallback)
+    {
+        var key =
+            string.IsNullOrWhiteSpace(message)
+                ? fallback
+                : message;
+
+        return localizer[key].Value;
     }
 
     private static string BuildLoginRedirect(
