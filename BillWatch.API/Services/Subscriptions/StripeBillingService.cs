@@ -62,6 +62,7 @@ public sealed class StripeBillingService(
 
         var current = await GetCurrentSubscriptionAsync(
             userId,
+            email,
             cancellationToken);
 
         if (current?.IsEntitled(timeProvider.GetUtcNow()) == true)
@@ -110,12 +111,14 @@ public sealed class StripeBillingService(
 
     public async Task<string> CreatePortalUrlAsync(
         Guid userId,
+        string? email,
         CancellationToken cancellationToken)
     {
         EnsureConfigured();
 
         var customerId = await FindCustomerIdAsync(
             userId,
+            email,
             cancellationToken);
 
         if (string.IsNullOrWhiteSpace(customerId))
@@ -151,6 +154,7 @@ public sealed class StripeBillingService(
 
     public async Task<StripeSubscriptionState?> GetCurrentSubscriptionAsync(
         Guid userId,
+        string? email,
         CancellationToken cancellationToken)
     {
         if (!IsConfigured)
@@ -160,6 +164,7 @@ public sealed class StripeBillingService(
 
         var customerId = await FindCustomerIdAsync(
             userId,
+            email,
             cancellationToken);
 
         if (string.IsNullOrWhiteSpace(customerId))
@@ -199,10 +204,12 @@ public sealed class StripeBillingService(
 
     public async Task SyncCurrentSubscriptionAsync(
         Guid userId,
+        string? email,
         CancellationToken cancellationToken)
     {
         var state = await GetCurrentSubscriptionAsync(
             userId,
+            email,
             cancellationToken);
 
         await SyncPaidEntitlementAsync(
@@ -415,6 +422,7 @@ public sealed class StripeBillingService(
     {
         var existing = await FindCustomerIdAsync(
             userId,
+            email,
             cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(existing))
@@ -447,29 +455,89 @@ public sealed class StripeBillingService(
 
     private async Task<string?> FindCustomerIdAsync(
         Guid userId,
+        string? email,
         CancellationToken cancellationToken)
     {
         var query = Uri.EscapeDataString(
             $"metadata['{UserMetadataKey}']:'{userId:D}'");
 
-        using var document = await SendAsync(
-            HttpMethod.Get,
-            $"customers/search?query={query}&limit=1",
-            content: null,
-            cancellationToken);
+        using (var searchDocument = await SendAsync(
+                   HttpMethod.Get,
+                   $"customers/search?query={query}&limit=1",
+                   content: null,
+                   cancellationToken))
+        {
+            if (TryGetFirstMatchingCustomerId(
+                    searchDocument.RootElement,
+                    userId,
+                    out var searchCustomerId))
+            {
+                return searchCustomerId;
+            }
+        }
 
-        if (!document.RootElement.TryGetProperty("data", out var data) ||
-            data.ValueKind != JsonValueKind.Array)
+        if (string.IsNullOrWhiteSpace(email))
         {
             return null;
         }
 
-        foreach (var customer in data.EnumerateArray())
+        using var listDocument = await SendAsync(
+            HttpMethod.Get,
+            $"customers?email={Uri.EscapeDataString(email.Trim())}&limit=100",
+            content: null,
+            cancellationToken);
+
+        return TryGetFirstMatchingCustomerId(
+            listDocument.RootElement,
+            userId,
+            out var listCustomerId)
+                ? listCustomerId
+                : null;
+    }
+
+    private static bool TryGetFirstMatchingCustomerId(
+        JsonElement root,
+        Guid userId,
+        out string? customerId)
+    {
+        customerId = null;
+
+        if (!root.TryGetProperty("data", out var data) ||
+            data.ValueKind != JsonValueKind.Array)
         {
-            return GetString(customer, "id");
+            return false;
         }
 
-        return null;
+        foreach (var customer in data.EnumerateArray())
+        {
+            if (!HasUserMetadata(customer, userId))
+            {
+                continue;
+            }
+
+            var candidateId = GetString(customer, "id");
+
+            if (string.IsNullOrWhiteSpace(candidateId))
+            {
+                continue;
+            }
+
+            customerId = candidateId;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool HasUserMetadata(
+        JsonElement element,
+        Guid userId)
+    {
+        return element.TryGetProperty("metadata", out var metadata) &&
+               metadata.ValueKind == JsonValueKind.Object &&
+               metadata.TryGetProperty(UserMetadataKey, out var userMetadata) &&
+               Guid.TryParse(userMetadata.GetString(), out var metadataUserId) &&
+               metadataUserId == userId;
     }
 
     private async Task<StripeSubscriptionState> GetSubscriptionByIdAsync(
@@ -499,6 +567,12 @@ public sealed class StripeBillingService(
         {
             foreach (var item in itemData.EnumerateArray())
             {
+                currentPeriodStart ??=
+                    FromUnixSeconds(GetInt64(item, "current_period_start"));
+
+                currentPeriodEnd ??=
+                    FromUnixSeconds(GetInt64(item, "current_period_end"));
+
                 if (!item.TryGetProperty("price", out var price))
                 {
                     continue;
