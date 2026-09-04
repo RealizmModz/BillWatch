@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Bill — BillWatch" xml:space="preserve"><value>Factura — BillWatch</value></data>
+  <data name="Bills" xml:space="preserve"><value>Facturas</value></data>
+  <data name="We couldn't open this bill" xml:space="preserve"><value>No pudimos abrir esta factura</value></data>
+  <data name="Try again" xml:space="preserve"><value>Intentar de nuevo</value></data>
+  <data name="Watching" xml:space="preserve"><value>Vigilando</value></data>
+  <data name="1 statement" xml:space="preserve"><value>1 estado de cuenta</value></data>
+  <data name="{0} statements" xml:space="preserve"><value>{0} estados de cuenta</value></data>
+  <data name="Latest transaction" xml:space="preserve"><value>Transacción más reciente</value></data>
+  <data name="vs. prior average" xml:space="preserve"><value>vs. promedio anterior</value></data>
+  <data name="Detected statement change" xml:space="preserve"><value>Cambio detectado en el estado de cuenta</value></data>
+  <data name="Previous" xml:space="preserve"><value>Anterior</value></data>
+  <data name="Current" xml:space="preserve"><value>Actual</value></data>
+  <data name="Change" xml:space="preserve"><value>Cambio</value></data>
+  <data name="Annual impact" xml:space="preserve"><value>Impacto anual</value></data>
+  <data name="Why it changed" xml:space="preserve"><value>Por qué cambió</value></data>
+  <data name="BillWatch explanation" xml:space="preserve"><value>Explicación de BillWatch</value></data>
+  <data name="Change type" xml:space="preserve"><value>Tipo de cambio</value></data>
+  <data name="Detected" xml:space="preserve"><value>Detectado</value></data>
+  <data name="Status" xml:space="preserve"><value>Estado</value></data>
+  <data name="Reviewed" xml:space="preserve"><value>Revisado</value></data>
+  <data name="Not reviewed" xml:space="preserve"><value>Sin revisar</value></data>
+  <data name="Explanation" xml:space="preserve"><value>Explicación</value></data>
+  <data name="We don't know yet." xml:space="preserve"><value>Aún no lo sabemos.</value></data>
+  <data name="BillWatch has transaction history for this recurring bill, but no verified statement comparison has produced a detected change yet." xml:space="preserve"><value>BillWatch tiene historial de transacciones para esta factura recurrente, pero ninguna comparación verificada de estados de cuenta ha producido todavía un cambio detectado.</value></data>
+  <data name="Provider documents" xml:space="preserve"><value>Documentos del proveedor</value></data>
+  <data name="Statement history" xml:space="preserve"><value>Historial de estados de cuenta</value></data>
+  <data name="No processed statements yet" xml:space="preserve"><value>Aún no hay estados de cuenta procesados</value></data>
+  <data name="Transaction history can detect that an amount moved. Statements are what allow BillWatch to explain why." xml:space="preserve"><value>El historial de transacciones puede detectar que un importe cambió. Los estados de cuenta permiten que BillWatch explique por qué.</value></data>
+  <data name="History" xml:space="preserve"><value>Historial</value></data>
+  <data name="Detected changes" xml:space="preserve"><value>Cambios detectados</value></data>
+  <data name="No statement changes yet" xml:space="preserve"><value>Aún no hay cambios en estados de cuenta</value></data>
+  <data name="BillWatch will list verified historical changes here as statement comparisons become available." xml:space="preserve"><value>BillWatch mostrará aquí los cambios históricos verificados a medida que estén disponibles las comparaciones de estados de cuenta.</value></data>
+  <data name="/ year" xml:space="preserve"><value>/ año</value></data>
+
+  <data name="The statement finished processing, but BillWatch could not refresh this bill." xml:space="preserve"><value>El estado de cuenta terminó de procesarse, pero BillWatch no pudo actualizar esta factura.</value></data>
+  <data name="BillWatch could not determine which bill to open." xml:space="preserve"><value>BillWatch no pudo determinar qué factura abrir.</value></data>
+  <data name="This bill could not be found." xml:space="preserve"><value>No se pudo encontrar esta factura.</value></data>
+  <data name="BillWatch could not load this bill from the secure API." xml:space="preserve"><value>BillWatch no pudo cargar esta factura desde la API segura.</value></data>
+  <data name="Something went wrong while opening this bill." xml:space="preserve"><value>Ocurrió un problema al abrir esta factura.</value></data>
+  <data name="Recurring bill" xml:space="preserve"><value>Factura recurrente</value></data>
+  <data name="BillWatch detected a change, but the available evidence does not explain the cause confidently." xml:space="preserve"><value>BillWatch detectó un cambio, pero la evidencia disponible no explica la causa con suficiente confianza.</value></data>
+  <data name="Unknown confidence" xml:space="preserve"><value>Confianza desconocida</value></data>
+  <data name="Statement" xml:space="preserve"><value>Estado de cuenta</value></data>
+  <data name="Due" xml:space="preserve"><value>Vence</value></data>
+  <data name="Statement period" xml:space="preserve"><value>Período del estado de cuenta</value></data>
+
+  <data name="Unknown" xml:space="preserve"><value>Desconocido</value></data>
+  <data name="Confirmed" xml:space="preserve"><value>Confirmado</value></data>
+  <data name="High" xml:space="preserve"><value>Alta</value></data>
+  <data name="Medium" xml:space="preserve"><value>Media</value></data>
+  <data name="Low" xml:space="preserve"><value>Baja</value></data>
+  <data name="Increase" xml:space="preserve"><value>Aumento</value></data>
+  <data name="Decrease" xml:space="preserve"><value>Disminución</value></data>
+  <data name="No Change" xml:space="preserve"><value>Sin cambios</value></data>
+  <data name="New Charge" xml:space="preserve"><value>Cargo nuevo</value></data>
+  <data name="Unusual Amount" xml:space="preserve"><value>Importe inusual</value></data>
+  <data name="Internet" xml:space="preserve"><value>Internet</value></data>
+  <data name="Mobile Phone" xml:space="preserve"><value>Teléfono móvil</value></data>
+  <data name="Utility" xml:space="preserve"><value>Servicio público</value></data>
+  <data name="Other" xml:space="preserve"><value>Otro</value></data>
+</root>
