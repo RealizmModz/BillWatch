@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Provider evidence" xml:space="preserve"><value>Evidencia del proveedor</value></data>
+  <data name="Upload a statement" xml:space="preserve"><value>Subir un estado de cuenta</value></data>
+  <data name="A provider statement gives BillWatch the evidence needed to explain why a bill changed." xml:space="preserve"><value>Un estado de cuenta del proveedor le da a BillWatch la evidencia necesaria para explicar por qué cambió una factura.</value></data>
+  <data name="Choose statement" xml:space="preserve"><value>Elegir estado de cuenta</value></data>
+  <data name="PDF, JPG, JPEG, or PNG · 15 MB max" xml:space="preserve"><value>PDF, JPG, JPEG o PNG · máximo 15 MB</value></data>
+  <data name="Upload statement" xml:space="preserve"><value>Subir estado de cuenta</value></data>
+  <data name="BillWatch verifies the document server-side before storing or using extracted facts." xml:space="preserve"><value>BillWatch verifica el documento en el servidor antes de almacenar o usar los datos extraídos.</value></data>
+  <data name="Uploading…" xml:space="preserve"><value>Subiendo…</value></data>
+  <data name="Processing…" xml:space="preserve"><value>Procesando…</value></data>
+  <data name="Invalid file" xml:space="preserve"><value>Archivo no válido</value></data>
+  <data name="The selected statement is empty." xml:space="preserve"><value>El estado de cuenta seleccionado está vacío.</value></data>
+  <data name="File too large" xml:space="preserve"><value>Archivo demasiado grande</value></data>
+  <data name="Bill statements must be 15 MB or smaller." xml:space="preserve"><value>Los estados de cuenta deben tener 15 MB o menos.</value></data>
+  <data name="Unsupported file" xml:space="preserve"><value>Archivo no compatible</value></data>
+  <data name="Only PDF, JPG, JPEG, and PNG bill statements are supported." xml:space="preserve"><value>Solo se admiten estados de cuenta en PDF, JPG, JPEG y PNG.</value></data>
+  <data name="Couldn't read file" xml:space="preserve"><value>No se pudo leer el archivo</value></data>
+  <data name="BillWatch could not inspect the selected file." xml:space="preserve"><value>BillWatch no pudo inspeccionar el archivo seleccionado.</value></data>
+  <data name="Uploading securely" xml:space="preserve"><value>Subiendo de forma segura</value></data>
+  <data name="Sending the {0} statement to BillWatch." xml:space="preserve"><value>Enviando el estado de cuenta {0} a BillWatch.</value></data>
+  <data name="Upload failed" xml:space="preserve"><value>Error de carga</value></data>
+  <data name="BillWatch could not upload this statement." xml:space="preserve"><value>BillWatch no pudo subir este estado de cuenta.</value></data>
+  <data name="Statement processed" xml:space="preserve"><value>Estado de cuenta procesado</value></data>
+  <data name="BillWatch validated the statement and updated the bill evidence." xml:space="preserve"><value>BillWatch validó el estado de cuenta y actualizó la evidencia de la factura.</value></data>
+  <data name="BillWatch validated the {0} statement and updated its bill evidence." xml:space="preserve"><value>BillWatch validó el estado de cuenta de {0} y actualizó la evidencia de la factura.</value></data>
+  <data name="Processing failed" xml:space="preserve"><value>Error de procesamiento</value></data>
+  <data name="BillWatch could not safely extract and validate this statement." xml:space="preserve"><value>BillWatch no pudo extraer y validar este estado de cuenta de forma segura.</value></data>
+  <data name="Still processing" xml:space="preserve"><value>Aún procesando</value></data>
+  <data name="The upload is secure and processing is continuing in the background. The bill will update when processing finishes." xml:space="preserve"><value>La carga es segura y el procesamiento continúa en segundo plano. La factura se actualizará cuando termine el procesamiento.</value></data>
+  <data name="Upload received" xml:space="preserve"><value>Carga recibida</value></data>
+  <data name="The statement is queued for secure processing." xml:space="preserve"><value>El estado de cuenta está en cola para un procesamiento seguro.</value></data>
+  <data name="Reading statement" xml:space="preserve"><value>Leyendo estado de cuenta</value></data>
+  <data name="BillWatch is extracting the document contents." xml:space="preserve"><value>BillWatch está extrayendo el contenido del documento.</value></data>
+  <data name="Reading image text" xml:space="preserve"><value>Leyendo texto de la imagen</value></data>
+  <data name="This statement needs OCR before BillWatch can validate its bill data." xml:space="preserve"><value>Este estado de cuenta necesita OCR antes de que BillWatch pueda validar los datos de la factura.</value></data>
+  <data name="Validating facts" xml:space="preserve"><value>Validando datos</value></data>
+  <data name="Document text is available and BillWatch is validating structured bill evidence." xml:space="preserve"><value>El texto del documento está disponible y BillWatch está validando la evidencia estructurada de la factura.</value></data>
+  <data name="The statement was successfully processed." xml:space="preserve"><value>El estado de cuenta se procesó correctamente.</value></data>
+  <data name="BillWatch could not safely process this statement." xml:space="preserve"><value>BillWatch no pudo procesar este estado de cuenta de forma segura.</value></data>
+  <data name="Processing" xml:space="preserve"><value>Procesando</value></data>
+  <data name="BillWatch is processing the statement." xml:space="preserve"><value>BillWatch está procesando el estado de cuenta.</value></data>
+  <data name="{0} bytes" xml:space="preserve"><value>{0} bytes</value></data>
+</root>
