@@ -23,6 +23,25 @@ Mutations are **off by default**. Do not enable `BILLWATCH_SMOKE_ALLOW_MUTATIONS
 
 Remove the temporary password file immediately after the smoke gate. Never put production credentials, bearer tokens, Plaid secrets, access keys, or the password file in the repository or shell command arguments.
 
+## Authenticated Web/BFF smoke gate
+
+Use `deploy/smoke-web-bff.sh` after the API smoke gate to exercise the same cookie-backed BFF route a browser uses. This is separate from the bearer-token API harness on purpose: it proves the rendered login form, antiforgery cookie/form token, encrypted authentication cookie, authenticated `/app` surface, BFF proxy reads, BFF account-export boundary, authenticated BFF antiforgery issuance, and antiforgery-protected logout.
+
+Create the same kind of mode-`600` password file outside the repository and run:
+
+```sh
+BILLWATCH_WEB_SMOKE_EMAIL='controlled-beta@example.com' \
+BILLWATCH_WEB_SMOKE_PASSWORD_FILE='/run/user/1000/billwatch-web-smoke-password' \
+sh deploy/smoke-web-bff.sh \
+    'https://billbeacon.net'
+```
+
+If the controlled account requires two-factor authentication, supply exactly one fresh mode-`600` second-factor file through `BILLWATCH_WEB_SMOKE_TWO_FACTOR_CODE_FILE` or `BILLWATCH_WEB_SMOKE_RECOVERY_CODE_FILE`. An authenticator-code file can be reused only while that TOTP is current; a recovery-code file consumes that recovery code when login succeeds.
+
+Optional known foreign Bill Stream/statement IDs can be supplied through `BILLWATCH_WEB_SMOKE_FOREIGN_BILL_STREAM_ID` and `BILLWATCH_WEB_SMOKE_FOREIGN_STATEMENT_UPLOAD_ID` to prove cross-user 404 behavior through the BFF itself. The Web/BFF harness performs no financial-data mutation; its only write is logout of its own isolated cookie session.
+
+Remove all temporary password/second-factor files immediately after the gate. The harness keeps password, second-factor, antiforgery, and encrypted session material out of curl command arguments.
+
 ## Release
 
 - [ ] Full solution build completes with zero errors and zero warnings where reasonably achievable.
@@ -40,8 +59,10 @@ Remove the temporary password file immediately after the smoke gate. Never put p
 - [ ] Logout clears the Web session.
 - [ ] Access-token refresh survives normal use without exposing tokens to JavaScript.
 - [ ] `deploy/smoke-private-beta.sh` passes for a normal tester with `BILLWATCH_SMOKE_ADMIN_EXPECTATION=deny`.
+- [ ] `deploy/smoke-web-bff.sh` passes for a controlled authenticated Web account.
 - [ ] Production Owner receives a role-aware bearer session after fresh login.
 - [ ] `deploy/smoke-private-beta.sh` passes for Owner/Admin with `BILLWATCH_SMOKE_ADMIN_EXPECTATION=allow`.
+- [ ] `deploy/smoke-web-bff.sh` passes for the controlled Owner/Admin Web session, including 2FA when enabled.
 - [ ] `/app/admin` authorizes Owner.
 - [ ] Non-staff authenticated accounts cannot access admin endpoints.
 - [ ] Access-key plaintext is visible once only.
