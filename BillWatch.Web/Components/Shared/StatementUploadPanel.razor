@@ -208,7 +208,13 @@
             SetProcessingStatus(upload.Status);
             StateHasChanged();
 
-            await PollUntilCompleteAsync(module, upload.Id);
+            if (!await CompleteTerminalStatusAsync(
+                    module,
+                    upload.Id,
+                    upload.Status))
+            {
+                await PollUntilCompleteAsync(module, upload.Id);
+            }
         }
         catch (OperationCanceledException) when (_disposeCancellation.IsCancellationRequested)
         {
@@ -254,34 +260,11 @@
             SetProcessingStatus(status.Status);
             StateHasChanged();
 
-            if (string.Equals(status.Status, "Processed", StringComparison.OrdinalIgnoreCase))
+            if (await CompleteTerminalStatusAsync(
+                    module,
+                    uploadId,
+                    status.Status))
             {
-                _state = "success";
-                _statusHeading = L["Statement processed"];
-                _message = string.IsNullOrWhiteSpace(ProviderName)
-                    ? L["BillWatch validated the statement and updated the bill evidence."]
-                    : L["BillWatch validated the {0} statement and updated its bill evidence.", ProviderName];
-
-                _selectedFile = null;
-
-                await module.InvokeVoidAsync(
-                    "clearStatementFileInput",
-                    _disposeCancellation.Token,
-                    _inputId);
-
-                if (OnProcessed.HasDelegate)
-                {
-                    await OnProcessed.InvokeAsync();
-                }
-
-                return;
-            }
-
-            if (string.Equals(status.Status, "Failed", StringComparison.OrdinalIgnoreCase))
-            {
-                SetError(
-                    L["Processing failed"],
-                    L["BillWatch could not safely extract and validate this statement."]);
                 return;
             }
         }
@@ -289,6 +272,44 @@
         _state = "working";
         _statusHeading = L["Still processing"];
         _message = L["The upload is secure and processing is continuing in the background. The bill will update when processing finishes."];
+    }
+
+    private async Task<bool> CompleteTerminalStatusAsync(
+        IJSObjectReference module,
+        Guid uploadId,
+        string? status)
+    {
+        if (!BillWatch.Web.Services.StatementUploadStatusSemantics.IsTerminal(status))
+        {
+            return false;
+        }
+
+        SetProcessingStatus(status);
+
+        if (!BillWatch.Web.Services.StatementUploadStatusSemantics.IsProcessed(status))
+        {
+            return true;
+        }
+
+        _state = "success";
+        _statusHeading = L["Statement processed"];
+        _message = string.IsNullOrWhiteSpace(ProviderName)
+            ? L["BillWatch validated the statement and updated the bill evidence."]
+            : L["BillWatch validated the {0} statement and updated its bill evidence.", ProviderName];
+
+        _selectedFile = null;
+
+        await module.InvokeVoidAsync(
+            "clearStatementFileInput",
+            _disposeCancellation.Token,
+            _inputId);
+
+        if (OnProcessed.HasDelegate)
+        {
+            await OnProcessed.InvokeAsync();
+        }
+
+        return true;
     }
 
     private void SetProcessingStatus(string? status)
@@ -308,13 +329,15 @@
                 break;
 
             case "NeedsOcr":
-                _statusHeading = L["Reading image text"];
-                _message = L["This statement needs OCR before BillWatch can validate its bill data."];
+                SetError(
+                    L["Clearer statement needed"],
+                    L["BillWatch could not confidently read this statement automatically. Try a clearer PDF, screenshot, or photo."]);
                 break;
 
             case "ReadyForParsing":
-                _statusHeading = L["Validating facts"];
-                _message = L["Document text is available and BillWatch is validating structured bill evidence."];
+                SetError(
+                    L["Statement needs review"],
+                    L["BillWatch read the document, but it could not safely validate enough structured bill evidence to update this bill automatically."]);
                 break;
 
             case "Processed":
