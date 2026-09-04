@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Subscription — BillWatch" xml:space="preserve"><value>Suscripción — BillWatch</value></data>
+  <data name="BillWatch access" xml:space="preserve"><value>Acceso a BillWatch</value></data>
+  <data name="Subscription" xml:space="preserve"><value>Suscripción</value></data>
+  <data name="Review your BillWatch access or redeem an access key." xml:space="preserve"><value>Revisa tu acceso a BillWatch o canjea una clave de acceso.</value></data>
+  <data name="Checking your access" xml:space="preserve"><value>Comprobando tu acceso</value></data>
+  <data name="BillWatch is verifying the subscription attached to this account." xml:space="preserve"><value>BillWatch está verificando la suscripción asociada a esta cuenta.</value></data>
+  <data name="Active" xml:space="preserve"><value>Activo</value></data>
+  <data name="BillWatch access is active" xml:space="preserve"><value>El acceso a BillWatch está activo</value></data>
+  <data name="{0} access" xml:space="preserve"><value>Acceso {0}</value></data>
+  <data name="Lifetime access" xml:space="preserve"><value>Acceso de por vida</value></data>
+  <data name="Active through" xml:space="preserve"><value>Activo hasta</value></data>
+  <data name="Continue to BillWatch" xml:space="preserve"><value>Continuar a BillWatch</value></data>
+  <data name="Your account and data controls remain available at any time." xml:space="preserve"><value>Los controles de tu cuenta y tus datos permanecen disponibles en todo momento.</value></data>
+  <data name="Data and privacy options" xml:space="preserve"><value>Opciones de datos y privacidad</value></data>
+  <data name="No active plan" xml:space="preserve"><value>Sin plan activo</value></data>
+  <data name="Activate BillWatch access" xml:space="preserve"><value>Activar acceso a BillWatch</value></data>
+  <data name="This account does not currently have an active BillWatch entitlement. If you received an access key, redeem it below." xml:space="preserve"><value>Esta cuenta no tiene actualmente un acceso activo a BillWatch. Si recibiste una clave de acceso, canjéala a continuación.</value></data>
+  <data name="Access key" xml:space="preserve"><value>Clave de acceso</value></data>
+  <data name="Activating…" xml:space="preserve"><value>Activando…</value></data>
+  <data name="Redeem key" xml:space="preserve"><value>Canjear clave</value></data>
+  <data name="Access keys are redeemed once and attached securely to your account." xml:space="preserve"><value>Las claves de acceso se canjean una sola vez y se vinculan de forma segura a tu cuenta.</value></data>
+  <data name="Your account and privacy controls do not depend on an active entitlement." xml:space="preserve"><value>Los controles de tu cuenta y privacidad no dependen de un acceso activo.</value></data>
+  <data name="BillWatch could not load your subscription status." xml:space="preserve"><value>BillWatch no pudo cargar el estado de tu suscripción.</value></data>
+  <data name="Your BillWatch access is active." xml:space="preserve"><value>Tu acceso a BillWatch está activo.</value></data>
+  <data name="That access key could not be redeemed." xml:space="preserve"><value>No se pudo canjear esa clave de acceso.</value></data>
+</root>
