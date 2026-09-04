@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using BillWatch.Tests.Infrastructure;
 
 namespace BillWatch.Tests.Security;
@@ -9,6 +10,9 @@ namespace BillWatch.Tests.Security;
 public sealed class BillStatementUploadBoundaryTests
     : IClassFixture<BillWatchApiFactory>
 {
+    private static readonly JsonSerializerOptions JsonOptions =
+        new(JsonSerializerDefaults.Web);
+
     private readonly BillWatchApiFactory _factory;
 
     public BillStatementUploadBoundaryTests(
@@ -34,15 +38,14 @@ public sealed class BillStatementUploadBoundaryTests
             content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await ReadUploadAsync(response);
+        var result = await ReadSafeUploadAsync(
+            response,
+            "utility-statement.png");
         Assert.Equal(billStreamId, result.BillStreamId);
         Assert.Equal("image/png", result.MediaType);
         Assert.Equal(".png", result.FileExtension);
         Assert.Equal(pngBytes.LongLength, result.SizeBytes);
         Assert.Equal("Uploaded", result.Status);
-        await AssertResponseDoesNotExposeStorageOrOriginalNameAsync(
-            response,
-            "utility-statement.png");
     }
 
     [Theory]
@@ -65,13 +68,12 @@ public sealed class BillStatementUploadBoundaryTests
             content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var result = await ReadUploadAsync(response);
+        var result = await ReadSafeUploadAsync(
+            response,
+            fileName);
         Assert.Equal("image/jpeg", result.MediaType);
         Assert.Equal(".jpg", result.FileExtension);
         Assert.Equal(jpegBytes.LongLength, result.SizeBytes);
-        await AssertResponseDoesNotExposeStorageOrOriginalNameAsync(
-            response,
-            fileName);
     }
 
     [Fact]
@@ -95,14 +97,7 @@ public sealed class BillStatementUploadBoundaryTests
             "extension does not match",
             body,
             StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(
-            "storageKey",
-            body,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(
-            "physicalPath",
-            body,
-            StringComparison.OrdinalIgnoreCase);
+        AssertSafeResponseText(body, "disguised.pdf");
     }
 
     [Fact]
@@ -126,6 +121,7 @@ public sealed class BillStatementUploadBoundaryTests
             "Only PDF, JPG, JPEG, and PNG",
             body,
             StringComparison.Ordinal);
+        AssertSafeResponseText(body, "statement.txt");
     }
 
     [Fact]
@@ -149,6 +145,7 @@ public sealed class BillStatementUploadBoundaryTests
             "empty",
             body,
             StringComparison.OrdinalIgnoreCase);
+        AssertSafeResponseText(body, "empty.pdf");
     }
 
     [Fact]
@@ -162,6 +159,9 @@ public sealed class BillStatementUploadBoundaryTests
             $"/api/bill-streams/{billStreamId:D}/statement-uploads",
             content);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        AssertSafeResponseText(
+            await response.Content.ReadAsStringAsync(),
+            originalFileName: null);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public sealed class BillStatementUploadBoundaryTests
             content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        await AssertResponseDoesNotExposeStorageOrOriginalNameAsync(
+        _ = await ReadSafeUploadAsync(
             response,
             "private-account-number-1234.png");
     }
@@ -195,10 +195,12 @@ public sealed class BillStatementUploadBoundaryTests
         var billStreamId = await CreateBillStreamAsync(client);
         const string originalFileName =
             "private-billing-evidence.pdf";
+        const string privateMarker =
+            "private-marker-must-not-leak";
 
         using var content = CreateMultipartFile(
             Encoding.ASCII.GetBytes(
-                "%PDF-1.7\nthis is intentionally not a valid PDF structure"),
+                $"%PDF-1.7\n{privateMarker}\nthis is intentionally not a valid PDF structure"),
             originalFileName,
             "application/pdf");
         using var uploadResponse = await client.PostAsync(
@@ -206,7 +208,9 @@ public sealed class BillStatementUploadBoundaryTests
             content);
 
         Assert.Equal(HttpStatusCode.Created, uploadResponse.StatusCode);
-        var upload = await ReadUploadAsync(uploadResponse);
+        var upload = await ReadSafeUploadAsync(
+            uploadResponse,
+            originalFileName);
 
         var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
         string? lastStatus = null;
@@ -217,25 +221,16 @@ public sealed class BillStatementUploadBoundaryTests
                 $"/api/bill-streams/{billStreamId:D}/statement-uploads/{upload.Id:D}");
             Assert.Equal(HttpStatusCode.OK, statusResponse.StatusCode);
             var statusBody = await statusResponse.Content.ReadAsStringAsync();
+            AssertSafeResponseText(statusBody, originalFileName);
             Assert.DoesNotContain(
-                originalFileName,
-                statusBody,
-                StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain(
-                "storageKey",
-                statusBody,
-                StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain(
-                "physicalPath",
-                statusBody,
-                StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain(
-                "intentionally not a valid PDF structure",
+                privateMarker,
                 statusBody,
                 StringComparison.OrdinalIgnoreCase);
 
-            var status = await statusResponse.Content
-                .ReadFromJsonAsync<BillStatementUploadStatusPayload>();
+            var status = JsonSerializer.Deserialize<
+                BillStatementUploadStatusPayload>(
+                    statusBody,
+                    JsonOptions);
             lastStatus = status?.Status;
 
             if (string.Equals(
@@ -290,20 +285,26 @@ public sealed class BillStatementUploadBoundaryTests
         return multipart;
     }
 
-    private static async Task<BillStatementUploadPayload> ReadUploadAsync(
-        HttpResponseMessage response)
-    {
-        return await response.Content
-            .ReadFromJsonAsync<BillStatementUploadPayload>()
-            ?? throw new InvalidOperationException(
-                "The statement upload response was empty.");
-    }
-
-    private static async Task AssertResponseDoesNotExposeStorageOrOriginalNameAsync(
+    private static async Task<BillStatementUploadPayload> ReadSafeUploadAsync(
         HttpResponseMessage response,
         string originalFileName)
     {
         var responseText = await response.Content.ReadAsStringAsync();
+        AssertSafeResponseText(
+            responseText,
+            originalFileName);
+
+        return JsonSerializer.Deserialize<BillStatementUploadPayload>(
+                   responseText,
+                   JsonOptions)
+               ?? throw new InvalidOperationException(
+                   "The statement upload response was empty.");
+    }
+
+    private static void AssertSafeResponseText(
+        string responseText,
+        string? originalFileName)
+    {
         Assert.DoesNotContain(
             "storageKey",
             responseText,
@@ -312,10 +313,14 @@ public sealed class BillStatementUploadBoundaryTests
             "physicalPath",
             responseText,
             StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(
-            originalFileName,
-            responseText,
-            StringComparison.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(originalFileName))
+        {
+            Assert.DoesNotContain(
+                originalFileName,
+                responseText,
+                StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private static byte[] CreatePdfBytes()
