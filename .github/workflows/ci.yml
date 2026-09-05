@@ -90,6 +90,7 @@ jobs:
           sh deploy/tests/beta-readiness-tests.sh
           sh deploy/tests/reboot-recovery-drill-tests.sh
           sh deploy/tests/internal-beta0-tests.sh
+          sh deploy/tests/subscription-rollout-preflight-tests.sh
 
       - name: Configure container builder
         uses: docker/setup-buildx-action@v4
