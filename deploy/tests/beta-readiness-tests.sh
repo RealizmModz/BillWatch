@@ -51,9 +51,23 @@ done
 grep -Fq 'verify-release-integrity.sh' "$root_dir/deploy/verify-production.sh" ||
     fail "production verification must enforce release integrity before declaring the host healthy."
 
+# The general authenticated API smoke remains intentionally interactive.
+grep -q 'stty -echo' "$root_dir/deploy/smoke-authenticated-api.sh" ||
+    fail "authenticated API smoke must disable terminal echo for interactive password input."
+
+# The admin authorization smoke is intentionally non-interactive for controlled Beta 0 runs.
+# Its credentials must come from protected files instead of a terminal prompt.
+grep -Fq 'BILLWATCH_ADMIN_SMOKE_PASSWORD_FILE' "$root_dir/deploy/smoke-admin-api.sh" ||
+    fail "admin smoke must require a protected admin password file."
+grep -Fq 'BILLWATCH_ADMIN_SMOKE_NONSTAFF_PASSWORD_FILE' "$root_dir/deploy/smoke-admin-api.sh" ||
+    fail "admin smoke must require a protected non-staff password file."
+grep -Fq '[ "$mode" = "600" ]' "$root_dir/deploy/smoke-admin-api.sh" ||
+    fail "admin smoke must enforce mode-600 credential files."
+grep -Fq '[ ! -L "$path" ]' "$root_dir/deploy/smoke-admin-api.sh" ||
+    fail "admin smoke must reject symbolic-link credential files."
+
 for smoke_script in "$root_dir/deploy/smoke-authenticated-api.sh" "$root_dir/deploy/smoke-admin-api.sh"
 do
-    grep -q 'stty -echo' "$smoke_script" || fail "smoke test must disable terminal echo for password input: $smoke_script"
     grep -q 'chmod 700 "$work_directory"' "$smoke_script" || fail "smoke test must protect its temporary directory: $smoke_script"
     grep -q 'chmod 600 "$auth_config"' "$smoke_script" || fail "smoke test must protect bearer-token curl configuration: $smoke_script"
     if grep -F -- '--header "Authorization: Bearer $access_token"' "$smoke_script" >/dev/null; then
