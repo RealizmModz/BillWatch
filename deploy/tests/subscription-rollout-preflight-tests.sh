@@ -92,4 +92,7 @@ BILLWATCH_SUBSCRIPTION_ROLLOUT_PREFLIGHT=true BILLWATCH_SUBSCRIPTION_ROLLOUT_EXP
 sh "$root_dir/deploy/tests/subscription-lifecycle-smoke-tests.sh" ||
     fail "subscription lifecycle smoke harness regression suite failed"
 
+sh "$root_dir/deploy/tests/statement-semantic-review-tests.sh" ||
+    fail "statement semantic review regression suite failed"
+
 printf '%s\n' 'Subscription rollout preflight tests passed.'
