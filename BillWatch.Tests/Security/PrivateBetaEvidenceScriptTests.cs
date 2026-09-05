@@ -8,6 +8,7 @@ public sealed class PrivateBetaEvidenceScriptTests
     [Theory]
     [InlineData("deploy/tests/plaid-observation-proof-tests.sh")]
     [InlineData("deploy/tests/private-beta-acceptance-evidence-tests.sh")]
+    [InlineData("deploy/tests/trusted-beta-launch-evidence-tests.sh")]
     public void EvidenceShellRegressionSuite_Passes(string relativePath)
     {
         if (!OperatingSystem.IsLinux())
