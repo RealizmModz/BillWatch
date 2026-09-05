@@ -1,6 +1,6 @@
 # BillWatch Current Context
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
 ## Authority / continuation rules
 
@@ -10,6 +10,7 @@ This is the durable BillWatch development handoff. Current source wins over this
 - Never weaken authentication, BFF isolation, antiforgery, HTTPS, ownership checks, trusted-proxy rules, token protection, statement protections, backup protections, migration safety, or financial-data boundaries to pass a check.
 - Work in large coherent slices; hourly continuation is not a commit boundary.
 - Keep the current work on the same draft PR/feature branch. Do not deploy the feature branch directly to production or merge before the full CI/container/recovery gate is green.
+- Prefer useful code over repeated audits or synthetic acceptance artifacts. Do not start lower-priority expansion while a genuine P0 production/security gate is still open.
 
 ## Product promise
 
@@ -44,40 +45,59 @@ Production path: `/opt/billwatch`
 
 ## Verified P0/private-beta work on PR #44
 
-The PR now includes and regression-tests:
+The branch now includes and regression-tests the following coherent security/readiness slices:
 
-- Stripe webhook 256 KB body cap, chunked/unknown-length protection, fail-closed invalid signatures, and centralized Web antiforgery/security-header/no-store boundaries.
+### Identity, Web/BFF, and ownership
+
+- Stripe webhook 256 KB body cap, chunked/unknown-length protection, and fail-closed invalid signatures.
+- Centralized Web antiforgery, security-header, and no-store boundaries.
 - Anonymous/sensitive endpoint authorization and rate-limit coverage, including user-partitioned authenticated limits.
-- Owner/Admin policy behavior, role-claim freshness, access-key create/list/redeem/exhaust/revoke lifecycle, and privilege boundaries.
+- Owner/Admin policy behavior, role-claim freshness, and controlled access-key create/list/redeem/exhaust/revoke privilege boundaries.
+- Versioned private-beta Terms/Privacy acceptance across Web, MAUI, and direct API registration, including registration-size limits.
+- Account deletion reauthentication/2FA/staff-role protections, Plaid revoke-first behavior, crash-safe statement quarantine/reconciliation, and owned-data erasure coverage.
+- Deployed-release disposable-account deletion proof with explicit destructive opt-in and release-pinned metadata-only evidence.
+- Server-side BFF access-token refresh regression proof: proactive refresh, one refresh/retry on upstream 401, rotated-token persistence in the authenticated server session, no browser token disclosure, and fail-closed sign-out on refresh failure.
+- Objective cross-user Web/BFF ownership smoke that authenticates a second controlled identity, derives a real foreign-owned bill-stream/statement-upload pair from that account export, and proves the primary identity receives 404 for those exact foreign resources.
+
+### Plaid, statements, subscriptions, and beta acceptance
+
 - Plaid `RequiresAttention` classification/persistence, repair-state retention, retry stopping, safe provider disconnect, and ownership isolation.
 - Statement PDF/JPG/JPEG/PNG signature validation, upload/status/download ownership, terminal-state semantics, native/scanned OCR regression coverage, and storage-path secrecy.
-- Versioned private-beta Terms/Privacy contract `2026-09-04-beta`, Web/MAUI/direct-API acceptance enforcement, and 16 KB registration cap. Qualified counsel review and any future audit-grade consent ledger remain separate work.
-- Account deletion reauthentication/2FA/staff protections, Plaid revoke-first behavior, crash-safe statement quarantine/reconciliation, and owned-data erasure coverage.
-- Repeatable guarded direct API, authenticated Web/BFF, access-key, Plaid, and statement lifecycle production smoke harnesses.
-- Guarded clean-host/off-host recovery drill with isolated PostgreSQL and no production volumes.
-- Independent metadata-only external readiness alert path and forced-failure regression proof.
-- Guarded controlled reboot preflight/postflight proof that never initiates reboot itself.
-- Guarded Internal Beta 0 runner composing direct API, Web/BFF, access-key, Plaid, and statement smoke gates with release-pinned metadata-only evidence.
+- Guarded direct API, authenticated Web/BFF, Owner/Admin, access-key, Plaid, statement lifecycle, statement semantic-review, subscription lifecycle, and disposable account-deletion smoke/proof harnesses.
+- Subscription rollout preflight while global subscription enforcement remains OFF.
+- Internal Beta 0 runner requiring release-matched account-deletion evidence plus admin authorization, access-key, Plaid, statement lifecycle, statement semantic-review, and subscription gates for a complete result.
+- Two-phase release-pinned Plaid Hosted Link observation proof: explicit human completion followed by objective server-side completion, connection-scoped sync, Active-state verification, and metadata-only evidence.
 
-## Last definitive green baseline
+### Backup, recovery, operations, and evidence
 
-Commit `5e8e30d5b77f0423ae1cafd1bae025374270b6e4` (`Add guarded Internal Beta 0 acceptance runner`) passed BillWatch CI #393 completely on 2026-09-04.
+- Encrypted Restic backup/restore verification and guarded clean-host recovery drill with isolated PostgreSQL and no production volumes.
+- Backup trust separation: routine capture remains append-only at the BillWatch command boundary; delete-capable retention maintenance requires separate trusted-host authority and explicit maintenance opt-in.
+- Runtime watchdog, release-integrity checks, metadata-only operations alerts, independent external readiness alerts, and controlled reboot pre/postflight proof.
+- Release-pinned clean-host recovery and controlled-reboot evidence with a same-release technical-evidence verifier.
+- Two-phase release-pinned alert-observation proof requiring the same random challenge to be observed in both independent destinations before evidence can be finalized.
+- Same-release private-beta acceptance verifier correlating machine technical evidence, alert-observation evidence, and Plaid-observation evidence.
+- Trusted private-beta launch evidence gate requiring complete machine acceptance plus explicit same-release provider-immutability/protected-recovery and qualified Terms/Privacy review attestations.
+- Legal approval evidence is additionally pinned to `BillWatchLegalDocuments.CurrentVersion`; human approval records are intentionally labeled attestations rather than independent machine proof.
 
-That gate includes Release build, EF pending-model verification, full xUnit suite, production/beta operation regression suites, production API/Web images, HTTPS readiness, HTTP security boundaries, release-label verification, encrypted backup creation, isolated PostgreSQL/statement/Data Protection restore, and post-recovery API readiness.
+## Definitive green baseline
 
-## Current slice: backup trust separation
+Commit `f37ed2f30a0c7fe1597ff4e24b3c36260343afbb` (`Fix cross-user Web smoke login fixture`) passed BillWatch CI #411 completely on 2026-09-05.
 
-In progress on top of the CI #393 green baseline:
+CI #411 validates the repaired objective cross-user Web/BFF ownership smoke on top of all prior P0 work. The complete gate includes Release build, EF pending-model verification, full xUnit suite, production/beta operation regression suites, production API/Web images, HTTPS readiness, HTTP security boundaries, release-label verification, encrypted backup creation, isolated PostgreSQL/statement/Data Protection restore, and post-recovery API readiness.
 
-- normal production backup capture is explicitly `BILLWATCH_BACKUP_CLIENT_MODE=append-only` at the BillWatch command/config boundary;
-- normal backup capture never automatically invokes `restic forget`/`prune`, even when a retention policy is enabled;
-- destructive retention requires `BILLWATCH_BACKUP_CLIENT_MODE=maintenance` plus explicit `BILLWATCH_BACKUP_MAINTENANCE_ALLOW=true`;
-- production environment validation refuses maintenance mode;
-- a separate trusted-host `deploy/run-backup-maintenance.sh` uses a mode-600 environment outside the checkout, exact clean release, off-host repository, hardened no-volume container, and only the retention command;
-- dedicated regression coverage proves append-only refusal, maintenance opt-in, exact retention arguments, no production-volume mounts, and protected maintenance-env behavior;
-- operator documentation explicitly separates routine backup credentials from delete-capable maintenance credentials.
+The preceding CI #410 failure was confined to the new shell test fixture: its fake curl matched `/auth/login` against the broader login-page case. Production authentication behavior was not changed; commit `f37ed2f30a0c7fe1597ff4e24b3c36260343afbb` corrected the fixture ordering and #411 proved the repair.
 
-This slice intentionally does **not** claim provider-side immutability. Provider ACL/Object Lock/WORM/append-only enforcement and recovery from that protected path remain a real-environment launch gate. Restic's append-only guidance requires maintenance authority to be separated from the potentially compromised backup client; this slice aligns BillWatch with that threat model rather than pretending an environment flag proves provider protection.
+## Current machine-verifiable P0 position
+
+No current-work compile/test/CI failure is open on the definitive green baseline above.
+
+Most remaining P0 items are now **real-environment acceptance gates**, not missing generic application code. Do not manufacture additional scripts merely to turn human/provider facts into apparent machine proofs. In particular:
+
+- provider-enforced immutable/Object-Lock/WORM/equivalent backup behavior cannot be truthfully implemented or claimed until the actual backup provider and its retention/delete/version semantics are known;
+- qualified legal review cannot be replaced by application code;
+- human Plaid Hosted Link behavior and alert receipt require real observation;
+- a controlled reboot requires an actual manual reboot between the existing guarded preflight/postflight phases;
+- representative statement semantic accuracy requires comparison against operator-known facts.
 
 ## Production/rollout rules
 
@@ -87,25 +107,31 @@ This slice intentionally does **not** claim provider-side immutability. Provider
 - Startup EF migrations mean production remains one API instance until migration ownership is redesigned.
 - Never run `docker compose down --volumes` against production.
 - Beta Terms/Privacy are operational drafts, not qualified legal review.
+- PR #44 stays draft/unmerged until the exact final head has a complete green CI/container/recovery gate and the intended release is ready for guarded deployment.
 
 ## Remaining real-environment private-beta gates
 
 Before trusted external beta invitations:
 
-- guarded-deploy the final green release and run authenticated direct API/Web-BFF/access-key/Plaid/statement smoke with controlled accounts/fixtures;
-- complete the human Plaid Hosted Link/update-mode flow with controlled provider data and verify sync/RequiresAttention behavior;
-- review representative PDF/JPG/PNG extraction/OCR fields and resulting bill-change explanation for semantic accuracy;
-- run clean-host restore against the real off-host repository;
-- configure provider-enforced immutable/Object-Lock/WORM/append-only backup protection and prove recovery from protected storage;
-- observe production operations-alert delivery and independent external readiness forced-failure delivery;
-- perform controlled reboot preflight/manual reboot/postflight;
-- complete Internal Beta 0 on real controlled bills before inviting 3–5 trusted testers;
-- obtain qualified Terms/Privacy review before broader public/commercial beta.
+- guarded-deploy the final green release from the normal release path; never deploy this feature branch directly;
+- run authenticated direct API/Web-BFF/admin/access-key/Plaid/statement/subscription smoke with controlled identities and fixtures;
+- run the objective cross-user Web/BFF ownership smoke with a second controlled identity that owns a real controlled statement fixture;
+- run the disposable account-deletion proof and feed its same-release evidence into Internal Beta 0;
+- complete the human Plaid Hosted Link/update-mode flow and finalize the release-pinned Plaid observation proof after Active/sync verification;
+- review representative PDF/scanned-PDF/JPG/PNG extraction/OCR fields and bill-change explanations against operator-known facts;
+- run clean-host restore against the actual off-host repository and record same-release recovery evidence;
+- configure provider-enforced immutable/Object-Lock/WORM/equivalent protection, prove recovery from that protected path, and only then record the explicit same-release backup approval attestation;
+- run the alert-observation proof and personally confirm the challenge in both independent destinations;
+- perform controlled reboot preflight, manual reboot, and postflight, then record same-release reboot evidence;
+- combine same-release technical, alert, and Plaid evidence with the private-beta acceptance verifier;
+- complete Internal Beta 0 on real controlled bills with explicit expected subscription state where known;
+- obtain qualified review of the exact deployed Terms/Privacy version and record the legal approval attestation;
+- run the trusted-beta launch evidence verifier only after every underlying real-environment fact above is genuinely complete.
 
 ## Immediate resume point
 
-1. Finish the backup trust-separation slice without changing provider behavior or claiming immutability.
-2. Run its dedicated regression suite through CI; fix any current-work failure before proceeding.
-3. If the complete CI/container/recovery gate is green, keep PR #44 draft/unmerged and treat that exact head as the new baseline.
-4. Do not implement provider-specific Object Lock/WORM assumptions until the actual backup provider and its retention/delete/version semantics are known; that is a real architecture/security decision, not a generic shell toggle.
-5. Prefer remaining application-level private-beta readiness work only where it adds real value; avoid duplicating already-green smoke/recovery/security audits.
+1. Treat `f37ed2f30a0c7fe1597ff4e24b3c36260343afbb` / CI #411 as the latest definitive green **code** baseline unless a newer exact head has itself passed the complete gate.
+2. If the context-only refresh commit is newer than that baseline, do not mistake documentation-only head movement for a newly verified runtime baseline; use the CI result for that exact head when it exists.
+3. Do not start P1 product expansion while the real-environment P0 gates above remain open unless a concrete P0 defect discovered during acceptance requires code changes.
+4. On the next implementation slice, prefer fixing an observed production/acceptance defect or a clearly missing application-level P0 behavior. Avoid redundant ownership/security audits and avoid inventing provider/legal proofs.
+5. Keep PR #44 draft and unmerged. Preserve all work on `work/p0-beta-verification-2026-09-04` until the private-beta release gate is actually ready.
