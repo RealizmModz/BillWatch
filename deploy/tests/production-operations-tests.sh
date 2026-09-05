@@ -295,4 +295,6 @@ expect_failure run_deploy BILLWATCH_TEST_FAIL_UP=true
 grep -q 'stop api web edge' "$command_log" || fail "failed startup did not stop potentially started candidate services."
 [ ! -d "$deployment_root/.billwatch-deploy.lock" ] || fail "deployment lock was not removed after failure."
 
+sh "$root_dir/deploy/tests/alert-observation-proof-tests.sh" || fail "alert observation proof regression suite failed."
+
 printf '%s\n' 'Production operation script tests passed.'
