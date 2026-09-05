@@ -15,6 +15,7 @@ run_plaid="${BILLWATCH_BETA0_RUN_PLAID:-true}"
 run_statement="${BILLWATCH_BETA0_RUN_STATEMENT:-true}"
 run_statement_semantics="${BILLWATCH_BETA0_RUN_STATEMENT_SEMANTICS:-true}"
 run_subscription="${BILLWATCH_BETA0_RUN_SUBSCRIPTION:-true}"
+account_delete_evidence="${BILLWATCH_BETA0_ACCOUNT_DELETE_EVIDENCE_FILE:-}"
 evidence_file="${BILLWATCH_BETA0_EVIDENCE_FILE:-}"
 evidence_directory=""
 
@@ -102,9 +103,32 @@ if [ "$allow_partial" != "true" ] && { \
     [ "$run_plaid" != "true" ] || \
     [ "$run_statement" != "true" ] || \
     [ "$run_statement_semantics" != "true" ] || \
-    [ "$run_subscription" != "true" ];
+    [ "$run_subscription" != "true" ] || \
+    [ -z "$account_delete_evidence" ]; \
 }; then
-    fail "A complete Internal Beta 0 run requires admin authorization, access-key, Plaid, statement lifecycle, statement semantic-review, and subscription lifecycle phases. Set BILLWATCH_BETA0_ALLOW_PARTIAL=true only when intentionally collecting partial evidence." 77
+    fail "A complete Internal Beta 0 run requires admin authorization, access-key, Plaid, statement lifecycle, statement semantic-review, subscription lifecycle, and release-matched disposable account deletion evidence. Set BILLWATCH_BETA0_ALLOW_PARTIAL=true only when intentionally collecting partial evidence." 77
+fi
+
+account_delete_evidence_verified=false
+if [ -n "$account_delete_evidence" ]; then
+    case "$account_delete_evidence" in
+        /*) ;;
+        *) fail "BILLWATCH_BETA0_ACCOUNT_DELETE_EVIDENCE_FILE must be an absolute path outside the deployment checkout." 64 ;;
+    esac
+    case "$account_delete_evidence" in
+        "$deployment_directory"|"$deployment_directory"/*)
+            fail "Account deletion evidence must live outside the deployment checkout." 64
+            ;;
+    esac
+    [ -f "$account_delete_evidence" ] || fail "Account deletion evidence file does not exist: $account_delete_evidence" 66
+    [ ! -L "$account_delete_evidence" ] || fail "Refusing symbolic-link account deletion evidence." 73
+    account_delete_mode="$(stat -c '%a' "$account_delete_evidence" 2>/dev/null || true)"
+    [ "$account_delete_mode" = "600" ] || fail "Account deletion evidence must have mode 600." 64
+    grep -q '^VERSION=1$' "$account_delete_evidence" || fail "Account deletion evidence has an unsupported format." 65
+    grep -q '^RESULT=complete$' "$account_delete_evidence" || fail "Account deletion evidence is not complete." 65
+    grep -q "^RELEASE_SHA=$release_sha$" "$account_delete_evidence" || fail "Account deletion evidence does not match the deployed release." 65
+    grep -q '^PASSED_PHASES=account-deletion$' "$account_delete_evidence" || fail "Account deletion evidence does not prove the required phase." 65
+    account_delete_evidence_verified=true
 fi
 
 if [ -n "$evidence_file" ]; then
@@ -122,6 +146,13 @@ fi
 
 started_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 passed_phases=""
+
+if [ "$account_delete_evidence_verified" = "true" ]; then
+    passed_phases="account-deletion"
+    printf '%s\n' 'PASS account-deletion evidence (release matched)'
+else
+    printf '%s\n' 'SKIP account-deletion evidence (partial run)'
+fi
 
 run_phase()
 {
@@ -177,7 +208,8 @@ else
 fi
 
 result="complete"
-if [ "$run_admin" != "true" ] || \
+if [ "$account_delete_evidence_verified" != "true" ] || \
+   [ "$run_admin" != "true" ] || \
    [ "$run_access_key" != "true" ] || \
    [ "$run_plaid" != "true" ] || \
    [ "$run_statement" != "true" ] || \
@@ -205,7 +237,7 @@ fi
 
 if [ "$result" = "complete" ]; then
     printf 'BillWatch Internal Beta 0 automated acceptance passed for release %s.\n' "$release_sha"
-    printf '%s\n' 'This proves the automated gates, including Owner/Admin authorization with non-staff denial, controlled statement semantics, and configured subscription lifecycle assertions, only; human Plaid authorization/provider behavior, external alert observation, recovery drills, provider-side backup protection, and legal review remain separate evidence.'
+    printf '%s\n' 'This proves the automated gates, including release-matched disposable account deletion, Owner/Admin authorization with non-staff denial, controlled statement semantics, and configured subscription lifecycle assertions, only; human Plaid authorization/provider behavior, external alert observation, recovery drills, provider-side backup protection, and legal review remain separate evidence.'
 else
     printf 'BillWatch Internal Beta 0 partial acceptance passed for release %s.\n' "$release_sha"
     printf '%s\n' 'Partial evidence must not be recorded as a completed Internal Beta 0.'
