@@ -88,6 +88,7 @@ jobs:
       - name: Validate beta readiness scripts
         run: |
           sh deploy/tests/beta-readiness-tests.sh
+          sh deploy/tests/web-bff-cross-user-smoke-tests.sh
           sh deploy/tests/reboot-recovery-drill-tests.sh
           sh deploy/tests/admin-api-smoke-tests.sh
           sh deploy/tests/internal-beta0-tests.sh
