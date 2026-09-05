@@ -50,14 +50,15 @@ login()
     email="$1"
     password_file="$2"
     token_file="$3"
-    prefix="$4"
+    file_key="$4"
+    label="$5"
 
     IFS= read -r password < "$password_file" || true
-    [ -n "${password:-}" ] || fail "$prefix password file is empty." 64
+    [ -n "${password:-}" ] || fail "$label password file is empty." 64
 
-    payload="$work_directory/${prefix}-login.json"
-    response="$work_directory/${prefix}-login-response.json"
-    auth_config="$work_directory/${prefix}-auth.curl"
+    payload="$work_directory/${file_key}-login.json"
+    response="$work_directory/${file_key}-login-response.json"
+    auth_config="$work_directory/${file_key}-auth.curl"
 
     printf '{"email":"%s","password":"%s"}' \
         "$(json_escape "$email")" \
@@ -69,11 +70,11 @@ login()
         --request POST --header 'Content-Type: application/json' --data-binary "@$payload" \
         "$api_base_url/api/auth/login")"
     rm -f "$payload"
-    [ "$code" = "200" ] || fail "$prefix authentication failed with HTTP $code." 69
+    [ "$code" = "200" ] || fail "$label authentication failed with HTTP $code." 69
 
     access_token="$(sed -n 's/.*"accessToken"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$response" | head -n 1)"
     rm -f "$response"
-    [ -n "$access_token" ] || fail "$prefix authentication response did not contain an access token." 69
+    [ -n "$access_token" ] || fail "$label authentication response did not contain an access token." 69
 
     printf 'header = "Authorization: Bearer %s"\n' "$access_token" > "$auth_config"
     chmod 600 "$auth_config"
@@ -97,8 +98,8 @@ trap 'rm -rf "$work_directory"' EXIT HUP INT TERM
 
 admin_auth_pointer="$work_directory/admin-auth.path"
 nonstaff_auth_pointer="$work_directory/nonstaff-auth.path"
-login "$admin_email" "$admin_password_file" "$admin_auth_pointer" "Owner/Admin"
-login "$nonstaff_email" "$nonstaff_password_file" "$nonstaff_auth_pointer" "Non-staff"
+login "$admin_email" "$admin_password_file" "$admin_auth_pointer" "admin" "Owner/Admin"
+login "$nonstaff_email" "$nonstaff_password_file" "$nonstaff_auth_pointer" "nonstaff" "Non-staff"
 admin_auth_config="$(cat "$admin_auth_pointer")"
 nonstaff_auth_config="$(cat "$nonstaff_auth_pointer")"
 
