@@ -25,7 +25,7 @@ public sealed class WebBffRefreshSecurityTests
             new CapturingHandler(
                 JsonResponse(
                     HttpStatusCode.OK,
-                    $$"{\"tokenType\":\"Bearer\",\"accessToken\":\"{{newAccessToken}}\",\"expiresIn\":3600,\"refreshToken\":\"{{newRefreshToken}}\"}"),
+                    $"{{\"tokenType\":\"Bearer\",\"accessToken\":\"{newAccessToken}\",\"expiresIn\":3600,\"refreshToken\":\"{newRefreshToken}\"}}"),
                 JsonResponse(
                     HttpStatusCode.OK,
                     safePayload));
@@ -154,7 +154,7 @@ public sealed class WebBffRefreshSecurityTests
                     HttpStatusCode.Unauthorized),
                 JsonResponse(
                     HttpStatusCode.OK,
-                    $$"{\"tokenType\":\"Bearer\",\"accessToken\":\"{{newAccessToken}}\",\"expiresIn\":3600,\"refreshToken\":\"{{newRefreshToken}}\"}"),
+                    $"{{\"tokenType\":\"Bearer\",\"accessToken\":\"{newAccessToken}\",\"expiresIn\":3600,\"refreshToken\":\"{newRefreshToken}\"}}"),
                 JsonResponse(
                     HttpStatusCode.OK,
                     "{\"value\":\"retried\"}"));
