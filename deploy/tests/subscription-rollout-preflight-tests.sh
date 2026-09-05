@@ -89,4 +89,7 @@ write_valid_env
 BILLWATCH_SUBSCRIPTION_ROLLOUT_PREFLIGHT=true BILLWATCH_SUBSCRIPTION_ROLLOUT_EXPECTED_COHORT=TrustedBeta sh "$script" "$deployment" >/dev/null 2>&1 &&
     fail "preflight ignored an explicitly approved cohort mismatch"
 
+sh "$root_dir/deploy/tests/subscription-lifecycle-smoke-tests.sh" ||
+    fail "subscription lifecycle smoke harness regression suite failed"
+
 printf '%s\n' 'Subscription rollout preflight tests passed.'
