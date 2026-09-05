@@ -12,6 +12,7 @@ allow_partial="${BILLWATCH_BETA0_ALLOW_PARTIAL:-false}"
 run_access_key="${BILLWATCH_BETA0_RUN_ACCESS_KEY:-true}"
 run_plaid="${BILLWATCH_BETA0_RUN_PLAID:-true}"
 run_statement="${BILLWATCH_BETA0_RUN_STATEMENT:-true}"
+run_statement_semantics="${BILLWATCH_BETA0_RUN_STATEMENT_SEMANTICS:-true}"
 evidence_file="${BILLWATCH_BETA0_EVIDENCE_FILE:-}"
 evidence_directory=""
 
@@ -57,6 +58,7 @@ require_boolean "$allow_partial" "BILLWATCH_BETA0_ALLOW_PARTIAL"
 require_boolean "$run_access_key" "BILLWATCH_BETA0_RUN_ACCESS_KEY"
 require_boolean "$run_plaid" "BILLWATCH_BETA0_RUN_PLAID"
 require_boolean "$run_statement" "BILLWATCH_BETA0_RUN_STATEMENT"
+require_boolean "$run_statement_semantics" "BILLWATCH_BETA0_RUN_STATEMENT_SEMANTICS"
 [ "$allow_run" = "true" ] || fail "Internal Beta 0 requires explicit BILLWATCH_BETA0_ALLOW=true opt-in." 77
 require_https_url "$api_base_url" "The Internal Beta 0 API URL"
 require_https_url "$web_base_url" "The Internal Beta 0 Web URL"
@@ -82,13 +84,19 @@ for script in \
     smoke-web-bff.sh \
     smoke-access-key-lifecycle.sh \
     smoke-plaid-lifecycle.sh \
-    smoke-statement-lifecycle.sh
+    smoke-statement-lifecycle.sh \
+    review-statement-semantics.sh
 do
     [ -f "$deployment_directory/deploy/$script" ] || fail "Required Internal Beta 0 smoke gate is missing: deploy/$script" 66
 done
 
-if [ "$allow_partial" != "true" ] && { [ "$run_access_key" != "true" ] || [ "$run_plaid" != "true" ] || [ "$run_statement" != "true" ]; }; then
-    fail "A complete Internal Beta 0 run requires access-key, Plaid, and statement phases. Set BILLWATCH_BETA0_ALLOW_PARTIAL=true only when intentionally collecting partial evidence." 77
+if [ "$allow_partial" != "true" ] && { \
+    [ "$run_access_key" != "true" ] || \
+    [ "$run_plaid" != "true" ] || \
+    [ "$run_statement" != "true" ] || \
+    [ "$run_statement_semantics" != "true" ];
+}; then
+    fail "A complete Internal Beta 0 run requires access-key, Plaid, statement lifecycle, and statement semantic-review phases. Set BILLWATCH_BETA0_ALLOW_PARTIAL=true only when intentionally collecting partial evidence." 77
 fi
 
 # Validate all evidence configuration before any network or mutation-bearing phase begins.
@@ -143,8 +151,17 @@ else
     printf '%s\n' 'SKIP statement (partial run)'
 fi
 
+if [ "$run_statement_semantics" = "true" ]; then
+    run_phase statement-semantics sh "$deployment_directory/deploy/review-statement-semantics.sh" "$api_base_url"
+else
+    printf '%s\n' 'SKIP statement-semantics (partial run)'
+fi
+
 result="complete"
-if [ "$run_access_key" != "true" ] || [ "$run_plaid" != "true" ] || [ "$run_statement" != "true" ]; then
+if [ "$run_access_key" != "true" ] || \
+   [ "$run_plaid" != "true" ] || \
+   [ "$run_statement" != "true" ] || \
+   [ "$run_statement_semantics" != "true" ]; then
     result="partial"
 fi
 completed_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
@@ -167,7 +184,7 @@ fi
 
 if [ "$result" = "complete" ]; then
     printf 'BillWatch Internal Beta 0 automated acceptance passed for release %s.\n' "$release_sha"
-    printf '%s\n' 'This proves the automated gates only; human Plaid authorization/provider behavior, external alert observation, recovery drills, and legal review remain separate evidence.'
+    printf '%s\n' 'This proves the automated gates, including controlled statement semantics, only; human Plaid authorization/provider behavior, external alert observation, recovery drills, provider-side backup protection, and legal review remain separate evidence.'
 else
     printf 'BillWatch Internal Beta 0 partial acceptance passed for release %s.\n' "$release_sha"
     printf '%s\n' 'Partial evidence must not be recorded as a completed Internal Beta 0.'
