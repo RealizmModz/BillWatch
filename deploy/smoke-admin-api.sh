@@ -2,116 +2,112 @@
 
 set -eu
 
+umask 077
+
 api_base_url="${1:-}"
-email="${BILLWATCH_SMOKE_EMAIL:-}"
+admin_email="${BILLWATCH_ADMIN_SMOKE_EMAIL:-}"
+admin_password_file="${BILLWATCH_ADMIN_SMOKE_PASSWORD_FILE:-}"
+nonstaff_email="${BILLWATCH_ADMIN_SMOKE_NONSTAFF_EMAIL:-}"
+nonstaff_password_file="${BILLWATCH_ADMIN_SMOKE_NONSTAFF_PASSWORD_FILE:-}"
 
 fail()
 {
-    echo "$1" >&2
+    printf '%s\n' "$1" >&2
     exit "${2:-1}"
 }
 
-if [ -z "$api_base_url" ]; then
-    fail "Usage: $0 <https-api-base-url>" 64
-fi
+require_https_url()
+{
+    value="$1"
+    label="$2"
+    case "$value" in
+        https://*) ;;
+        *) fail "$label must use HTTPS." 64 ;;
+    esac
+    case "$value" in
+        *[[:space:]]*) fail "$label must not contain whitespace." 64 ;;
+    esac
+}
 
-case "$api_base_url" in
-    https://*) ;;
-    *) fail "The smoke-test API base URL must use HTTPS." 64 ;;
-esac
+require_secret_file()
+{
+    path="$1"
+    label="$2"
+    [ -n "$path" ] || fail "$label is required." 64
+    [ -f "$path" ] || fail "$label must reference a regular file." 64
+    [ ! -L "$path" ] || fail "$label must not be a symbolic link." 64
+    mode="$(stat -c '%a' "$path" 2>/dev/null || true)"
+    [ "$mode" = "600" ] || fail "$label must have mode 600." 64
+}
 
+json_escape()
+{
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+login()
+{
+    email="$1"
+    password_file="$2"
+    token_file="$3"
+    prefix="$4"
+
+    IFS= read -r password < "$password_file" || true
+    [ -n "${password:-}" ] || fail "$prefix password file is empty." 64
+
+    payload="$work_directory/${prefix}-login.json"
+    response="$work_directory/${prefix}-login-response.json"
+    auth_config="$work_directory/${prefix}-auth.curl"
+
+    printf '{"email":"%s","password":"%s"}' \
+        "$(json_escape "$email")" \
+        "$(json_escape "$password")" > "$payload"
+    chmod 600 "$payload"
+    unset password
+
+    code="$(curl --silent --show-error --output "$response" --write-out '%{http_code}' \
+        --request POST --header 'Content-Type: application/json' --data-binary "@$payload" \
+        "$api_base_url/api/auth/login")"
+    rm -f "$payload"
+    [ "$code" = "200" ] || fail "$prefix authentication failed with HTTP $code." 69
+
+    access_token="$(sed -n 's/.*"accessToken"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$response" | head -n 1)"
+    rm -f "$response"
+    [ -n "$access_token" ] || fail "$prefix authentication response did not contain an access token." 69
+
+    printf 'header = "Authorization: Bearer %s"\n' "$access_token" > "$auth_config"
+    chmod 600 "$auth_config"
+    unset access_token
+    printf '%s\n' "$auth_config" > "$token_file"
+}
+
+[ -n "$api_base_url" ] || fail "Usage: $0 <https-api-base-url>" 64
+require_https_url "$api_base_url" "The admin smoke-test API base URL"
 api_base_url="${api_base_url%/}"
 
-if [ -z "$email" ]; then
-    printf 'BillWatch Owner/Admin email: ' >&2
-    IFS= read -r email
-fi
-
-if [ -z "$email" ]; then
-    fail "An account email is required." 64
-fi
-
-if [ ! -t 0 ]; then
-    fail "Interactive terminal input is required for the password." 64
-fi
-
-printf 'BillWatch password: ' >&2
-stty -echo
-trap 'stty echo 2>/dev/null || true' EXIT HUP INT TERM
-IFS= read -r password
-stty echo
-trap - EXIT HUP INT TERM
-printf '\n' >&2
-
-if [ -z "$password" ]; then
-    fail "A password is required." 64
-fi
+[ -n "$admin_email" ] || fail "BILLWATCH_ADMIN_SMOKE_EMAIL is required." 64
+[ -n "$nonstaff_email" ] || fail "BILLWATCH_ADMIN_SMOKE_NONSTAFF_EMAIL is required." 64
+[ "$admin_email" != "$nonstaff_email" ] || fail "Admin and non-staff smoke accounts must be different." 64
+require_secret_file "$admin_password_file" "BILLWATCH_ADMIN_SMOKE_PASSWORD_FILE"
+require_secret_file "$nonstaff_password_file" "BILLWATCH_ADMIN_SMOKE_NONSTAFF_PASSWORD_FILE"
 
 work_directory="$(mktemp -d)"
 chmod 700 "$work_directory"
+trap 'rm -rf "$work_directory"' EXIT HUP INT TERM
 
-cleanup()
-{
-    rm -rf "$work_directory"
-}
+admin_auth_pointer="$work_directory/admin-auth.path"
+nonstaff_auth_pointer="$work_directory/nonstaff-auth.path"
+login "$admin_email" "$admin_password_file" "$admin_auth_pointer" "Owner/Admin"
+login "$nonstaff_email" "$nonstaff_password_file" "$nonstaff_auth_pointer" "Non-staff"
+admin_auth_config="$(cat "$admin_auth_pointer")"
+nonstaff_auth_config="$(cat "$nonstaff_auth_pointer")"
 
-trap cleanup EXIT HUP INT TERM
+admin_code="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+    --config "$admin_auth_config" "$api_base_url/api/admin/access-keys?skip=0&take=1")"
+[ "$admin_code" = "200" ] || fail "Owner/Admin authorization probe failed: expected HTTP 200, received $admin_code." 69
 
-login_payload="$work_directory/login.json"
-login_response="$work_directory/login-response.json"
-auth_config="$work_directory/auth.curl"
+nonstaff_code="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+    --config "$nonstaff_auth_config" "$api_base_url/api/admin/access-keys?skip=0&take=1")"
+[ "$nonstaff_code" = "403" ] || fail "Non-staff authorization probe failed: expected HTTP 403, received $nonstaff_code." 69
 
-printf '{"email":"%s","password":"%s"}' \
-    "$(printf '%s' "$email" | sed 's/\\/\\\\/g; s/"/\\"/g')" \
-    "$(printf '%s' "$password" | sed 's/\\/\\\\/g; s/"/\\"/g')" \
-    > "$login_payload"
-chmod 600 "$login_payload"
-unset password
-
-http_code="$(
-    curl \
-        --silent \
-        --show-error \
-        --output "$login_response" \
-        --write-out '%{http_code}' \
-        --request POST \
-        --header 'Content-Type: application/json' \
-        --data-binary "@$login_payload" \
-        "$api_base_url/api/auth/login"
-)"
-
-rm -f "$login_payload"
-
-if [ "$http_code" != "200" ]; then
-    fail "Authentication failed with HTTP $http_code." 69
-fi
-
-access_token="$(
-    sed -n 's/.*"accessToken"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
-        "$login_response"
-)"
-rm -f "$login_response"
-
-if [ -z "$access_token" ]; then
-    fail "Authentication response did not contain an access token." 69
-fi
-
-printf 'header = "Authorization: Bearer %s"\n' "$access_token" > "$auth_config"
-chmod 600 "$auth_config"
-unset access_token
-
-code="$(
-    curl \
-        --silent \
-        --show-error \
-        --output /dev/null \
-        --write-out '%{http_code}' \
-        --config "$auth_config" \
-        "$api_base_url/api/admin/access-keys?skip=0&take=1"
-)"
-
-if [ "$code" != "200" ]; then
-    fail "Admin authorization probe failed: expected HTTP 200, received $code." 69
-fi
-
-echo "BillWatch Owner/Admin authorization smoke test passed."
+printf '%s\n' 'BillWatch Owner/Admin authorization and non-staff denial smoke test passed.'

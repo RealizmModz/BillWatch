@@ -25,6 +25,7 @@ phase_log="$temp_dir/phases.log"
 for script in \
     smoke-private-beta.sh \
     smoke-web-bff.sh \
+    smoke-admin-api.sh \
     smoke-access-key-lifecycle.sh \
     smoke-plaid-lifecycle.sh \
     smoke-statement-lifecycle.sh \
@@ -64,6 +65,7 @@ run_beta0()
     BILLWATCH_TEST_PHASE_LOG="$phase_log" \
     BILLWATCH_BETA0_ALLOW="${BILLWATCH_BETA0_ALLOW_VALUE:-true}" \
     BILLWATCH_BETA0_ALLOW_PARTIAL="${BILLWATCH_BETA0_ALLOW_PARTIAL_VALUE:-false}" \
+    BILLWATCH_BETA0_RUN_ADMIN="${BILLWATCH_BETA0_RUN_ADMIN_VALUE:-true}" \
     BILLWATCH_BETA0_RUN_ACCESS_KEY="${BILLWATCH_BETA0_RUN_ACCESS_KEY_VALUE:-true}" \
     BILLWATCH_BETA0_RUN_PLAID="${BILLWATCH_BETA0_RUN_PLAID_VALUE:-true}" \
     BILLWATCH_BETA0_RUN_STATEMENT="${BILLWATCH_BETA0_RUN_STATEMENT_VALUE:-true}" \
@@ -75,33 +77,30 @@ run_beta0()
 }
 
 BILLWATCH_BETA0_ALLOW_VALUE=false
-if run_beta0 >/dev/null 2>&1; then
-    fail "runner accepted execution without explicit opt-in."
-fi
+if run_beta0 >/dev/null 2>&1; then fail "runner accepted execution without explicit opt-in."; fi
 BILLWATCH_BETA0_ALLOW_VALUE=true
 
+BILLWATCH_BETA0_RUN_ADMIN_VALUE=false
+if run_beta0 >/dev/null 2>&1; then fail "runner accepted a complete result with admin authorization disabled."; fi
+BILLWATCH_BETA0_RUN_ADMIN_VALUE=true
+
 BILLWATCH_BETA0_RUN_ACCESS_KEY_VALUE=false
-if run_beta0 >/dev/null 2>&1; then
-    fail "runner accepted an incomplete run without explicit partial opt-in."
-fi
+if run_beta0 >/dev/null 2>&1; then fail "runner accepted an incomplete run without explicit partial opt-in."; fi
 BILLWATCH_BETA0_RUN_ACCESS_KEY_VALUE=true
 
 BILLWATCH_BETA0_RUN_STATEMENT_SEMANTICS_VALUE=false
-if run_beta0 >/dev/null 2>&1; then
-    fail "runner accepted a complete result with semantic review disabled."
-fi
+if run_beta0 >/dev/null 2>&1; then fail "runner accepted a complete result with semantic review disabled."; fi
 BILLWATCH_BETA0_RUN_STATEMENT_SEMANTICS_VALUE=true
 
 BILLWATCH_BETA0_RUN_SUBSCRIPTION_VALUE=false
-if run_beta0 >/dev/null 2>&1; then
-    fail "runner accepted a complete result with subscription lifecycle disabled."
-fi
+if run_beta0 >/dev/null 2>&1; then fail "runner accepted a complete result with subscription lifecycle disabled."; fi
 BILLWATCH_BETA0_RUN_SUBSCRIPTION_VALUE=true
 
 : > "$phase_log"
 run_beta0 > "$temp_dir/full.out"
 expected_phases='smoke-private-beta.sh|https://api.example.test https://web.example.test
 smoke-web-bff.sh|https://web.example.test
+smoke-admin-api.sh|https://api.example.test
 smoke-access-key-lifecycle.sh|https://api.example.test
 smoke-plaid-lifecycle.sh|https://api.example.test
 smoke-statement-lifecycle.sh|https://api.example.test
@@ -111,17 +110,14 @@ smoke-subscription-lifecycle.sh|https://api.example.test'
 grep -q 'automated acceptance passed' "$temp_dir/full.out" || fail "complete run did not report completion."
 
 BILLWATCH_TEST_GIT_HEAD_VALUE='2222222222222222222222222222222222222222'
-if run_beta0 >/dev/null 2>&1; then
-    fail "runner accepted a checkout that differed from the verified release marker."
-fi
+if run_beta0 >/dev/null 2>&1; then fail "runner accepted a checkout that differed from the verified release marker."; fi
 BILLWATCH_TEST_GIT_HEAD_VALUE="$release"
 
 BILLWATCH_TEST_GIT_STATUS_VALUE=' M deploy/example.sh'
-if run_beta0 >/dev/null 2>&1; then
-    fail "runner accepted tracked deployment modifications."
-fi
+if run_beta0 >/dev/null 2>&1; then fail "runner accepted tracked deployment modifications."; fi
 BILLWATCH_TEST_GIT_STATUS_VALUE=''
 
+BILLWATCH_BETA0_RUN_ADMIN_VALUE=false
 BILLWATCH_BETA0_RUN_ACCESS_KEY_VALUE=false
 BILLWATCH_BETA0_RUN_STATEMENT_VALUE=false
 BILLWATCH_BETA0_RUN_STATEMENT_SEMANTICS_VALUE=false
@@ -130,9 +126,10 @@ BILLWATCH_BETA0_ALLOW_PARTIAL_VALUE=true
 : > "$phase_log"
 run_beta0 > "$temp_dir/partial.out"
 grep -q 'partial acceptance passed' "$temp_dir/partial.out" || fail "explicit partial run was not labeled partial."
-if grep -Eq 'smoke-access-key-lifecycle\.sh|smoke-statement-lifecycle\.sh|review-statement-semantics\.sh|smoke-subscription-lifecycle\.sh' "$phase_log"; then
+if grep -Eq 'smoke-admin-api\.sh|smoke-access-key-lifecycle\.sh|smoke-statement-lifecycle\.sh|review-statement-semantics\.sh|smoke-subscription-lifecycle\.sh' "$phase_log"; then
     fail "partial run executed a disabled phase."
 fi
+BILLWATCH_BETA0_RUN_ADMIN_VALUE=true
 BILLWATCH_BETA0_RUN_ACCESS_KEY_VALUE=true
 BILLWATCH_BETA0_RUN_STATEMENT_VALUE=true
 BILLWATCH_BETA0_RUN_STATEMENT_SEMANTICS_VALUE=true
@@ -146,14 +143,10 @@ run_beta0 >/dev/null
 [ "$(stat -c '%a' "$evidence")" = '600' ] || fail "evidence file is not mode 600."
 grep -q '^RESULT=complete$' "$evidence" || fail "evidence did not record a complete result."
 grep -q "^RELEASE_SHA=$release$" "$evidence" || fail "evidence did not record the release SHA."
-grep -q '^PASSED_PHASES=direct-api,web-bff,access-key,plaid,statement,statement-semantics,subscription$' "$evidence" || fail "evidence omitted a required complete-run phase."
-if grep -q 'never-write-this-value' "$evidence"; then
-    fail "evidence leaked an environment secret."
-fi
+grep -q '^PASSED_PHASES=direct-api,web-bff,admin-authz,access-key,plaid,statement,statement-semantics,subscription$' "$evidence" || fail "evidence omitted a required complete-run phase."
+if grep -q 'never-write-this-value' "$evidence"; then fail "evidence leaked an environment secret."; fi
 
 BILLWATCH_BETA0_EVIDENCE_FILE_VALUE="$deployment/evidence.state"
-if run_beta0 >/dev/null 2>&1; then
-    fail "runner accepted an evidence path inside the deployment checkout."
-fi
+if run_beta0 >/dev/null 2>&1; then fail "runner accepted an evidence path inside the deployment checkout."; fi
 
 printf '%s\n' 'Internal Beta 0 runner tests passed.'

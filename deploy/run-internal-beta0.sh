@@ -9,6 +9,7 @@ api_base_url="${2:-}"
 web_base_url="${3:-}"
 allow_run="${BILLWATCH_BETA0_ALLOW:-false}"
 allow_partial="${BILLWATCH_BETA0_ALLOW_PARTIAL:-false}"
+run_admin="${BILLWATCH_BETA0_RUN_ADMIN:-true}"
 run_access_key="${BILLWATCH_BETA0_RUN_ACCESS_KEY:-true}"
 run_plaid="${BILLWATCH_BETA0_RUN_PLAID:-true}"
 run_statement="${BILLWATCH_BETA0_RUN_STATEMENT:-true}"
@@ -56,6 +57,7 @@ require_https_url()
 [ -n "$web_base_url" ] || usage
 require_boolean "$allow_run" "BILLWATCH_BETA0_ALLOW"
 require_boolean "$allow_partial" "BILLWATCH_BETA0_ALLOW_PARTIAL"
+require_boolean "$run_admin" "BILLWATCH_BETA0_RUN_ADMIN"
 require_boolean "$run_access_key" "BILLWATCH_BETA0_RUN_ACCESS_KEY"
 require_boolean "$run_plaid" "BILLWATCH_BETA0_RUN_PLAID"
 require_boolean "$run_statement" "BILLWATCH_BETA0_RUN_STATEMENT"
@@ -84,6 +86,7 @@ worktree_changes="$(git -C "$deployment_directory" status --porcelain --untracke
 for script in \
     smoke-private-beta.sh \
     smoke-web-bff.sh \
+    smoke-admin-api.sh \
     smoke-access-key-lifecycle.sh \
     smoke-plaid-lifecycle.sh \
     smoke-statement-lifecycle.sh \
@@ -94,16 +97,16 @@ do
 done
 
 if [ "$allow_partial" != "true" ] && { \
+    [ "$run_admin" != "true" ] || \
     [ "$run_access_key" != "true" ] || \
     [ "$run_plaid" != "true" ] || \
     [ "$run_statement" != "true" ] || \
     [ "$run_statement_semantics" != "true" ] || \
     [ "$run_subscription" != "true" ];
 }; then
-    fail "A complete Internal Beta 0 run requires access-key, Plaid, statement lifecycle, statement semantic-review, and subscription lifecycle phases. Set BILLWATCH_BETA0_ALLOW_PARTIAL=true only when intentionally collecting partial evidence." 77
+    fail "A complete Internal Beta 0 run requires admin authorization, access-key, Plaid, statement lifecycle, statement semantic-review, and subscription lifecycle phases. Set BILLWATCH_BETA0_ALLOW_PARTIAL=true only when intentionally collecting partial evidence." 77
 fi
 
-# Validate all evidence configuration before any network or mutation-bearing phase begins.
 if [ -n "$evidence_file" ]; then
     case "$evidence_file" in
         /*) ;;
@@ -137,6 +140,12 @@ run_phase()
 run_phase direct-api sh "$deployment_directory/deploy/smoke-private-beta.sh" "$api_base_url" "$web_base_url"
 run_phase web-bff sh "$deployment_directory/deploy/smoke-web-bff.sh" "$web_base_url"
 
+if [ "$run_admin" = "true" ]; then
+    run_phase admin-authz sh "$deployment_directory/deploy/smoke-admin-api.sh" "$api_base_url"
+else
+    printf '%s\n' 'SKIP admin-authz (partial run)'
+fi
+
 if [ "$run_access_key" = "true" ]; then
     run_phase access-key sh "$deployment_directory/deploy/smoke-access-key-lifecycle.sh" "$api_base_url"
 else
@@ -168,7 +177,8 @@ else
 fi
 
 result="complete"
-if [ "$run_access_key" != "true" ] || \
+if [ "$run_admin" != "true" ] || \
+   [ "$run_access_key" != "true" ] || \
    [ "$run_plaid" != "true" ] || \
    [ "$run_statement" != "true" ] || \
    [ "$run_statement_semantics" != "true" ] || \
@@ -195,7 +205,7 @@ fi
 
 if [ "$result" = "complete" ]; then
     printf 'BillWatch Internal Beta 0 automated acceptance passed for release %s.\n' "$release_sha"
-    printf '%s\n' 'This proves the automated gates, including controlled statement semantics and the configured subscription lifecycle assertions, only; human Plaid authorization/provider behavior, external alert observation, recovery drills, provider-side backup protection, and legal review remain separate evidence.'
+    printf '%s\n' 'This proves the automated gates, including Owner/Admin authorization with non-staff denial, controlled statement semantics, and configured subscription lifecycle assertions, only; human Plaid authorization/provider behavior, external alert observation, recovery drills, provider-side backup protection, and legal review remain separate evidence.'
 else
     printf 'BillWatch Internal Beta 0 partial acceptance passed for release %s.\n' "$release_sha"
     printf '%s\n' 'Partial evidence must not be recorded as a completed Internal Beta 0.'
