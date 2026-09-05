@@ -113,4 +113,6 @@ grep -Fq 'up --detach --wait restore-database' "$docker_log" || fail "recovery d
 grep -Fq 'run --rm --no-deps verifier verify' "$docker_log" || fail "recovery drill did not run encrypted snapshot verification."
 grep -Fq 'down --volumes --remove-orphans' "$docker_log" || fail "recovery drill did not clean up isolated state."
 
+sh "$root_dir/deploy/tests/private-beta-technical-evidence-tests.sh" || fail "private-beta technical evidence regression suite failed."
+
 printf '%s\n' 'Clean-host recovery drill tests passed.'
