@@ -790,6 +790,7 @@ app.Use(
  */
 app.UseAuthentication();
 app.UseRateLimiter();
+app.UseBillWatchRegistrationLegalAcceptance();
 app.UseAuthorization();
 
 app.MapGet(

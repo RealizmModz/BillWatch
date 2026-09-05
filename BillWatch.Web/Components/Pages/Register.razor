@@ -1,4 +1,5 @@
 ﻿@page "/register"
+@using BillWatch.Core.Legal
 
 @inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
 
@@ -54,6 +55,10 @@
 
                 <AntiforgeryToken />
 
+                <input type="hidden"
+                       name="legalTermsVersion"
+                       value="@BillWatchLegalDocuments.CurrentVersion" />
+
                 <label class="field">
                     <span>@L["Email address"]</span>
 
@@ -104,6 +109,23 @@
                         @L["Number and special character"]
                     </span>
                 </div>
+
+                <label class="legal-consent">
+                    <input type="checkbox"
+                           name="acceptedTermsAndPrivacy"
+                           required />
+
+                    <span>
+                        @L["I agree to the"]
+                        <a href="@BillWatchLegalDocuments.TermsPath"
+                           target="_blank"
+                           rel="noopener noreferrer">@L["Terms"]</a>
+                        @L["and acknowledge the"]
+                        <a href="@BillWatchLegalDocuments.PrivacyPath"
+                           target="_blank"
+                           rel="noopener noreferrer">@L["Privacy Notice"]</a>.
+                    </span>
+                </label>
 
                 <button class="auth-submit"
                         type="submit">

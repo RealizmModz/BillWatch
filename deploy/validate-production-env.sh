@@ -108,6 +108,18 @@ validate_public_hostname()
     esac
 }
 
+validate_positive_integer()
+{
+    key=$1
+    value=$2
+
+    case "$value" in
+        ''|*[!0-9]*) fail "$key must be a positive integer." ;;
+    esac
+
+    [ "$value" -ge 1 ] || fail "$key must be at least 1."
+}
+
 host=$(read_value BILLWATCH_HOST)
 web_host=$(read_value BILLWATCH_WEB_HOST)
 release_id=$(read_value BILLWATCH_RELEASE_ID)
@@ -119,6 +131,7 @@ plaid_environment=$(read_value PLAID_ENVIRONMENT)
 restic_repository=$(read_value RESTIC_REPOSITORY)
 restic_password=$(read_value RESTIC_PASSWORD)
 backup_work_size=$(read_value BILLWATCH_BACKUP_WORK_SIZE)
+backup_client_mode=$(read_value BILLWATCH_BACKUP_CLIENT_MODE)
 
 for required_pair in \
     "BILLWATCH_HOST:$host" \
@@ -150,11 +163,15 @@ esac
 [ "${#release_id}" -eq 40 ] ||
     fail "BILLWATCH_RELEASE_ID must be a lowercase 40-character Git commit."
 
+case "$backup_client_mode" in
+    append-only) ;;
+    maintenance) fail "production .env must use BILLWATCH_BACKUP_CLIENT_MODE=append-only; delete-capable maintenance credentials belong on a separate trusted host." ;;
+    *) fail "BILLWATCH_BACKUP_CLIENT_MODE must be append-only in production." ;;
+esac
+
 case "$acme_email" in
     *@*.*) ;;
-    *)
-        fail "ACME_EMAIL must be a valid operational email address."
-        ;;
+    *) fail "ACME_EMAIL must be a valid operational email address." ;;
 esac
 
 [ "${#database_password}" -ge 32 ] ||
@@ -165,121 +182,105 @@ esac
 
 case "$plaid_environment" in
     sandbox|production) ;;
-    *)
-        fail "PLAID_ENVIRONMENT must be sandbox or production."
-        ;;
+    *) fail "PLAID_ENVIRONMENT must be sandbox or production." ;;
 esac
 
 identity_email_enabled=$(read_optional_value BILLWATCH_IDENTITY_EMAIL_ENABLED)
 [ -n "$identity_email_enabled" ] || identity_email_enabled=false
-
-case "$identity_email_enabled" in
-    true|false) ;;
-    *)
-        fail "BILLWATCH_IDENTITY_EMAIL_ENABLED must be true or false when present."
-        ;;
-esac
-
-if [ "$identity_email_enabled" = "true" ]; then
+case "$identity_email_enabled" in true|false) ;; *) fail "BILLWATCH_IDENTITY_EMAIL_ENABLED must be true or false when present." ;; esac
+if [ "$identity_email_enabled" = true ]; then
     resend_api_key=$(read_optional_value RESEND_API_KEY)
     identity_from_address=$(read_optional_value BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS)
     identity_from_name=$(read_optional_value BILLWATCH_IDENTITY_EMAIL_FROM_NAME)
-
     reject_placeholder RESEND_API_KEY "$resend_api_key"
     reject_placeholder BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS "$identity_from_address"
     reject_placeholder BILLWATCH_IDENTITY_EMAIL_FROM_NAME "$identity_from_name"
-
     reject_unsafe_env_value RESEND_API_KEY "$resend_api_key"
     reject_unsafe_env_value BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS "$identity_from_address"
     reject_unsafe_env_value BILLWATCH_IDENTITY_EMAIL_FROM_NAME "$identity_from_name"
-
-    case "$identity_from_address" in
-        *@*.*) ;;
-        *)
-            fail "BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS must be a valid sender email address."
-            ;;
-    esac
+    case "$identity_from_address" in *@*.*) ;; *) fail "BILLWATCH_IDENTITY_EMAIL_FROM_ADDRESS must be a valid sender email address." ;; esac
 fi
 
 stripe_enabled=$(read_optional_value BILLWATCH_STRIPE_ENABLED)
 [ -n "$stripe_enabled" ] || stripe_enabled=false
-
-case "$stripe_enabled" in
-    true|false) ;;
-    *)
-        fail "BILLWATCH_STRIPE_ENABLED must be true or false when present."
-        ;;
-esac
-
-if [ "$stripe_enabled" = "true" ]; then
+case "$stripe_enabled" in true|false) ;; *) fail "BILLWATCH_STRIPE_ENABLED must be true or false when present." ;; esac
+if [ "$stripe_enabled" = true ]; then
     stripe_secret_key=$(read_optional_value STRIPE_SECRET_KEY)
     stripe_webhook_secret=$(read_optional_value STRIPE_WEBHOOK_SECRET)
     stripe_monthly_price_id=$(read_optional_value STRIPE_MONTHLY_PRICE_ID)
     stripe_yearly_price_id=$(read_optional_value STRIPE_YEARLY_PRICE_ID)
-
     reject_placeholder STRIPE_SECRET_KEY "$stripe_secret_key"
     reject_placeholder STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
     reject_placeholder STRIPE_MONTHLY_PRICE_ID "$stripe_monthly_price_id"
     reject_placeholder STRIPE_YEARLY_PRICE_ID "$stripe_yearly_price_id"
-
     reject_unsafe_env_value STRIPE_SECRET_KEY "$stripe_secret_key"
     reject_unsafe_env_value STRIPE_WEBHOOK_SECRET "$stripe_webhook_secret"
     reject_unsafe_env_value STRIPE_MONTHLY_PRICE_ID "$stripe_monthly_price_id"
     reject_unsafe_env_value STRIPE_YEARLY_PRICE_ID "$stripe_yearly_price_id"
-
-    case "$stripe_secret_key" in
-        sk_live_*|sk_test_*) ;;
-        *) fail "STRIPE_SECRET_KEY must be a Stripe secret key." ;;
-    esac
-
-    case "$stripe_webhook_secret" in
-        whsec_*) ;;
-        *) fail "STRIPE_WEBHOOK_SECRET must be a Stripe webhook signing secret." ;;
-    esac
-
-    case "$stripe_monthly_price_id" in
-        price_*) ;;
-        *) fail "STRIPE_MONTHLY_PRICE_ID must be a Stripe price ID." ;;
-    esac
-
-    case "$stripe_yearly_price_id" in
-        price_*) ;;
-        *) fail "STRIPE_YEARLY_PRICE_ID must be a Stripe price ID." ;;
-    esac
-
-    [ "$stripe_monthly_price_id" != "$stripe_yearly_price_id" ] ||
-        fail "Monthly and yearly Stripe price IDs must be different."
+    case "$stripe_secret_key" in sk_live_*|sk_test_*) ;; *) fail "STRIPE_SECRET_KEY must be a Stripe secret key." ;; esac
+    case "$stripe_webhook_secret" in whsec_*) ;; *) fail "STRIPE_WEBHOOK_SECRET must be a Stripe webhook signing secret." ;; esac
+    case "$stripe_monthly_price_id" in price_*) ;; *) fail "STRIPE_MONTHLY_PRICE_ID must be a Stripe price ID." ;; esac
+    case "$stripe_yearly_price_id" in price_*) ;; *) fail "STRIPE_YEARLY_PRICE_ID must be a Stripe price ID." ;; esac
+    [ "$stripe_monthly_price_id" != "$stripe_yearly_price_id" ] || fail "Monthly and yearly Stripe price IDs must be different."
 fi
 
 case "$restic_repository" in
-    /*|./*|../*|[A-Za-z]:\\*|file:*|local:*)
-        fail "RESTIC_REPOSITORY must be an off-host repository."
-        ;;
+    /*|./*|../*|[A-Za-z]:\\*|file:*|local:*) fail "RESTIC_REPOSITORY must be an off-host repository." ;;
     *:*) ;;
-    *)
-        fail "RESTIC_REPOSITORY must use an explicit remote backend."
-        ;;
+    *) fail "RESTIC_REPOSITORY must use an explicit remote backend." ;;
 esac
 
-printf '%s' "$backup_work_size" |
-    grep -Eq '^[1-9][0-9]*[mMgG]$' ||
+printf '%s' "$backup_work_size" | grep -Eq '^[1-9][0-9]*[mMgG]$' ||
     fail "BILLWATCH_BACKUP_WORK_SIZE must be a positive value such as 8g."
+
+backup_retention_enabled=$(read_optional_value BILLWATCH_BACKUP_RETENTION_ENABLED)
+[ -n "$backup_retention_enabled" ] || backup_retention_enabled=false
+case "$backup_retention_enabled" in true|false) ;; *) fail "BILLWATCH_BACKUP_RETENTION_ENABLED must be true or false when present." ;; esac
+
+backup_keep_daily=$(read_optional_value BILLWATCH_BACKUP_KEEP_DAILY)
+backup_keep_weekly=$(read_optional_value BILLWATCH_BACKUP_KEEP_WEEKLY)
+backup_keep_monthly=$(read_optional_value BILLWATCH_BACKUP_KEEP_MONTHLY)
+backup_keep_yearly=$(read_optional_value BILLWATCH_BACKUP_KEEP_YEARLY)
+[ -n "$backup_keep_daily" ] || backup_keep_daily=14
+[ -n "$backup_keep_weekly" ] || backup_keep_weekly=8
+[ -n "$backup_keep_monthly" ] || backup_keep_monthly=12
+[ -n "$backup_keep_yearly" ] || backup_keep_yearly=3
+validate_positive_integer BILLWATCH_BACKUP_KEEP_DAILY "$backup_keep_daily"
+validate_positive_integer BILLWATCH_BACKUP_KEEP_WEEKLY "$backup_keep_weekly"
+validate_positive_integer BILLWATCH_BACKUP_KEEP_MONTHLY "$backup_keep_monthly"
+validate_positive_integer BILLWATCH_BACKUP_KEEP_YEARLY "$backup_keep_yearly"
+if [ "$backup_retention_enabled" = true ]; then
+    [ "$backup_keep_daily" -ge 14 ] || fail "BILLWATCH_BACKUP_KEEP_DAILY cannot be below 14 when retention is enabled."
+    [ "$backup_keep_weekly" -ge 8 ] || fail "BILLWATCH_BACKUP_KEEP_WEEKLY cannot be below 8 when retention is enabled."
+    [ "$backup_keep_monthly" -ge 12 ] || fail "BILLWATCH_BACKUP_KEEP_MONTHLY cannot be below 12 when retention is enabled."
+    [ "$backup_keep_yearly" -ge 3 ] || fail "BILLWATCH_BACKUP_KEEP_YEARLY cannot be below 3 when retention is enabled."
+fi
+
+operations_alerting_enabled=$(read_optional_value BILLWATCH_OPERATIONS_ALERTING_ENABLED)
+[ -n "$operations_alerting_enabled" ] || operations_alerting_enabled=false
+case "$operations_alerting_enabled" in true|false) ;; *) fail "BILLWATCH_OPERATIONS_ALERTING_ENABLED must be true or false when present." ;; esac
+if [ "$operations_alerting_enabled" = true ]; then
+    operations_alert_webhook_url=$(read_optional_value BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL)
+    [ -n "$operations_alert_webhook_url" ] || fail "BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL is required when operations alerting is enabled."
+    case "$operations_alert_webhook_url" in https://*) ;; *) fail "BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL must use HTTPS." ;; esac
+    case "$operations_alert_webhook_url" in
+        *replace-with*|*example.com*|*placeholder*|*change-me*|*changeme*) fail "BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL still contains an example or placeholder value." ;;
+        *[[:space:]]*|*\"*|*\'*|*\`*|*\\*) fail "BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL contains whitespace, quoting, interpolation, or unsupported characters." ;;
+    esac
+fi
 
 case "$restic_repository" in
     s3:*)
         aws_access_key=$(read_value AWS_ACCESS_KEY_ID)
         aws_secret_key=$(read_value AWS_SECRET_ACCESS_KEY)
         aws_region=$(read_value AWS_DEFAULT_REGION)
-
         reject_placeholder AWS_ACCESS_KEY_ID "$aws_access_key"
         reject_placeholder AWS_SECRET_ACCESS_KEY "$aws_secret_key"
         reject_placeholder AWS_DEFAULT_REGION "$aws_region"
-
         reject_unsafe_env_value AWS_ACCESS_KEY_ID "$aws_access_key"
         reject_unsafe_env_value AWS_SECRET_ACCESS_KEY "$aws_secret_key"
         reject_unsafe_env_value AWS_DEFAULT_REGION "$aws_region"
         ;;
 esac
 
-printf '%s\n' \
-    "Production configuration preflight passed for API $host and web $web_host at release $release_id."
+printf '%s\n' "Production configuration preflight passed for API $host and web $web_host at release $release_id."

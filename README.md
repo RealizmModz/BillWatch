@@ -56,17 +56,17 @@ Deploy:
 sh deploy/validate-production-env.sh .env.production
 ```
 
-The preflight rejects linked or over-permissioned environment files, placeholders, weak database/backup passwords, local backup destinations, invalid Plaid environments, non-public hostnames, and release identifiers that are not exact lowercase 40-character Git commits. It never prints secret values.
-3. Configure `RESTIC_REPOSITORY` as a private off-host destination and use a separate, randomly generated `RESTIC_PASSWORD`. Losing that password makes every backup unrecoverable.
-4. Keep all AI flags disabled. No OpenAI key is required for the current runtime.
-5. Initialize the encrypted repository once:
+The preflight rejects linked or over-permissioned environment files, placeholders, weak database/backup passwords, local backup destinations, invalid Plaid environments, non-public hostnames, unsafe retention settings, non-HTTPS operations alert endpoints, and release identifiers that are not exact lowercase 40-character Git commits. It never prints secret values.
+4. Configure `RESTIC_REPOSITORY` as a private off-host destination and use a separate, randomly generated `RESTIC_PASSWORD`. Losing that password makes every backup unrecoverable.
+5. Keep all AI flags disabled. No OpenAI key is required for the current runtime.
+6. Initialize the encrypted repository once:
 
 ```bash
 docker compose --env-file .env.production --file compose.production.yml --profile operations build backup
 docker compose --env-file .env.production --file compose.production.yml --profile operations run --rm backup init
 ```
 
-6. Deploy from a clean checkout whose `HEAD` exactly matches `BILLWATCH_RELEASE_ID`:
+7. Deploy from a clean checkout whose `HEAD` exactly matches `BILLWATCH_RELEASE_ID`:
 
 ```bash
 sh deploy/deploy-production.sh .env.production
@@ -74,8 +74,8 @@ sh deploy/deploy-production.sh .env.production
 
 The deployment command re-runs the fail-closed configuration preflight, rejects a dirty or mismatched checkout, prevents overlapping deploys, validates Compose, builds immutable release-tagged API and recovery images, and creates a verified encrypted recovery point before replacing an already-running API. It waits for every production service and requires the exact external HTTPS readiness response before atomically recording the deployed release. It never performs an automatic database rollback.
 
-7. Confirm both health endpoints over the public HTTPS hostname. If deployment fails after service replacement begins, inspect the bounded sanitized logs printed by the command before retrying; the last verified release marker remains unchanged.
-8. Build the MAUI release with the exact deployed origin:
+8. Confirm both health endpoints over the public HTTPS hostname. If deployment fails after service replacement begins, inspect the bounded sanitized logs printed by the command before retrying; the last verified release marker remains unchanged.
+9. Build the MAUI release with the exact deployed origin:
 
 ```powershell
 dotnet build BillWatch.csproj --configuration Release -p:BillWatchApiBaseUrl=https://api.example.com/
@@ -130,19 +130,27 @@ docker compose --env-file .env.production --file compose.production.yml --profil
 
 Verification selects only a snapshot that completed repository integrity checking, validates SHA-256 manifests, restores into disposable storage, loads the dump into a separate temporary PostgreSQL server, checks EF migration history, and reconciles every database statement record with its restored file and size. It never connects to the live database server for restore work and never overwrites live files.
 
-For a standard `/opt/billwatch` installation, install and enable the supplied daily systemd timer:
+For a standard `/opt/billwatch` installation, install and enable the supplied daily backup timer and failure-alert service together:
 
 ```bash
-sudo cp deploy/systemd/billwatch-backup.service deploy/systemd/billwatch-backup.timer /etc/systemd/system/
+sudo cp \
+  deploy/systemd/billwatch-backup.service \
+  deploy/systemd/billwatch-backup.timer \
+  deploy/systemd/billwatch-operations-alert@.service \
+  /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now billwatch-backup.timer
 sudo systemctl start billwatch-backup.service
-sudo systemctl status billwatch-backup.service
+sudo systemctl status billwatch-backup.service --no-pager
 ```
 
 The first real-host recovery drill must still be performed before beta invitations. Restore to a separate clean host, keep public traffic disabled, use the matching application release, verify protected Plaid data can be decrypted and statement files can be downloaded, and only then treat the backup gate as closed. Never restore directly over a running production stack.
 
-Keep the Restic password and backend recovery credentials in a separate password vault or recovery escrow, not only in `.env.production` on the server. Configure immutable or append-only retention at the off-host storage provider and retain at least 7 daily, 5 weekly, and 12 monthly recovery points. Use separate backup-write and retention-delete credentials where the provider supports them, so compromise of the application host cannot erase every recovery point.
+Repository retention is explicit and opt-in. Before beta, configure at least 14 daily, 8 weekly, 12 monthly, and 3 yearly completed snapshots, then verify the policy with `sh deploy/check-backup-policy.sh /opt/billwatch`. BillWatch refuses lower enabled retention floors before invoking Restic pruning.
+
+Repository retention is not the same as immutable recovery. Keep the Restic password and backend recovery credentials in a separate password vault or recovery escrow, not only in `.env.production` on the server. Configure immutable/Object-Lock/WORM or append-only retention at the off-host storage provider and test recovery from that protected storage. Use separate backup-write and retention-delete credentials where the provider supports them, so compromise of the application host cannot erase every recovery point. If the provider's immutable retention rejects Restic pruning, keep BillWatch's automatic pruning disabled and use a tested provider-side lifecycle/retention policy instead; do not weaken immutability merely to make prune succeed.
+
+Backup failure alerting is also explicit and fail-closed for beta readiness. Configure `BILLWATCH_OPERATIONS_ALERTING_ENABLED=true` with a private HTTPS `BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL`, verify local systemd wiring with `sh deploy/check-operations-alerting.sh /opt/billwatch`, and send one manual `readiness-test` event before invitations. The alert sender exposes only fixed operational metadata and keeps the private webhook URL out of process arguments.
 
 A restored snapshot represents the state at its recovery timestamp. Before reopening traffic, reconcile account and statement deletions that occurred after that timestamp against an external deletion/audit record so recovery does not unintentionally resurrect data a user asked BillWatch to remove.
 

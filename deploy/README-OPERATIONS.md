@@ -11,15 +11,7 @@ cd /opt/billwatch
 sh deploy/verify-production.sh /opt/billwatch
 ```
 
-This verifies:
-
-- `.env.production` is mode 600, deployment-account owned, ignored by Git, and not tracked;
-- API, Web, and PostgreSQL publish no host ports;
-- Caddy is the only public edge and publishes 80/443;
-- database, API, Web, and edge containers are running;
-- database, API, and Web health checks are healthy;
-- `.billwatch-release` matches the checked-out Git commit;
-- public API and Web readiness checks succeed.
+This verifies the protected production environment, container exposure/health, exact release marker, checked-out commit, and public API/Web readiness.
 
 ## Private-beta host verification
 
@@ -30,15 +22,9 @@ cd /opt/billwatch
 sh deploy/verify-beta-readiness.sh /opt/billwatch
 ```
 
-This composes the production verification with:
+This composes production verification with role/Owner checks, subscription-enforcement state, daily backup/runtime-watchdog timers, completed encrypted backup evidence, configured retention floors, and operations-alert wiring.
 
-- Identity role-schema verification;
-- exactly-one-Owner verification;
-- confirmation that subscription enforcement remains disabled;
-- enabled/active daily backup timer verification;
-- existence of a completed encrypted `billwatch-complete` Restic snapshot.
-
-Passing this command does **not** prove the browser, Plaid, provider-statement, clean-host restore, reboot, or alert-delivery gates. Those remain explicit operator checks in `deploy/README-BETA-CHECKLIST.md`.
+Passing this command does **not** prove browser behavior, Plaid provider behavior, representative statement semantics, clean-host restore, a controlled reboot, storage-provider immutability, independent external monitoring, or actual external alert delivery. Those remain explicit operator gates in `deploy/README-BETA-CHECKLIST.md`.
 
 ## First Owner
 
@@ -64,9 +50,35 @@ cd /opt/billwatch
 sh deploy/smoke-admin-api.sh https://api.billbeacon.net
 ```
 
-The admin smoke test proves that a fresh bearer session can satisfy `AdminOrOwner`; it does not mutate roles or access keys.
+The admin smoke test proves that a fresh bearer session can satisfy `AdminOrOwner`; it does not mutate roles or access keys. Command-line smoke tests do not replace the guarded private-beta/BFF/Plaid/statement/Internal Beta 0 flows documented elsewhere in `deploy/`.
 
-Command-line smoke tests do not replace browser verification of login/logout, Overview, Bills, Activity, Account, Subscription, Admin, Plaid Hosted Link/update mode, statement upload/download, or responsive theme behavior.
+## Systemd production units
+
+Install the backup, runtime-watchdog, and alert units together so no `OnFailure` route can point at a missing template:
+
+```sh
+sudo cp \
+  deploy/systemd/billwatch-backup.service \
+  deploy/systemd/billwatch-backup.timer \
+  deploy/systemd/billwatch-runtime-readiness.service \
+  deploy/systemd/billwatch-runtime-readiness.timer \
+  deploy/systemd/billwatch-operations-alert@.service \
+  /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now \
+  billwatch-backup.timer \
+  billwatch-runtime-readiness.timer
+```
+
+The runtime watchdog waits briefly after boot and then executes the guarded production verifier every five minutes. It verifies checked-out source, protected release marker, running release revisions, exposure rules, container health, and public readiness. It does **not** automatically deploy, roll back, restart PostgreSQL, or rewrite the verified release marker. A failure is surfaced through the metadata-only operations alert path.
+
+Verify local watchdog installation/scheduling with:
+
+```sh
+sh deploy/check-runtime-watchdog.sh
+```
+
+An actual controlled VPS reboot must still be performed once before beta invitations to prove Docker/systemd/network ordering on the real host. Use `deploy/run-controlled-reboot-drill.sh` for the release-pinned preflight/postflight proof; the runner never initiates reboot itself.
 
 ## Backups
 
@@ -80,25 +92,118 @@ A manual backup can be requested with:
 
 ```sh
 sudo systemctl start billwatch-backup.service
-```
-
-Then inspect its status without printing secrets:
-
-```sh
 sudo systemctl status billwatch-backup.service --no-pager
 ```
 
-Verify the timer with:
+Verify the timer and latest completed encrypted snapshot with:
 
 ```sh
 sh deploy/check-backup-timer.sh
-```
-
-Verify a completed encrypted snapshot with:
-
-```sh
 sh deploy/check-backup-snapshot.sh /opt/billwatch
 ```
+
+### Backup/maintenance trust separation
+
+Production `.env.production` must contain:
+
+```text
+BILLWATCH_BACKUP_CLIENT_MODE=append-only
+```
+
+Routine backup capture is deliberately non-destructive at the BillWatch application boundary. The `backup` command refuses maintenance mode and **never** invokes `restic forget` or `restic prune`, even when retention is enabled. The production storage credential should independently be restricted by the provider so it cannot delete/overwrite protected backup data where that backend supports separate permissions.
+
+Retention deletion is a separate trusted-host operation. Do **not** place delete-capable maintenance credentials or a maintenance environment on the production VPS. See `deploy/README-BACKUP-TRUST.md`.
+
+### Clean-host/off-host recovery drill
+
+Run this gate from a separate clean recovery host, not from the live production host. Check out the exact release commit, ensure the checkout is clean, and create a Git-ignored mode-`600` `.env.recovery` owned by the operator. It must contain only the recovery credentials/configuration needed by the isolated drill, including:
+
+```text
+BILLWATCH_RECOVERY_DRILL_ALLOW=true
+BILLWATCH_RELEASE_ID=<exact-lowercase-40-character-release-sha>
+BILLWATCH_DATABASE_PASSWORD=<temporary-isolated-postgres-password>
+RESTIC_REPOSITORY=<off-host-restic-repository>
+RESTIC_PASSWORD=<protected-restic-password>
+```
+
+Include only storage-provider credentials required by that Restic backend. Do not copy Plaid, Stripe, identity-email, Web, or other unrelated production secrets to the recovery host.
+
+Run:
+
+```sh
+cd /opt/billwatch-recovery
+sh deploy/run-clean-host-recovery-drill.sh .env.recovery
+```
+
+The runner refuses dirty or release-mismatched source, symlinked/wrong-owner/non-`600` recovery files, missing explicit opt-in, and local Restic repository paths. It uses `compose.recovery-drill.yml`, which contains only an ephemeral PostgreSQL restore target and hardened backup verifier. No host ports are published and no production database, statement, Data Protection, Caddy, API, or Web volumes are mounted.
+
+A pass proves that the selected off-host encrypted snapshot can be decrypted, checksum-validated, restored into fresh PostgreSQL, and reconciled with migration history, statement manifest/files, and Data Protection keys. Delete the temporary recovery credentials according to the operator/provider procedure afterward.
+
+Provider-side immutability remains a separate proof: recovery must also be demonstrated from storage that is actually protected by Object Lock/WORM/append-only or an equivalent provider-enforced design.
+
+### Retention maintenance
+
+Configure the desired policy in production and the trusted maintenance environment at no less than:
+
+```text
+BILLWATCH_BACKUP_RETENTION_ENABLED=true
+BILLWATCH_BACKUP_KEEP_DAILY=14
+BILLWATCH_BACKUP_KEEP_WEEKLY=8
+BILLWATCH_BACKUP_KEEP_MONTHLY=12
+BILLWATCH_BACKUP_KEEP_YEARLY=3
+```
+
+Inspect the configured production policy non-destructively with:
+
+```sh
+sh deploy/check-backup-policy.sh /opt/billwatch
+```
+
+Normal backups do not apply deletion. On the separate trusted maintenance host, create a mode-`600` environment file outside the checkout using a delete-capable maintenance principal and include:
+
+```text
+BILLWATCH_RELEASE_ID=<exact-release-sha>
+BILLWATCH_BACKUP_CLIENT_MODE=maintenance
+BILLWATCH_BACKUP_MAINTENANCE_ALLOW=true
+BILLWATCH_BACKUP_RETENTION_ENABLED=true
+```
+
+plus the same policy floors, encrypted repository location/password, and only the provider credentials needed for maintenance. Then run from a clean checkout of the exact release:
+
+```sh
+sh deploy/run-backup-maintenance.sh /secure/path/billwatch-backup-maintenance.env
+```
+
+The runner refuses weak file permissions, repository-local maintenance secrets, release mismatch/dirty source, local repositories, append-only mode, missing explicit maintenance opt-in, or disabled retention. It builds the exact release's backup image and runs only the retention command in a read-only, capability-dropped container without mounting production data.
+
+The backup tool itself additionally refuses `retention` unless both maintenance mode and the explicit maintenance opt-in are present. It validates the retention floors before `restic forget --prune` and runs `restic check` afterward.
+
+This separation reduces the impact of a production-host compromise; it does **not** prove provider immutability. The provider-side protection and recovery proof remain launch gates.
+
+### Operations alerts
+
+Configure a private HTTPS webhook in `.env.production`:
+
+```text
+BILLWATCH_OPERATIONS_ALERTING_ENABLED=true
+BILLWATCH_OPERATIONS_ALERT_WEBHOOK_URL=https://your-private-alert-endpoint.example/path
+```
+
+`billwatch-backup.service` and `billwatch-runtime-readiness.service` use systemd `OnFailure` to invoke the dedicated alert unit. The payload contains only a fixed BillWatch source identifier, event name, systemd unit name, hostname, and UTC timestamp. It does not attach service logs, financial data, request bodies, credentials, or tokens.
+
+Verify local wiring without sending an alert:
+
+```sh
+sh deploy/check-operations-alerting.sh /opt/billwatch
+```
+
+Then prove real external delivery once before beta invitations:
+
+```sh
+sh deploy/send-operations-alert.sh /opt/billwatch readiness-test manual
+```
+
+Confirm the external system received the test event. A configured-but-unproven webhook does not close the external alert-delivery gate.
 
 Do not remove a backup lock unless you have first confirmed no backup process is active.
 

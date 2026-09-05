@@ -2,6 +2,91 @@
 
 Do not enable subscription enforcement merely because this checklist exists. Enforcement remains a separate deliberate rollout decision.
 
+## Repeatable authenticated smoke gate
+
+Use `deploy/smoke-private-beta.sh` after a guarded deployment to exercise the non-destructive authenticated production boundary with one credential exchange instead of manually probing each API surface.
+
+Create a temporary password file outside the repository, owned by the operator and mode `600`, then set `BILLWATCH_SMOKE_EMAIL` and `BILLWATCH_SMOKE_PASSWORD_FILE`. Run:
+
+```sh
+BILLWATCH_SMOKE_EMAIL='controlled-beta@example.com' \
+BILLWATCH_SMOKE_PASSWORD_FILE='/run/user/1000/billwatch-smoke-password' \
+BILLWATCH_SMOKE_ADMIN_EXPECTATION='deny' \
+sh deploy/smoke-private-beta.sh \
+    'https://api.billbeacon.net' \
+    'https://billbeacon.net'
+```
+
+For the production Owner/Admin account, set `BILLWATCH_SMOKE_ADMIN_EXPECTATION=allow`. For a normal tester, set it to `deny`. The harness verifies login, token refresh, public Web routes, authenticated financial reads, account-export secret/storage boundaries, and the selected admin expectation. Optional known foreign Bill Stream/statement IDs can be supplied through `BILLWATCH_SMOKE_FOREIGN_BILL_STREAM_ID` and `BILLWATCH_SMOKE_FOREIGN_STATEMENT_UPLOAD_ID` to prove ownership-scoped 404 behavior.
+
+Mutations are **off by default**. Do not enable `BILLWATCH_SMOKE_ALLOW_MUTATIONS=true` unless the supplied alert IDs are disposable controlled test fixtures. The smoke harness intentionally does not automate Plaid disconnect, account deletion, statement upload, access-key creation/revocation, or other high-impact actions.
+
+Remove the temporary password file immediately after the smoke gate. Never put production credentials, bearer tokens, Plaid secrets, access keys, or the password file in the repository or shell command arguments.
+
+## Authenticated Web/BFF smoke gate
+
+Use `deploy/smoke-web-bff.sh` after the API smoke gate to exercise the same cookie-backed BFF route a browser uses. This is separate from the bearer-token API harness on purpose: it proves the rendered login form, antiforgery cookie/form token, encrypted authentication cookie, authenticated `/app` surface, BFF proxy reads, BFF account-export boundary, authenticated BFF antiforgery issuance, and antiforgery-protected logout.
+
+Create the same kind of mode-`600` password file outside the repository and run:
+
+```sh
+BILLWATCH_WEB_SMOKE_EMAIL='controlled-beta@example.com' \
+BILLWATCH_WEB_SMOKE_PASSWORD_FILE='/run/user/1000/billwatch-web-smoke-password' \
+sh deploy/smoke-web-bff.sh \
+    'https://billbeacon.net'
+```
+
+If the controlled account requires two-factor authentication, supply exactly one fresh mode-`600` second-factor file through `BILLWATCH_WEB_SMOKE_TWO_FACTOR_CODE_FILE` or `BILLWATCH_WEB_SMOKE_RECOVERY_CODE_FILE`. An authenticator-code file can be reused only while that TOTP is current; a recovery-code file consumes that recovery code when login succeeds.
+
+Optional known foreign Bill Stream/statement IDs can be supplied through `BILLWATCH_WEB_SMOKE_FOREIGN_BILL_STREAM_ID` and `BILLWATCH_WEB_SMOKE_FOREIGN_STATEMENT_UPLOAD_ID` to prove cross-user 404 behavior through the BFF itself. The Web/BFF harness performs no financial-data mutation; its only write is logout of its own isolated cookie session.
+
+Remove all temporary password/second-factor files immediately after the gate. The harness keeps password, second-factor, antiforgery, and encrypted session material out of curl command arguments.
+
+## Guarded Plaid lifecycle smoke gate
+
+Use `deploy/smoke-plaid-lifecycle.sh` with a controlled account that already owns a disposable or explicitly approved Plaid connection. The default path is non-destructive: it authenticates, proves that the configured connection belongs to the account, creates an update-mode Hosted Link session, validates that only a BillWatch session ID and an HTTPS `plaid.com` Hosted Link URL are returned, and rejects responses containing provider credentials or internal storage fields.
+
+Create a mode-`600` password file outside the repository and run:
+
+```sh
+BILLWATCH_PLAID_SMOKE_EMAIL='controlled-beta@example.com' \
+BILLWATCH_PLAID_SMOKE_PASSWORD_FILE='/run/user/1000/billwatch-plaid-smoke-password' \
+BILLWATCH_PLAID_SMOKE_CONNECTION_ID='00000000-0000-0000-0000-000000000000' \
+sh deploy/smoke-plaid-lifecycle.sh \
+    'https://api.billbeacon.net'
+```
+
+When a known connection owned by another controlled account is available, set `BILLWATCH_PLAID_SMOKE_FOREIGN_CONNECTION_ID` to prove that update mode returns 404 across the ownership boundary. The harness does not print the Hosted Link URL, bearer token, password, or provider credentials.
+
+Disconnect is **disabled by default**. To prove the provider-revocation/local-disconnect path, use only a disposable controlled connection and explicitly set both `BILLWATCH_PLAID_SMOKE_ALLOW_DISCONNECT=true` and `BILLWATCH_PLAID_SMOKE_DISCONNECT_CONNECTION_ID`. The harness first confirms that the disconnect target belongs to the authenticated account, requires DELETE to return 204, then proves the same disconnected connection is rejected from update mode with 409. Do not point this mutation at a tester's live financial connection.
+
+This harness proves BillWatch's real API/provider update-mode and disconnect boundary; it does not pretend to complete the human Plaid Hosted Link institution flow. A person must still open the returned Hosted Link through the product, finish the provider flow, and verify account/transaction synchronization and any `RequiresAttention` repair path with controlled provider data.
+
+Remove the password file immediately after the smoke gate. Never save the one-time Hosted Link URL or any Plaid credential in tickets, logs, shell history, or the repository.
+
+## Guarded statement lifecycle smoke gate
+
+Use `deploy/smoke-statement-lifecycle.sh` only with an operator-supplied controlled statement fixture and an explicitly approved Bill Stream. Real/private statements are never committed to the repository. Upload is **disabled by default** and requires `BILLWATCH_STATEMENT_SMOKE_ALLOW_UPLOAD=true` because the API persists the uploaded statement record and file.
+
+Create a mode-`600` password file outside the repository, select a controlled Bill Stream and fixture, then run:
+
+```sh
+BILLWATCH_STATEMENT_SMOKE_EMAIL='controlled-beta@example.com' \
+BILLWATCH_STATEMENT_SMOKE_PASSWORD_FILE='/run/user/1000/billwatch-statement-smoke-password' \
+BILLWATCH_STATEMENT_SMOKE_BILL_STREAM_ID='00000000-0000-0000-0000-000000000000' \
+BILLWATCH_STATEMENT_SMOKE_FIXTURE_PATH='/secure/operator-fixtures/representative-bill.pdf' \
+BILLWATCH_STATEMENT_SMOKE_ALLOW_UPLOAD=true \
+BILLWATCH_STATEMENT_SMOKE_EXPECT_STATUS='Processed' \
+sh deploy/smoke-statement-lifecycle.sh \
+    'https://api.billbeacon.net'
+```
+
+The harness proves Bill Stream ownership before upload, requires HTTP 201, rejects secret/internal-storage fields in upload/status responses, polls through `Uploaded`/`Processing` until a truthful terminal state, downloads the owned file, and requires its SHA-256 to exactly match the operator fixture. Set `BILLWATCH_STATEMENT_SMOKE_EXPECT_STATUS=Processed` only when that fixture is expected to complete parsing; the safe default `any` accepts any known terminal state without pretending that a failed or OCR-needing document parsed successfully.
+
+When a known foreign controlled statement exists, set both `BILLWATCH_STATEMENT_SMOKE_FOREIGN_BILL_STREAM_ID` and `BILLWATCH_STATEMENT_SMOKE_FOREIGN_UPLOAD_ID`; both status and file access must return 404. Remove the password file and controlled uploaded fixture from the environment according to the beta data-retention procedure after the test. Do not place real statements, credentials, extracted bill data, or statement storage paths in tickets, shell history, or the repository.
+
+This gate verifies lifecycle, ownership, response secrecy, and stored-byte integrity. It does **not** by itself prove extraction accuracy. Representative PDF/JPG/PNG fixtures still require expected-field review during Internal Beta 0, including OCR cases and the resulting bill-change explanation.
+
 ## Release
 
 - [ ] Full solution build completes with zero errors and zero warnings where reasonably achievable.
@@ -9,6 +94,7 @@ Do not enable subscription enforcement merely because this checklist exists. Enf
 - [ ] Pull-request CI/recovery pipeline passes.
 - [ ] Guarded production deployment succeeds.
 - [ ] `.billwatch-release` matches the intended Git commit.
+- [ ] Running API/Web containers and the production backup image report the same `org.opencontainers.image.revision` as the intended release.
 - [ ] `sh deploy/verify-production.sh /opt/billwatch` passes.
 
 ## Authentication and administration
@@ -17,7 +103,11 @@ Do not enable subscription enforcement merely because this checklist exists. Enf
 - [ ] Login succeeds.
 - [ ] Logout clears the Web session.
 - [ ] Access-token refresh survives normal use without exposing tokens to JavaScript.
+- [ ] `deploy/smoke-private-beta.sh` passes for a normal tester with `BILLWATCH_SMOKE_ADMIN_EXPECTATION=deny`.
+- [ ] `deploy/smoke-web-bff.sh` passes for a controlled authenticated Web account.
 - [ ] Production Owner receives a role-aware bearer session after fresh login.
+- [ ] `deploy/smoke-private-beta.sh` passes for Owner/Admin with `BILLWATCH_SMOKE_ADMIN_EXPECTATION=allow`.
+- [ ] `deploy/smoke-web-bff.sh` passes for the controlled Owner/Admin Web session, including 2FA when enabled.
 - [ ] `/app/admin` authorizes Owner.
 - [ ] Non-staff authenticated accounts cannot access admin endpoints.
 - [ ] Access-key plaintext is visible once only.
@@ -44,32 +134,40 @@ Do not enable subscription enforcement merely because this checklist exists. Enf
 - [ ] Successful connection persists accounts and transactions.
 - [ ] Recurring discovery runs after transaction sync.
 - [ ] RequiresAttention is surfaced truthfully.
-- [ ] Update-mode reconnect works.
-- [ ] Disconnect works.
-- [ ] Plaid tokens never appear in browser-visible content or logs.
+- [ ] `deploy/smoke-plaid-lifecycle.sh` passes update-mode Hosted Link validation for a controlled owned connection.
+- [ ] A known foreign controlled connection returns 404 through the Plaid lifecycle harness when that fixture is available.
+- [ ] Update-mode reconnect is completed through Hosted Link with controlled provider data.
+- [ ] Guarded disconnect smoke passes with an explicitly disposable connection and post-disconnect update mode returns 409.
+- [ ] Plaid tokens and Hosted Link URLs never appear in browser-visible content, logs, tickets, or shell command arguments.
 
 ## Statements
 
+- [ ] `deploy/smoke-statement-lifecycle.sh` passes with an operator-supplied controlled fixture and explicit upload opt-in.
 - [ ] Real PDF upload reaches a truthful terminal state.
 - [ ] Real JPG/PNG upload reaches a truthful terminal state.
 - [ ] Invalid signatures/extensions are rejected.
 - [ ] Files over 15 MB are rejected.
 - [ ] OCR path is exercised.
 - [ ] Processed statement updates only the owning Bill Stream.
+- [ ] Downloaded controlled fixture matches its original SHA-256.
 - [ ] Storage paths never leave the API.
-- [ ] Cross-user statement IDs are inaccessible.
+- [ ] Cross-user statement IDs and files are inaccessible.
+- [ ] Representative fixture extraction fields and bill-change explanation are manually reviewed; lifecycle success alone is not treated as semantic accuracy.
 
 ## Recovery and operations
 
 - [ ] Daily encrypted backup timer is enabled.
+- [ ] Runtime-readiness watchdog timer is installed, enabled, and active.
 - [ ] Fresh encrypted backup succeeds.
 - [ ] Restic repository is confirmed off-host.
 - [ ] Clean-host restore drill succeeds.
 - [ ] Database, statements, and Data Protection keys restore coherently.
-- [ ] Backup retention/immutability policy is established.
-- [ ] Backup failure alerting is configured and tested.
-- [ ] External readiness monitor is configured and a forced-failure notification is proven.
-- [ ] Controlled VPS reboot returns BillWatch to healthy automatically.
+- [ ] Repository retention is explicitly enabled at or above 14 daily / 8 weekly / 12 monthly / 3 yearly completed snapshots.
+- [ ] Provider-side immutable/Object-Lock/WORM or equivalent protection is configured and recovery from that protected storage has been tested.
+- [ ] Backup/runtime failure alerting is configured and a manual `readiness-test` event is observed in the external alert destination.
+- [ ] Independent external readiness monitor is configured and a forced-failure notification is proven.
+- [ ] Controlled VPS reboot returns Docker, BillWatch, the backup timer, and the runtime-readiness watchdog to healthy automatically.
+- [ ] After the controlled reboot, `sh deploy/verify-beta-readiness.sh /opt/billwatch` passes without modifying the verified release marker.
 
 ## Beta entry
 

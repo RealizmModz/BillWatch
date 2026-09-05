@@ -47,3 +47,13 @@ jobs:
         run: |
           echo "Intentional BillWatch readiness failure drill."
           exit 1
+
+      - name: Deliver independent readiness failure alert
+        if: ${{ failure() }}
+        env:
+          BILLWATCH_READINESS_ALERT_WEBHOOK_URL: ${{ secrets.BILLWATCH_READINESS_ALERT_WEBHOOK_URL }}
+        run: >-
+          sh deploy/send-readiness-alert.sh
+          readiness-failed
+          '${{ matrix.target.name }}'
+          '${{ github.run_id }}'

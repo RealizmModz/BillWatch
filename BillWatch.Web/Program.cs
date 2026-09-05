@@ -206,6 +206,7 @@ app.UseWhen(
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseBillWatchAntiforgeryBoundary();
 app.UseAntiforgery();
 
 app.MapStaticAssets();

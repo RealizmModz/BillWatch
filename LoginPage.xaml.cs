@@ -1,4 +1,6 @@
+using BillWatch.Core.Legal;
 using BillWatch.ViewModels;
+using Microsoft.Maui.ApplicationModel;
 
 namespace BillWatch;
 
@@ -62,5 +64,19 @@ public partial class LoginPage : ContentPage
     private void OnToggleModeClicked(object? sender, EventArgs e)
     {
         _viewModel.ToggleMode();
+    }
+
+    private async void OnTermsClicked(object? sender, EventArgs e)
+    {
+        await Browser.Default.OpenAsync(
+            BillWatchLegalDocuments.PublicTermsUrl,
+            BrowserLaunchMode.SystemPreferred);
+    }
+
+    private async void OnPrivacyClicked(object? sender, EventArgs e)
+    {
+        await Browser.Default.OpenAsync(
+            BillWatchLegalDocuments.PublicPrivacyUrl,
+            BrowserLaunchMode.SystemPreferred);
     }
 }

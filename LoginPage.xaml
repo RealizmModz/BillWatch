@@ -93,6 +93,39 @@
                         </Border>
                     </VerticalStackLayout>
 
+                    <VerticalStackLayout
+                        IsVisible="{Binding IsCreateAccount}"
+                        Spacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <CheckBox
+                                IsChecked="{Binding HasAcceptedTermsAndPrivacy}"
+                                IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                                VerticalOptions="Start" />
+                            <Label
+                                Text="I agree to the BillWatch Terms and acknowledge the Privacy Notice."
+                                VerticalOptions="Center"
+                                Style="{StaticResource SmallTextStyle}" />
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout Spacing="4" Margin="42,0,0,0">
+                            <Button
+                                Text="Terms"
+                                BackgroundColor="Transparent"
+                                TextColor="{StaticResource BrandPrimary}"
+                                FontAttributes="Bold"
+                                Padding="0,2"
+                                Clicked="OnTermsClicked" />
+                            <Label Text="·" VerticalOptions="Center" Style="{StaticResource SmallTextStyle}" />
+                            <Button
+                                Text="Privacy Notice"
+                                BackgroundColor="Transparent"
+                                TextColor="{StaticResource BrandPrimary}"
+                                FontAttributes="Bold"
+                                Padding="0,2"
+                                Clicked="OnPrivacyClicked" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
                     <Label
                         Text="{Binding ErrorMessage}"
                         IsVisible="{Binding HasError}"
