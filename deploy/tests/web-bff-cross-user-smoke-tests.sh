@@ -84,9 +84,6 @@ body='{}'
 location=''
 
 case "$url" in
-    */login|*/login\?twoFactor=true)
-        body='<form><input type="hidden" name="__RequestVerificationToken" value="FOREIGN-CSRF" /></form>'
-        ;;
     */auth/login)
         [ "$request" = 'POST' ] || exit 91
         code=302
@@ -95,6 +92,9 @@ case "$url" in
         else
             location='/app'
         fi
+        ;;
+    */login|*/login\?twoFactor=true)
+        body='<form><input type="hidden" name="__RequestVerificationToken" value="FOREIGN-CSRF" /></form>'
         ;;
     */bff/account/export)
         if [ "${FAKE_EXPORT_SECRET:-false}" = 'true' ]; then
