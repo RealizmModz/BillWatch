@@ -6,8 +6,6 @@ umask 077
 
 : "${RESTIC_REPOSITORY:?RESTIC_REPOSITORY must be configured.}"
 : "${RESTIC_PASSWORD:?RESTIC_PASSWORD must be configured.}"
-: "${PGPASSWORD:?Database credentials must be configured.}"
-: "${BILLWATCH_RELEASE_ID:?BILLWATCH_RELEASE_ID must be configured.}"
 
 if [ "${#RESTIC_PASSWORD}" -lt 24 ] ||
    [ "$RESTIC_PASSWORD" = "replace-with-a-separate-long-random-backup-password" ]; then
@@ -24,13 +22,6 @@ case "$RESTIC_REPOSITORY" in
         ;;
 esac
 
-case "$BILLWATCH_RELEASE_ID" in
-    replace-with-the-deployed-git-commit|*[!A-Za-z0-9._-]*|'')
-        echo "BILLWATCH_RELEASE_ID must identify the deployed commit or version." >&2
-        exit 64
-        ;;
-esac
-
 backup_host="billwatch-production"
 candidate_tag="billwatch-candidate"
 complete_tag="billwatch-complete"
@@ -42,6 +33,8 @@ retention_keep_daily="${BILLWATCH_BACKUP_KEEP_DAILY:-14}"
 retention_keep_weekly="${BILLWATCH_BACKUP_KEEP_WEEKLY:-8}"
 retention_keep_monthly="${BILLWATCH_BACKUP_KEEP_MONTHLY:-12}"
 retention_keep_yearly="${BILLWATCH_BACKUP_KEEP_YEARLY:-3}"
+client_mode="${BILLWATCH_BACKUP_CLIENT_MODE:-append-only}"
+maintenance_allow="${BILLWATCH_BACKUP_MAINTENANCE_ALLOW:-false}"
 
 cleanup_work()
 {
@@ -63,6 +56,50 @@ require_positive_integer()
     if [ "$value" -lt 1 ]; then
         echo "$name must be at least 1." >&2
         exit 64
+    fi
+}
+
+validate_client_mode()
+{
+    case "$client_mode" in
+        append-only|maintenance) ;;
+        *)
+            echo "BILLWATCH_BACKUP_CLIENT_MODE must be append-only or maintenance." >&2
+            exit 64
+            ;;
+    esac
+
+    case "$maintenance_allow" in
+        true|false) ;;
+        *)
+            echo "BILLWATCH_BACKUP_MAINTENANCE_ALLOW must be true or false." >&2
+            exit 64
+            ;;
+    esac
+}
+
+require_append_only_backup_role()
+{
+    validate_client_mode
+
+    if [ "$client_mode" != append-only ]; then
+        echo "The backup command requires BILLWATCH_BACKUP_CLIENT_MODE=append-only. Destructive maintenance credentials must not be used for production backup capture." >&2
+        exit 77
+    fi
+}
+
+require_destructive_maintenance_role()
+{
+    validate_client_mode
+
+    if [ "$client_mode" != maintenance ]; then
+        echo "Retention maintenance is refused from the append-only production backup role." >&2
+        exit 77
+    fi
+
+    if [ "$maintenance_allow" != true ]; then
+        echo "Retention maintenance requires explicit BILLWATCH_BACKUP_MAINTENANCE_ALLOW=true opt-in on the trusted maintenance host." >&2
+        exit 77
     fi
 }
 
@@ -102,12 +139,14 @@ require_repository()
 
 initialize_repository()
 {
+    require_append_only_backup_role
     restic init
 }
 
 apply_retention_policy()
 {
     validate_retention_policy
+    require_destructive_maintenance_role
     require_repository
 
     if [ "$retention_enabled" != true ]; then
@@ -126,24 +165,36 @@ apply_retention_policy()
 
     restic check
 
-    echo "BillWatch backup retention applied: daily=$retention_keep_daily weekly=$retention_keep_weekly monthly=$retention_keep_monthly yearly=$retention_keep_yearly."
+    echo "BillWatch trusted-host backup retention applied: daily=$retention_keep_daily weekly=$retention_keep_weekly monthly=$retention_keep_monthly yearly=$retention_keep_yearly."
 }
 
 print_retention_policy()
 {
     validate_retention_policy
+    validate_client_mode
 
     if [ "$retention_enabled" != true ]; then
         echo "BillWatch backup retention is disabled." >&2
         exit 69
     fi
 
-    echo "BillWatch backup retention is enabled: daily=$retention_keep_daily weekly=$retention_keep_weekly monthly=$retention_keep_monthly yearly=$retention_keep_yearly."
+    echo "BillWatch backup retention is enabled: daily=$retention_keep_daily weekly=$retention_keep_weekly monthly=$retention_keep_monthly yearly=$retention_keep_yearly; production client mode=$client_mode; destructive maintenance is a separate trusted-host operation."
 }
 
 create_backup()
 {
+    require_append_only_backup_role
     validate_retention_policy
+    : "${PGPASSWORD:?Database credentials must be configured for backup capture.}"
+    : "${BILLWATCH_RELEASE_ID:?BILLWATCH_RELEASE_ID must be configured for backup capture.}"
+
+    case "$BILLWATCH_RELEASE_ID" in
+        replace-with-the-deployed-git-commit|*[!A-Za-z0-9._-]*|'')
+            echo "BILLWATCH_RELEASE_ID must identify the deployed commit or version." >&2
+            exit 64
+            ;;
+    esac
+
     require_repository
     cleanup_work
     mkdir -p "$bundle_path"
@@ -231,12 +282,13 @@ create_backup()
     echo "Encrypted backup completed as snapshot $snapshot_id."
 
     if [ "$retention_enabled" = true ]; then
-        apply_retention_policy
+        echo "Retention policy is enabled but was not applied by the append-only production backup client; run guarded maintenance from the separate trusted maintenance host."
     fi
 }
 
 list_completed_snapshot()
 {
+    validate_client_mode
     require_repository
 
     restic snapshots \
@@ -247,6 +299,8 @@ list_completed_snapshot()
 
 verify_restore()
 {
+    validate_client_mode
+    : "${PGPASSWORD:?Database credentials must be configured for restore verification.}"
     require_repository
     cleanup_work
     mkdir -p "$restore_path"

@@ -60,6 +60,7 @@ jobs:
       ACME_EMAIL: ci@example.com
       BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY: "true"
       BILLWATCH_BACKUP_WORK_SIZE: 1g
+      BILLWATCH_BACKUP_CLIENT_MODE: append-only
       BILLWATCH_DATABASE_PASSWORD: ci-only-password
       BILLWATCH_HOST: localhost
       BILLWATCH_WEB_HOST: web.localhost
@@ -78,6 +79,7 @@ jobs:
       - name: Validate production operation scripts
         run: |
           sh deploy/tests/production-operations-tests.sh
+          sh deploy/tests/backup-trust-boundary-tests.sh
           sh deploy/tests/release-integrity-tests.sh
           sh deploy/tests/runtime-release-tests.sh
           sh deploy/tests/http-security-boundary-tests.sh
