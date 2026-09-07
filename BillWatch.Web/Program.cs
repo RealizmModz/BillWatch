@@ -49,6 +49,16 @@ builder.Services.Configure<RequestLocalizationOptions>(
                 culture: webCulture,
                 uiCulture: webCulture);
 
+        /*
+         * Keep formatting culture on en-US for now.
+         *
+         * BillWatch still has several USD values formatted through the
+         * current culture. Allowing a browser language to change
+         * CurrentCulture could make a USD amount display with the wrong
+         * currency symbol. UI language is therefore localized independently
+         * through CurrentUICulture until all money presentation is explicitly
+         * currency-code-aware.
+         */
         options.SupportedCultures =
             [
                 webCulture
@@ -165,9 +175,14 @@ builder.Services.AddHttpClient(
             TimeSpan.FromSeconds(30);
     });
 
-builder.Services.AddScoped<WebAuthenticationService>();
-builder.Services.AddScoped<BillWatchBffProxyService>();
-builder.Services.AddScoped<AdminBffWriteProxyService>();
+builder.Services.AddScoped<
+    WebAuthenticationService>();
+
+builder.Services.AddScoped<
+    BillWatchBffProxyService>();
+
+builder.Services.AddScoped<
+    AdminBffWriteProxyService>();
 
 var app =
     builder.Build();
@@ -245,7 +260,8 @@ static string ResolveUiCulture(
                 preference =>
                     preference.Index);
 
-    foreach (var preference in preferences)
+    foreach (var preference in
+             preferences)
     {
         if (preference.Language.Equals(
                 "es",
@@ -293,7 +309,8 @@ static (
     var quality =
         1m;
 
-    foreach (var segment in segments.Skip(1))
+    foreach (var segment in
+             segments.Skip(1))
     {
         if (!segment.StartsWith(
                 "q=",
