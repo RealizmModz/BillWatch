@@ -162,6 +162,85 @@
         background: rgba(48, 178, 114, 0.14);
     }
 
+.external-signin-list {
+    display: grid;
+    gap: 10px;
+}
+
+.external-signin-button {
+    min-height: 46px;
+    padding: 11px 14px;
+    display: grid;
+    grid-template-columns: 28px 1fr 28px;
+    align-items: center;
+    border: 1px solid var(--bw-border);
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--bw-bg-elevated) 90%, transparent);
+    color: var(--bw-text);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 720;
+    transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+    .external-signin-button::after {
+        content: "→";
+        justify-self: end;
+        color: var(--bw-text-subtle);
+        font-size: 0.82rem;
+    }
+
+    .external-signin-button:hover {
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, #6f86ff 48%, var(--bw-border));
+        background: color-mix(in srgb, var(--bw-bg-elevated) 96%, #536df2 4%);
+        color: var(--bw-text);
+        box-shadow: 0 10px 24px rgba(25, 37, 91, 0.09);
+    }
+
+    .external-signin-button:active {
+        transform: translateY(0);
+    }
+
+.external-provider-mark {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--bw-border);
+    border-radius: 9px;
+    background: var(--bw-surface-soft);
+    color: var(--bw-text-secondary);
+    font-size: 0.76rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.provider-google {
+    font-family: Arial, sans-serif;
+}
+
+.provider-apple {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.provider-microsoft {
+    grid-template-columns: repeat(2, 5px);
+    grid-template-rows: repeat(2, 5px);
+    gap: 2px;
+}
+
+    .provider-microsoft > span {
+        width: 5px;
+        height: 5px;
+        border-radius: 1px;
+        background: currentColor;
+    }
+
+.auth-provider-separator {
+    margin: 18px 0;
+}
+
 .auth-form {
     display: grid;
     gap: 17px;
