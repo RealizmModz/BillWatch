@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using BillWatch.API.Controllers;
 using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Identity;
 using BillWatch.Tests.Infrastructure;
