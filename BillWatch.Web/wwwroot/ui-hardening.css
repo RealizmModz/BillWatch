@@ -16,6 +16,99 @@ body .theme-toggle {
     height: 44px;
 }
 
+.legal-standalone-layout {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--bw-bg);
+}
+
+.legal-theme-control {
+    position: fixed;
+    z-index: 40;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.legal-theme-control .theme-toggle {
+    background: var(--bw-header-bg);
+    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(22px) saturate(135%);
+    -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+.legal-page a:focus-visible,
+.system-page a:focus-visible,
+.legal-theme-control button:focus-visible {
+    outline: 2px solid rgba(91, 109, 248, 0.78);
+    outline-offset: 3px;
+}
+
+html[data-theme="light"] .legal-page {
+    color: var(--bw-text);
+    background:
+        radial-gradient(circle at 8% 0%, rgba(44, 93, 221, 0.09), transparent 28%),
+        radial-gradient(circle at 92% 12%, rgba(94, 68, 238, 0.07), transparent 30%),
+        var(--bw-bg);
+}
+
+html[data-theme="light"] .legal-topbar {
+    border-bottom-color: var(--bw-border);
+    background: var(--bw-header-bg);
+}
+
+html[data-theme="light"] .legal-brand,
+html[data-theme="light"] .legal-nav a:hover,
+html[data-theme="light"] .legal-nav a.is-active,
+html[data-theme="light"] .legal-hero h1,
+html[data-theme="light"] .legal-callout strong,
+html[data-theme="light"] .legal-document section h2 {
+    color: var(--bw-text);
+}
+
+html[data-theme="light"] .legal-nav a,
+html[data-theme="light"] .legal-lead,
+html[data-theme="light"] .legal-callout,
+html[data-theme="light"] .legal-document section p,
+html[data-theme="light"] .legal-document section li,
+html[data-theme="light"] .legal-endnote {
+    color: var(--bw-text-muted);
+}
+
+html[data-theme="light"] .legal-nav a:hover,
+html[data-theme="light"] .legal-nav a.is-active,
+html[data-theme="light"] .legal-toc a:hover {
+    background: rgba(91, 109, 248, 0.08);
+}
+
+html[data-theme="light"] .legal-hero,
+html[data-theme="light"] .legal-toc {
+    border-color: var(--bw-border);
+    background:
+        radial-gradient(circle at 100% 0, rgba(67, 82, 223, 0.08), transparent 36%),
+        var(--bw-surface-soft);
+    box-shadow: var(--bw-card-shadow);
+}
+
+html[data-theme="light"] .legal-toc a,
+html[data-theme="light"] .legal-meta,
+html[data-theme="light"] .legal-toc-label {
+    color: var(--bw-text-subtle);
+}
+
+html[data-theme="light"] .legal-document section {
+    border-bottom-color: var(--bw-border);
+}
+
+html[data-theme="light"] .legal-callout {
+    border-color: rgba(67, 124, 247, 0.16);
+    background: rgba(45, 92, 196, 0.055);
+}
+
+html[data-theme="light"] .legal-endnote {
+    border-color: rgba(194, 132, 24, 0.18);
+    background: rgba(194, 132, 24, 0.06);
+}
+
 .system-page {
     width: min(100% - 32px, 760px);
     min-height: min(680px, calc(100dvh - 80px));
@@ -223,6 +316,16 @@ html[data-theme="dark"] .system-card {
 @media (max-width: 600px) {
     .site-shell .header-actions .header-action:last-child {
         display: inline-flex;
+    }
+
+    .bills-heading-summary {
+        display: flex !important;
+        flex-wrap: wrap;
+        white-space: normal !important;
+    }
+
+    .bills-heading-summary .summary-divider {
+        display: none;
     }
 }
 

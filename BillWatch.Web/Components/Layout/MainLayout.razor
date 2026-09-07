@@ -5,7 +5,16 @@
 
 @if (UseStandaloneLegalLayout)
 {
-    @Body
+    <link rel="stylesheet"
+          href="/theme.css" />
+
+    <div class="legal-standalone-layout">
+        @Body
+
+        <div class="legal-theme-control">
+            <ThemeToggle />
+        </div>
+    </div>
 }
 else
 {
