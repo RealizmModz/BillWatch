@@ -43,6 +43,43 @@ public sealed class WebExternalAuthenticationTests
     }
 
     [Fact]
+    public async Task AccountSettings_HidesUnconfiguredExternalProviderLinks()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                "/app/account/settings");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        var body =
+            await response.Content
+                .ReadAsStringAsync();
+
+        Assert.DoesNotContain(
+            "/auth/external/google/link",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "/auth/external/apple/link",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "/auth/external/microsoft/link",
+            body,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task UnconfiguredKnownProvider_FailsClosedWithoutStartingChallenge()
     {
         using var factory =
