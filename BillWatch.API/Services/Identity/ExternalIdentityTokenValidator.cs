@@ -25,6 +25,9 @@ public sealed class ExternalIdentityTokenValidator :
     private const int MaxIdentityTokenLength =
         32 * 1024;
 
+    private const int MaxProviderSubjectLength =
+        128;
+
     private static readonly TimeSpan ClockSkew =
         TimeSpan.FromMinutes(2);
 
@@ -196,7 +199,7 @@ public sealed class ExternalIdentityTokenValidator :
                 .Trim();
 
         if (string.IsNullOrWhiteSpace(subject) ||
-            subject.Length > 512 ||
+            subject.Length > MaxProviderSubjectLength ||
             subject.Any(char.IsControl))
         {
             return null;
