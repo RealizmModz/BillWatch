@@ -222,10 +222,9 @@ public static class ExternalAuthenticationEndpointMappings
                     "External sign-in could not be completed."));
         }
 
-        var storedProvider =
-            externalResult.Properties.Items
-                .GetValueOrDefault(
-                    ExternalProviderProperty);
+        externalResult.Properties.Items.TryGetValue(
+            ExternalProviderProperty,
+            out var storedProvider);
 
         if (!string.Equals(
                 storedProvider,
@@ -240,10 +239,9 @@ public static class ExternalAuthenticationEndpointMappings
                     "External sign-in could not be completed."));
         }
 
-        var idToken =
-            externalResult.Properties.Items
-                .GetValueOrDefault(
-                    ExternalIdTokenProperty);
+        externalResult.Properties.Items.TryGetValue(
+            ExternalIdTokenProperty,
+            out var idToken);
 
         var subject =
             externalResult.Principal
@@ -385,20 +383,24 @@ public static class ExternalAuthenticationEndpointMappings
                             context.TokenEndpointResponse?
                                 .IdToken;
 
+                        var properties =
+                            context.Properties;
+
                         if (string.IsNullOrWhiteSpace(
-                                idToken))
+                                idToken) ||
+                            properties is null)
                         {
                             context.Fail(
-                                "The identity provider did not return an ID token.");
+                                "The identity provider did not return a valid sign-in state.");
 
                             return Task.CompletedTask;
                         }
 
-                        context.Properties.Items[
+                        properties.Items[
                             ExternalIdTokenProperty] =
                             idToken;
 
-                        context.Properties.Items[
+                        properties.Items[
                             ExternalProviderProperty] =
                             provider.Provider;
 
