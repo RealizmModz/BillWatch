@@ -129,6 +129,26 @@ export function requestEmailChange(currentPassword, newEmail, twoFactorCode) {
         "BillWatch could not start the email change.");
 }
 
+export function linkExternalIdentity(provider, currentPassword, twoFactorCode) {
+    return postJson(
+        "/bff/account/external/link",
+        {
+            provider,
+            currentPassword,
+            twoFactorCode: twoFactorCode || null
+        },
+        "BillWatch could not link this sign-in method. Start the provider link again and try again.");
+}
+
+export function clearExternalLinkQuery() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("externalLink");
+    url.searchParams.delete("externalError");
+
+    const nextUrl = url.pathname + url.search + url.hash;
+    window.history.replaceState(window.history.state, "", nextUrl);
+}
+
 export function setupTwoFactor(currentPassword, twoFactorCode) {
     return postJson(
         "/bff/account/security/two-factor/setup",

@@ -10,6 +10,7 @@
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @inject Microsoft.Extensions.Localization.IStringLocalizer<AccountSettings> L
 
 <PageTitle>@L["Settings — BillWatch"]</PageTitle>
@@ -468,6 +469,109 @@
                 </div>
             </section>
 
+            @if (HasConfiguredExternalProvider)
+            {
+                <section class="settings-card">
+                    <div class="settings-card-heading">
+                        <div class="settings-card-icon is-blue" aria-hidden="true">◇</div>
+
+                        <div class="settings-copy">
+                            <h2>@L["Sign-in methods"]</h2>
+                            <p>@L["Connect a trusted provider to this BillWatch account so you can use it on the sign-in screen."]</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-grid single-column">
+                        @if (GoogleSignInConfigured)
+                        {
+                            <div class="current-value">
+                                <span>Google</span>
+                                <a class="secondary-link"
+                                   href="/auth/external/google/link">
+                                    @L["Link Google"]
+                                    <span aria-hidden="true">→</span>
+                                </a>
+                            </div>
+                        }
+
+                        @if (AppleSignInConfigured)
+                        {
+                            <div class="current-value">
+                                <span>Apple</span>
+                                <a class="secondary-link"
+                                   href="/auth/external/apple/link">
+                                    @L["Link Apple"]
+                                    <span aria-hidden="true">→</span>
+                                </a>
+                            </div>
+                        }
+
+                        @if (MicrosoftSignInConfigured)
+                        {
+                            <div class="current-value">
+                                <span>Microsoft</span>
+                                <a class="secondary-link"
+                                   href="/auth/external/microsoft/link">
+                                    @L["Link Microsoft"]
+                                    <span aria-hidden="true">→</span>
+                                </a>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_pendingExternalProvider))
+                    {
+                        <div class="authenticator-setup">
+                            <div class="authenticator-setup-heading">
+                                <div>
+                                    <span class="panel-kicker">@L["Confirm account link"]</span>
+                                    <h3>@L["Finish connecting"] @GetExternalProviderDisplayName(_pendingExternalProvider)</h3>
+                                    <p>@L["The provider verified you. Re-enter your BillWatch credentials to authorize this new sign-in method."]</p>
+                                </div>
+                            </div>
+
+                            <div class="settings-grid two-column">
+                                <label class="settings-field">
+                                    <span>@L["Current password"]</span>
+                                    <input type="password"
+                                           autocomplete="current-password"
+                                           placeholder="@L["Enter your current password"]"
+                                           @bind="_externalLinkCurrentPassword" />
+                                </label>
+
+                                @if (_security?.TwoFactorEnabled == true)
+                                {
+                                    <label class="settings-field">
+                                        <span>@L["Current authenticator code"]</span>
+                                        <input type="text"
+                                               inputmode="numeric"
+                                               autocomplete="one-time-code"
+                                               maxlength="12"
+                                               placeholder="123456"
+                                               @bind="_externalLinkTwoFactorCode" />
+                                    </label>
+                                }
+                            </div>
+
+                            <div class="settings-actions">
+                                <button type="button"
+                                        class="primary-action"
+                                        disabled="@(_isBusy || _securityModule is null)"
+                                        @onclick="LinkExternalProviderAsync">
+                                    @L["Confirm and link"]
+                                </button>
+                            </div>
+
+                            <p class="security-note">@L["BillWatch does not expose provider tokens to browser JavaScript. If this confirmation fails, restart the provider link before trying again."]</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="security-note">@L["BillWatch never links accounts merely because two providers report the same email address. You must explicitly connect each sign-in method from this signed-in account."]</p>
+                    }
+                </section>
+            }
+
             <section class="settings-card settings-card-compact">
                 <div class="settings-card-heading">
                     <div class="settings-card-icon is-muted" aria-hidden="true">◷</div>
@@ -567,6 +671,14 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(
+        Name = "externalLink")]
+    public string? ExternalLink { get; set; }
+
+    [SupplyParameterFromQuery(
+        Name = "externalError")]
+    public string? ExternalError { get; set; }
+
     private IJSObjectReference? _timeModule;
     private IJSObjectReference? _securityModule;
 
@@ -597,6 +709,41 @@
     private string _twoFactorCurrentCode = string.Empty;
     private string _twoFactorEnablePassword = string.Empty;
     private string _twoFactorEnableCode = string.Empty;
+
+    private string _externalLinkCurrentPassword = string.Empty;
+    private string _externalLinkTwoFactorCode = string.Empty;
+    private string? _pendingExternalProvider;
+
+    private bool GoogleSignInConfigured =>
+        IsExternalProviderConfigured(
+            "Google");
+
+    private bool AppleSignInConfigured =>
+        IsExternalProviderConfigured(
+            "Apple");
+
+    private bool MicrosoftSignInConfigured =>
+        IsExternalProviderConfigured(
+            "Microsoft");
+
+    private bool HasConfiguredExternalProvider =>
+        GoogleSignInConfigured ||
+        AppleSignInConfigured ||
+        MicrosoftSignInConfigured;
+
+    protected override void OnParametersSet()
+    {
+        _pendingExternalProvider =
+            NormalizeConfiguredExternalProvider(
+                ExternalLink);
+
+        if (!string.IsNullOrWhiteSpace(
+                ExternalError))
+        {
+            SetError(
+                ExternalError.Trim());
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -703,6 +850,60 @@
                 _passwordTwoFactorCode = string.Empty;
 
                 SetSuccess(L["Password changed successfully."].Value);
+            });
+    }
+
+    private async Task LinkExternalProviderAsync()
+    {
+        if (_securityModule is null ||
+            _isBusy ||
+            string.IsNullOrWhiteSpace(
+                _pendingExternalProvider))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                _externalLinkCurrentPassword))
+        {
+            SetError(
+                L["Enter your current password to link this sign-in method."].Value);
+            return;
+        }
+
+        if (_security?.TwoFactorEnabled == true &&
+            string.IsNullOrWhiteSpace(
+                _externalLinkTwoFactorCode))
+        {
+            SetError(
+                L["Enter your current authenticator code to link this sign-in method."].Value);
+            return;
+        }
+
+        var provider =
+            _pendingExternalProvider;
+
+        await RunActionAsync(
+            async () =>
+            {
+                await _securityModule.InvokeVoidAsync(
+                    "linkExternalIdentity",
+                    provider,
+                    _externalLinkCurrentPassword,
+                    NullIfBlank(
+                        _externalLinkTwoFactorCode));
+
+                _externalLinkCurrentPassword = string.Empty;
+                _externalLinkTwoFactorCode = string.Empty;
+                _pendingExternalProvider = null;
+                ExternalLink = null;
+                ExternalError = null;
+
+                await _securityModule.InvokeVoidAsync(
+                    "clearExternalLinkQuery");
+
+                SetSuccess(
+                    $"{GetExternalProviderDisplayName(provider)} {L["can now be used to sign in to BillWatch."].Value}");
             });
     }
 
@@ -931,6 +1132,71 @@
         _recoveryCodes.Clear();
     }
 
+    private bool IsExternalProviderConfigured(
+        string provider)
+    {
+        var clientId =
+            Configuration[
+                $"ExternalIdentity:{provider}:ClientId"];
+
+        var clientSecret =
+            Configuration[
+                $"ExternalIdentity:{provider}:ClientSecret"];
+
+        return !string.IsNullOrWhiteSpace(
+                   clientId) &&
+               !string.IsNullOrWhiteSpace(
+                   clientSecret);
+    }
+
+    private string? NormalizeConfiguredExternalProvider(
+        string? provider)
+    {
+        if (string.IsNullOrWhiteSpace(
+                provider))
+        {
+            return null;
+        }
+
+        var normalized =
+            provider.Trim()
+                .ToLowerInvariant();
+
+        return normalized switch
+        {
+            "google" when GoogleSignInConfigured =>
+                "google",
+
+            "apple" when AppleSignInConfigured =>
+                "apple",
+
+            "microsoft" when MicrosoftSignInConfigured =>
+                "microsoft",
+
+            _ =>
+                null
+        };
+    }
+
+    private static string GetExternalProviderDisplayName(
+        string provider)
+    {
+        return provider switch
+        {
+            "google" =>
+                "Google",
+
+            "apple" =>
+                "Apple",
+
+            "microsoft" =>
+                "Microsoft",
+
+            _ =>
+                "External provider"
+        };
+    }
+
     private static string? NullIfBlank(string value)
     {
         return string.IsNullOrWhiteSpace(value)
@@ -978,6 +1244,10 @@
         _twoFactorCurrentCode = string.Empty;
         _twoFactorEnablePassword = string.Empty;
         _twoFactorEnableCode = string.Empty;
+
+        _externalLinkCurrentPassword = string.Empty;
+        _externalLinkTwoFactorCode = string.Empty;
+        _pendingExternalProvider = null;
 
         _twoFactorSetup = null;
         _twoFactorQrDataUri = null;
