@@ -1,0 +1,267 @@
+/* BillWatch cross-surface UI hardening.
+   Keep this layer focused on behavior-safe polish that must win over page CSS. */
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+body .theme-toggle {
+    width: 44px;
+    height: 44px;
+}
+
+.system-page {
+    width: min(100% - 32px, 760px);
+    min-height: min(680px, calc(100dvh - 80px));
+    margin: 0 auto;
+    padding: 72px 0 92px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+}
+
+.system-card {
+    width: 100%;
+    padding: clamp(28px, 6vw, 52px);
+    box-sizing: border-box;
+    border: 1px solid var(--bw-border);
+    border-radius: 30px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(91, 109, 248, 0.12), transparent 22rem),
+        linear-gradient(155deg, rgba(255, 255, 255, 0.035), transparent 48%),
+        var(--bw-surface-soft);
+    color: var(--bw-text);
+    box-shadow: 0 28px 82px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(26px) saturate(125%);
+    -webkit-backdrop-filter: blur(26px) saturate(125%);
+}
+
+html:not([data-theme="light"]) .system-card,
+html[data-theme="dark"] .system-card {
+    box-shadow: 0 32px 90px rgba(0, 0, 0, 0.36);
+}
+
+.system-icon {
+    width: 62px;
+    height: 62px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(91, 109, 248, 0.18);
+    border-radius: 20px;
+    background: rgba(91, 109, 248, 0.11);
+    color: #8e9dff;
+    font-size: 0.84rem;
+    font-weight: 850;
+    letter-spacing: 0.03em;
+}
+
+.system-icon-error {
+    border-color: rgba(229, 111, 103, 0.2);
+    background: rgba(229, 111, 103, 0.1);
+    color: #e9837d;
+    font-size: 1.35rem;
+}
+
+.system-kicker {
+    display: block;
+    margin-top: 26px;
+    color: #8796ff;
+    font-size: 0.67rem;
+    font-weight: 820;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.system-card h1 {
+    max-width: 620px;
+    margin: 10px 0 14px;
+    color: var(--bw-text);
+    font-size: clamp(2.25rem, 7vw, 3.75rem);
+    line-height: 0.98;
+    font-weight: 770;
+    letter-spacing: -0.06em;
+}
+
+.system-card > p {
+    max-width: 610px;
+    margin: 0;
+    color: var(--bw-text-muted);
+    font-size: 0.92rem;
+    line-height: 1.7;
+}
+
+.system-request-id {
+    max-width: 100%;
+    margin-top: 24px;
+    padding: 13px 15px;
+    display: grid;
+    gap: 5px;
+    border: 1px solid var(--bw-border);
+    border-radius: 13px;
+    background: var(--bw-bg-elevated);
+}
+
+.system-request-id span {
+    color: var(--bw-text-subtle);
+    font-size: 0.65rem;
+    font-weight: 760;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.system-request-id code {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    color: var(--bw-text-secondary);
+    font-size: 0.75rem;
+}
+
+.system-actions {
+    margin-top: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.system-primary-action,
+.system-secondary-action {
+    min-height: 46px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    color: inherit;
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 760;
+}
+
+.system-primary-action {
+    border: 1px solid rgba(91, 109, 248, 0.18);
+    background: linear-gradient(145deg, #435ef1, #697aff);
+    color: #fff;
+    box-shadow: 0 13px 32px rgba(70, 96, 242, 0.24);
+}
+
+.system-primary-action:hover {
+    color: #fff;
+}
+
+.system-secondary-action {
+    border: 1px solid var(--bw-border);
+    background: var(--bw-surface-soft);
+    color: var(--bw-text-secondary);
+}
+
+@media (max-width: 900px) {
+    .app-shell {
+        min-height: 100dvh !important;
+    }
+
+    .app-shell .app-sidebar {
+        bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+        height: 72px !important;
+        padding: 6px !important;
+    }
+
+    .app-shell .app-content {
+        padding-bottom: calc(132px + env(safe-area-inset-bottom)) !important;
+    }
+
+    .mobile-menu-backdrop {
+        position: fixed;
+        z-index: 110;
+        inset: 0 0 calc(94px + env(safe-area-inset-bottom)) 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: color-mix(in srgb, var(--bw-bg) 24%, transparent);
+        cursor: default;
+        backdrop-filter: blur(12px) saturate(86%);
+        -webkit-backdrop-filter: blur(12px) saturate(86%);
+    }
+
+    .mobile-more-menu.is-open::before {
+        display: none !important;
+    }
+
+    .mobile-menu-sheet {
+        max-height: min(calc(100dvh - 176px - env(safe-area-inset-bottom)), 520px) !important;
+    }
+}
+
+@media (max-width: 520px) {
+    .app-shell .app-sidebar {
+        left: 8px !important;
+        right: 8px !important;
+        bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+    }
+
+    .system-page {
+        width: min(100% - 24px, 760px);
+        padding: 44px 0 70px;
+    }
+
+    .system-card {
+        border-radius: 24px;
+    }
+
+    .system-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .system-primary-action,
+    .system-secondary-action {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+@media (pointer: coarse) {
+    .bill-filter,
+    .activity-filter,
+    .alert-secondary-action,
+    .alert-primary-action,
+    .statement-upload-button,
+    .privacy-primary-button,
+    .danger-button,
+    .cancel-delete-button,
+    .final-delete-button,
+    .subscription-action,
+    .settings-actions button,
+    .recovery-code-panel button,
+    .admin-primary-button,
+    .admin-secondary-button,
+    .admin-danger-button,
+    .admin-refresh-button {
+        min-height: 44px !important;
+    }
+}
+
+@media (hover: none) {
+    .app-shell a:hover,
+    .app-shell button:hover,
+    .site-shell a:hover,
+    .site-shell button:hover {
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .system-card,
+    .system-card *,
+    .mobile-menu-backdrop,
+    .mobile-menu-sheet {
+        animation: none !important;
+        transition: none !important;
+    }
+}

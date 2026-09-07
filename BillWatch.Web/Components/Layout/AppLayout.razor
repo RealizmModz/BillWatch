@@ -115,7 +115,8 @@
 
                 <NavLink href="/app"
                          Match="NavLinkMatch.All"
-                         class="mobile-bottom-link">
+                         class="mobile-bottom-link"
+                         @onclick="CloseMobileMenu">
                     <span class="nav-icon" aria-hidden="true">
                         <svg class="bw-sprite">
                             <use href="/assets/billwatch-sprites.svg#overview"></use>
@@ -125,7 +126,8 @@
                 </NavLink>
 
                 <NavLink href="/app/bills"
-                         class="mobile-bottom-link">
+                         class="mobile-bottom-link"
+                         @onclick="CloseMobileMenu">
                     <span class="nav-icon" aria-hidden="true">
                         <svg class="bw-sprite">
                             <use href="/assets/billwatch-sprites.svg#bill"></use>
@@ -135,7 +137,8 @@
                 </NavLink>
 
                 <NavLink href="/app/activity"
-                         class="mobile-bottom-link">
+                         class="mobile-bottom-link"
+                         @onclick="CloseMobileMenu">
                     <span class="nav-icon" aria-hidden="true">
                         <svg class="bw-sprite">
                             <use href="/assets/billwatch-sprites.svg#activity"></use>
@@ -144,12 +147,14 @@
                     <span>@L["Activity"]</span>
                 </NavLink>
 
-                <div class="@GetMobileMenuClass()">
+                <div class="@GetMobileMenuClass()"
+                     @onkeydown="HandleMobileMenuKeyDown">
                     <button type="button"
                             class="mobile-bottom-link mobile-menu-trigger"
                             @onclick="ToggleMobileMenu"
                             aria-expanded="@_mobileMenuOpen.ToString().ToLowerInvariant()"
-                            aria-controls="billwatch-mobile-menu">
+                            aria-controls="billwatch-mobile-menu"
+                            aria-haspopup="true">
                         <span class="mobile-menu-icon" aria-hidden="true">
                             <span></span>
                             <span></span>
@@ -160,6 +165,12 @@
 
                     @if (_mobileMenuOpen)
                     {
+                        <button type="button"
+                                class="mobile-menu-backdrop"
+                                aria-label="@L["Close menu"]"
+                                @onclick="CloseMobileMenu">
+                        </button>
+
                         <div id="billwatch-mobile-menu"
                              class="mobile-menu-sheet">
                             <div class="mobile-menu-heading">
@@ -275,7 +286,8 @@
     <div class="app-main">
         <header class="app-topbar">
             <div class="mobile-brand">
-                <a href="/app">
+                <a href="/app"
+                   @onclick="CloseMobileMenu">
                     BillWatch
                 </a>
             </div>
@@ -331,6 +343,18 @@
     private void CloseMobileMenu()
     {
         _mobileMenuOpen = false;
+    }
+
+    private void HandleMobileMenuKeyDown(
+        KeyboardEventArgs args)
+    {
+        if (string.Equals(
+                args.Key,
+                "Escape",
+                StringComparison.Ordinal))
+        {
+            CloseMobileMenu();
+        }
     }
 
     private string GetMobileMenuClass()

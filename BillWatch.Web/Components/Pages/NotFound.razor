@@ -1,5 +1,20 @@
 ﻿@page "/not-found"
 @layout MainLayout
 
-<h3>Not Found</h3>
-<p>Sorry, the content you are looking for does not exist.</p>
+<PageTitle>Page not found — BillWatch</PageTitle>
+
+<div class="system-page">
+    <section class="system-card" aria-labelledby="not-found-title">
+        <div class="system-icon" aria-hidden="true">404</div>
+        <span class="system-kicker">BillWatch</span>
+        <h1 id="not-found-title">We couldn't find that page.</h1>
+        <p>
+            The link may be outdated, or the page may have moved. Your BillWatch data has not been changed.
+        </p>
+
+        <div class="system-actions">
+            <a class="system-primary-action" href="/app">Go to BillWatch</a>
+            <a class="system-secondary-action" href="/">Back to home</a>
+        </div>
+    </section>
+</div>
