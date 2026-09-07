@@ -69,6 +69,32 @@ public sealed class WebExternalAuthenticationTests
     }
 
     [Fact]
+    public async Task UnconfiguredKnownProvider_LinkFailsClosedBackToSettings()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                "/auth/external/google/link");
+
+        Assert.Equal(
+            HttpStatusCode.Redirect,
+            response.StatusCode);
+
+        Assert.NotNull(
+            response.Headers.Location);
+
+        Assert.StartsWith(
+            "/app/account/settings?externalError=",
+            response.Headers.Location!.OriginalString,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task UnknownProvider_ReturnsNotFound()
     {
         using var factory =
@@ -80,6 +106,24 @@ public sealed class WebExternalAuthenticationTests
         using var response =
             await client.GetAsync(
                 "/auth/external/not-a-provider");
+
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UnknownProvider_LinkReturnsNotFound()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                "/auth/external/not-a-provider/link");
 
         Assert.Equal(
             HttpStatusCode.NotFound,
