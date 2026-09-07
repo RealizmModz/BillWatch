@@ -11,7 +11,13 @@ fi
 
 deployment_directory="$(cd "$deployment_directory" && pwd -P)"
 
+sh "$deployment_directory/deploy/validate-production-env.sh" \
+    "$deployment_directory/.env.production"
+
 sh "$deployment_directory/deploy/verify-production-permissions.sh" \
+    "$deployment_directory"
+
+sh "$deployment_directory/deploy/verify-release-integrity.sh" \
     "$deployment_directory"
 
 sh "$deployment_directory/deploy/verify-production-exposure.sh" \

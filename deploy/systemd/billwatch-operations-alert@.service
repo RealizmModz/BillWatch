@@ -1,0 +1,18 @@
+[Unit]
+Description=Send a BillWatch operations alert for %i
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/opt/billwatch/.env.production
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/opt/billwatch
+ExecStart=/bin/sh /opt/billwatch/deploy/send-operations-alert.sh /opt/billwatch operations-failure %i
+TimeoutStartSec=30s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/billwatch

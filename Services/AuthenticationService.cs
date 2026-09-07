@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
@@ -6,97 +6,80 @@ namespace BillWatch.Services;
 
 public sealed class AuthenticationService
 {
-    private static readonly TimeSpan
-        RefreshBeforeExpiration =
-            TimeSpan.FromMinutes(
-                1);
+    private static readonly TimeSpan RefreshBeforeExpiration =
+        TimeSpan.FromMinutes(1);
 
-    private readonly BillWatchApiClient
-        _apiClient;
-
-    private readonly AuthSession
-        _authSession;
-
-    private readonly HttpClient
-        _httpClient;
-
-    private readonly SemaphoreSlim
-        _refreshLock =
-            new(
-                1,
-                1);
+    private readonly BillWatchApiClient _apiClient;
+    private readonly AuthSession _authSession;
+    private readonly HttpClient _httpClient;
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
     public AuthenticationService(
         BillWatchApiClient apiClient,
         AuthSession authSession,
         HttpClient httpClient)
     {
-        _apiClient =
-            apiClient;
-
-        _authSession =
-            authSession;
-
-        _httpClient =
-            httpClient;
+        _apiClient = apiClient;
+        _authSession = authSession;
+        _httpClient = httpClient;
     }
 
-    public event EventHandler?
-        SessionExpired;
+    public event EventHandler? SessionExpired;
 
     public async Task RegisterAsync(
         string email,
         string password,
+        bool acceptedTermsAndPrivacy,
+        string legalTermsVersion,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(
-                email))
+        if (string.IsNullOrWhiteSpace(email))
         {
             throw new ArgumentException(
                 "Email is required.",
                 nameof(email));
         }
 
-        if (string.IsNullOrWhiteSpace(
-                password))
+        if (string.IsNullOrWhiteSpace(password))
         {
             throw new ArgumentException(
                 "Password is required.",
                 nameof(password));
         }
 
-        using var response =
-            await _httpClient
-                .PostAsJsonAsync(
-                    "/api/auth/register",
-                    new
-                    {
-                        email =
-                            email.Trim(),
+        if (!acceptedTermsAndPrivacy ||
+            string.IsNullOrWhiteSpace(legalTermsVersion))
+        {
+            throw new AccountRegistrationException(
+                "Accept the current BillWatch Terms and Privacy Notice to create an account.");
+        }
 
-                        password
-                    },
-                    cancellationToken);
+        using var response = await _httpClient.PostAsJsonAsync(
+            "/api/auth/register",
+            new
+            {
+                email = email.Trim(),
+                password,
+                acceptedTermsAndPrivacy,
+                legalTermsVersion
+            },
+            cancellationToken);
 
         if (response.IsSuccessStatusCode)
         {
             return;
         }
 
-        if (response.StatusCode ==
-            HttpStatusCode.TooManyRequests)
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
         {
             throw new AccountRegistrationException(
                 "Too many account requests. Wait a moment and try again.");
         }
 
-        if (response.StatusCode ==
-            HttpStatusCode.BadRequest)
+        if (response.StatusCode == HttpStatusCode.BadRequest)
         {
-            var responseBody =
-                await response.Content
-                    .ReadAsStringAsync(
-                        cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(
+                cancellationToken);
 
             if (responseBody.Contains(
                     "DuplicateEmail",
@@ -107,6 +90,14 @@ public sealed class AuthenticationService
             {
                 throw new AccountRegistrationException(
                     "An account with that email already exists. Sign in instead.");
+            }
+
+            if (responseBody.Contains(
+                    "Terms and Privacy Notice",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AccountRegistrationException(
+                    "Accept the current BillWatch Terms and Privacy Notice to create an account.");
             }
 
             throw new AccountRegistrationException(
@@ -121,24 +112,26 @@ public sealed class AuthenticationService
         string password,
         CancellationToken cancellationToken = default)
     {
-        var result =
-            await _apiClient.LoginAsync(
-                email,
-                password,
-                cancellationToken);
+        var result = await _apiClient.LoginAsync(
+            email,
+            password,
+            cancellationToken);
 
-        await SaveTokenResultAsync(
-            result);
+        await SaveTokenResultAsync(result);
     }
 
     public async Task RegisterAndLoginAsync(
         string email,
         string password,
+        bool acceptedTermsAndPrivacy,
+        string legalTermsVersion,
         CancellationToken cancellationToken = default)
     {
         await RegisterAsync(
             email,
             password,
+            acceptedTermsAndPrivacy,
+            legalTermsVersion,
             cancellationToken);
 
         await LoginAsync(
@@ -147,57 +140,38 @@ public sealed class AuthenticationService
             cancellationToken);
     }
 
-    public async Task<string>
-        GetValidAccessTokenAsync(
-            CancellationToken cancellationToken = default)
+    public async Task<string> GetValidAccessTokenAsync(
+        CancellationToken cancellationToken = default)
     {
-        var accessToken =
-            await _authSession
-                .GetAccessTokenAsync();
+        var accessToken = await _authSession.GetAccessTokenAsync();
+        var expiresAtUtc = await _authSession.GetAccessTokenExpiresAtUtcAsync();
 
-        var expiresAtUtc =
-            await _authSession
-                .GetAccessTokenExpiresAtUtcAsync();
-
-        if (!string.IsNullOrWhiteSpace(
-                accessToken) &&
+        if (!string.IsNullOrWhiteSpace(accessToken) &&
             expiresAtUtc.HasValue &&
             expiresAtUtc.Value >
-                DateTimeOffset.UtcNow +
-                RefreshBeforeExpiration)
+                DateTimeOffset.UtcNow + RefreshBeforeExpiration)
         {
             return accessToken;
         }
 
-        return await RefreshAccessTokenAsync(
-            cancellationToken);
+        return await RefreshAccessTokenAsync(cancellationToken);
     }
 
-    public async Task<bool>
-        IsAuthenticatedAsync(
-            CancellationToken cancellationToken = default)
+    public async Task<bool> IsAuthenticatedAsync(
+        CancellationToken cancellationToken = default)
     {
-        var accessToken =
-            await _authSession
-                .GetAccessTokenAsync();
+        var accessToken = await _authSession.GetAccessTokenAsync();
+        var refreshToken = await _authSession.GetRefreshTokenAsync();
 
-        var refreshToken =
-            await _authSession
-                .GetRefreshTokenAsync();
-
-        if (string.IsNullOrWhiteSpace(
-                accessToken) &&
-            string.IsNullOrWhiteSpace(
-                refreshToken))
+        if (string.IsNullOrWhiteSpace(accessToken) &&
+            string.IsNullOrWhiteSpace(refreshToken))
         {
             return false;
         }
 
         try
         {
-            await GetValidAccessTokenAsync(
-                cancellationToken);
-
+            await GetValidAccessTokenAsync(cancellationToken);
             return true;
         }
         catch (SessionExpiredException)
@@ -206,56 +180,95 @@ public sealed class AuthenticationService
         }
         catch (HttpRequestException)
         {
-            /*
-             * Preserve a refresh token through a temporary network
-             * outage. Network failure is not proof that the session
-             * itself is invalid.
-             */
-            return !string.IsNullOrWhiteSpace(
-                refreshToken);
+            return !string.IsNullOrWhiteSpace(refreshToken);
         }
     }
 
     public async Task DeleteAccountAsync(
+        string currentPassword,
+        string? twoFactorCode,
         CancellationToken cancellationToken = default)
     {
-        var accessToken =
-            await GetValidAccessTokenAsync(
-                cancellationToken);
+        if (string.IsNullOrWhiteSpace(currentPassword))
+        {
+            throw new AccountDeletionException(
+                "Enter your current password to delete your account.");
+        }
 
-        using var request =
-            new HttpRequestMessage(
-                HttpMethod.Delete,
-                "/api/account");
+        var accessToken = await GetValidAccessTokenAsync(
+            cancellationToken);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            "/api/account");
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue(
                 "Bearer",
                 accessToken);
 
-        using var response =
-            await _httpClient.SendAsync(
-                request,
-                cancellationToken);
+        request.Content = JsonContent.Create(
+            new
+            {
+                confirmation = "DELETE",
+                currentPassword,
+                twoFactorCode =
+                    string.IsNullOrWhiteSpace(twoFactorCode)
+                        ? null
+                        : twoFactorCode.Trim()
+            });
+
+        using var response = await _httpClient.SendAsync(
+            request,
+            cancellationToken);
 
         if (response.IsSuccessStatusCode)
         {
             ExpireSession();
-
             return;
         }
 
-        if (response.StatusCode is
-            HttpStatusCode.Unauthorized or
-            HttpStatusCode.Forbidden)
-        {
-            ExpireSession();
+        var responseBody = await response.Content.ReadAsStringAsync(
+            cancellationToken);
 
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            if (responseBody.Contains(
+                    "Current password is incorrect",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AccountDeletionException(
+                    "Your current password is incorrect.");
+            }
+
+            if (responseBody.Contains(
+                    "authenticator code",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AccountDeletionException(
+                    "Enter a valid current authenticator code to delete this account.");
+            }
+
+            ExpireSession();
             throw new SessionExpiredException();
         }
 
-        if (response.StatusCode ==
-            HttpStatusCode.ServiceUnavailable)
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            ExpireSession();
+            throw new SessionExpiredException();
+        }
+
+        if (response.StatusCode == HttpStatusCode.Conflict &&
+            responseBody.Contains(
+                "staff accounts cannot be self-deleted",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AccountDeletionException(
+                "Staff roles must be removed through the authorized admin workflow before this account can be deleted.");
+        }
+
+        if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
             throw new AccountDeletionException(
                 "BillWatch could not safely revoke one of your bank connections, so your account was not deleted. Try again shortly.");
@@ -270,42 +283,30 @@ public sealed class AuthenticationService
         ExpireSession();
     }
 
-    private async Task<string>
-        RefreshAccessTokenAsync(
-            CancellationToken cancellationToken)
+    private async Task<string> RefreshAccessTokenAsync(
+        CancellationToken cancellationToken)
     {
-        await _refreshLock.WaitAsync(
-            cancellationToken);
+        await _refreshLock.WaitAsync(cancellationToken);
 
         try
         {
-            var currentAccessToken =
-                await _authSession
-                    .GetAccessTokenAsync();
-
+            var currentAccessToken = await _authSession.GetAccessTokenAsync();
             var currentExpiresAtUtc =
-                await _authSession
-                    .GetAccessTokenExpiresAtUtcAsync();
+                await _authSession.GetAccessTokenExpiresAtUtcAsync();
 
-            if (!string.IsNullOrWhiteSpace(
-                    currentAccessToken) &&
+            if (!string.IsNullOrWhiteSpace(currentAccessToken) &&
                 currentExpiresAtUtc.HasValue &&
                 currentExpiresAtUtc.Value >
-                    DateTimeOffset.UtcNow +
-                    RefreshBeforeExpiration)
+                    DateTimeOffset.UtcNow + RefreshBeforeExpiration)
             {
                 return currentAccessToken;
             }
 
-            var refreshToken =
-                await _authSession
-                    .GetRefreshTokenAsync();
+            var refreshToken = await _authSession.GetRefreshTokenAsync();
 
-            if (string.IsNullOrWhiteSpace(
-                    refreshToken))
+            if (string.IsNullOrWhiteSpace(refreshToken))
             {
                 ExpireSession();
-
                 throw new SessionExpiredException();
             }
 
@@ -313,11 +314,9 @@ public sealed class AuthenticationService
 
             try
             {
-                result =
-                    await _apiClient
-                        .RefreshAccessTokenAsync(
-                            refreshToken,
-                            cancellationToken);
+                result = await _apiClient.RefreshAccessTokenAsync(
+                    refreshToken,
+                    cancellationToken);
             }
             catch (HttpRequestException exception)
                 when (exception.StatusCode is
@@ -326,14 +325,10 @@ public sealed class AuthenticationService
                     HttpStatusCode.Forbidden)
             {
                 ExpireSession();
-
-                throw new SessionExpiredException(
-                    exception);
+                throw new SessionExpiredException(exception);
             }
 
-            await SaveTokenResultAsync(
-                result);
-
+            await SaveTokenResultAsync(result);
             return result.AccessToken;
         }
         finally
@@ -354,41 +349,32 @@ public sealed class AuthenticationService
     private void ExpireSession()
     {
         _authSession.Clear();
-
-        SessionExpired?.Invoke(
-            this,
-            EventArgs.Empty);
+        SessionExpired?.Invoke(this, EventArgs.Empty);
     }
 }
 
-public sealed class AccountRegistrationException :
-    Exception
+public sealed class AccountRegistrationException : Exception
 {
     public AccountRegistrationException(
         string message)
-        : base(
-            message)
+        : base(message)
     {
     }
 }
 
-public sealed class AccountDeletionException :
-    Exception
+public sealed class AccountDeletionException : Exception
 {
     public AccountDeletionException(
         string message)
-        : base(
-            message)
+        : base(message)
     {
     }
 }
 
-public sealed class SessionExpiredException :
-    Exception
+public sealed class SessionExpiredException : Exception
 {
     public SessionExpiredException()
-        : base(
-            "Your BillWatch session has expired.")
+        : base("Your BillWatch session has expired.")
     {
     }
 

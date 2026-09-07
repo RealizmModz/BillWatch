@@ -12,6 +12,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BILLWATCH_RELEASE_ID: ${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
     restart: unless-stopped
     stop_grace_period: 30s
     logging: *default-logging
@@ -58,6 +60,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+      args:
+        BILLWATCH_RELEASE_ID: ${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
     restart: unless-stopped
     stop_grace_period: 30s
     logging: *default-logging
@@ -103,6 +107,8 @@ services:
     build:
       context: ./deploy/backup
       dockerfile: Dockerfile
+      args:
+        BILLWATCH_RELEASE_ID: ${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
     restart: "no"
     read_only: true
     user: "1654:1654"
@@ -123,6 +129,12 @@ services:
       BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY: ${BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY:-false}
       BILLWATCH_RELEASE_ID: ${BILLWATCH_RELEASE_ID:?Set BILLWATCH_RELEASE_ID}
       BILLWATCH_REQUIRE_RECOVERY_FIXTURE: ${BILLWATCH_REQUIRE_RECOVERY_FIXTURE:-false}
+      BILLWATCH_BACKUP_CLIENT_MODE: ${BILLWATCH_BACKUP_CLIENT_MODE:-append-only}
+      BILLWATCH_BACKUP_RETENTION_ENABLED: ${BILLWATCH_BACKUP_RETENTION_ENABLED:-false}
+      BILLWATCH_BACKUP_KEEP_DAILY: ${BILLWATCH_BACKUP_KEEP_DAILY:-14}
+      BILLWATCH_BACKUP_KEEP_WEEKLY: ${BILLWATCH_BACKUP_KEEP_WEEKLY:-8}
+      BILLWATCH_BACKUP_KEEP_MONTHLY: ${BILLWATCH_BACKUP_KEEP_MONTHLY:-12}
+      BILLWATCH_BACKUP_KEEP_YEARLY: ${BILLWATCH_BACKUP_KEEP_YEARLY:-3}
       RESTORE_DATABASE_HOST: restore-database
     tmpfs:
       - /work:rw,noexec,nosuid,nodev,size=${BILLWATCH_BACKUP_WORK_SIZE:-8g},uid=1654,gid=1654,mode=0700

@@ -15,22 +15,35 @@ public sealed class BillWatchApiFactory
     : WebApplicationFactory<ApiAssemblyMarker>
 {
     private readonly bool _subscriptionEnforcementEnabled;
+    private readonly bool _stripeBillingConfigured;
 
     public BillWatchApiFactory()
     {
     }
 
     private BillWatchApiFactory(
-        bool subscriptionEnforcementEnabled)
+        bool subscriptionEnforcementEnabled,
+        bool stripeBillingConfigured)
     {
         _subscriptionEnforcementEnabled =
             subscriptionEnforcementEnabled;
+
+        _stripeBillingConfigured =
+            stripeBillingConfigured;
     }
 
     public static BillWatchApiFactory WithSubscriptionEnforcement()
     {
         return new BillWatchApiFactory(
-            subscriptionEnforcementEnabled: true);
+            subscriptionEnforcementEnabled: true,
+            stripeBillingConfigured: false);
+    }
+
+    public static BillWatchApiFactory WithStripeBilling()
+    {
+        return new BillWatchApiFactory(
+            subscriptionEnforcementEnabled: false,
+            stripeBillingConfigured: true);
     }
 
     private readonly string _databaseName =
@@ -104,7 +117,33 @@ public sealed class BillWatchApiFactory
                             "false",
 
                         ["Subscription:EnforcementEnabled"] =
-                            _subscriptionEnforcementEnabled.ToString()
+                            _subscriptionEnforcementEnabled.ToString(),
+
+                        ["StripeBilling:Enabled"] =
+                            _stripeBillingConfigured.ToString(),
+
+                        ["StripeBilling:SecretKey"] =
+                            _stripeBillingConfigured
+                                ? "sk_test_billwatch"
+                                : string.Empty,
+
+                        ["StripeBilling:WebhookSecret"] =
+                            _stripeBillingConfigured
+                                ? "whsec_billwatch_test"
+                                : string.Empty,
+
+                        ["StripeBilling:MonthlyPriceId"] =
+                            _stripeBillingConfigured
+                                ? "price_billwatch_monthly_test"
+                                : string.Empty,
+
+                        ["StripeBilling:YearlyPriceId"] =
+                            _stripeBillingConfigured
+                                ? "price_billwatch_yearly_test"
+                                : string.Empty,
+
+                        ["StripeBilling:PublicWebBaseUrl"] =
+                            "https://billbeacon.net"
                     };
 
                 configuration.AddInMemoryCollection(

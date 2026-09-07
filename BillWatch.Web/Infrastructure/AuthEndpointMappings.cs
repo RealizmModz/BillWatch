@@ -1,3 +1,4 @@
+using BillWatch.Core.Legal;
 using BillWatch.Web.Components;
 using BillWatch.Web.Services;
 using Microsoft.AspNetCore.Antiforgery;
@@ -149,6 +150,21 @@ public static class AuthEndpointMappings
                     form["confirmPassword"]
                         .ToString();
 
+                var acceptedTermsAndPrivacy =
+                    string.Equals(
+                        form["acceptedTermsAndPrivacy"],
+                        "on",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(
+                        form["acceptedTermsAndPrivacy"],
+                        "true",
+                        StringComparison.OrdinalIgnoreCase);
+
+                var legalTermsVersion =
+                    form["legalTermsVersion"]
+                        .ToString()
+                        .Trim();
+
                 if (string.IsNullOrWhiteSpace(
                         email))
                 {
@@ -181,12 +197,27 @@ public static class AuthEndpointMappings
                                 "The passwords do not match."]));
                 }
 
+                if (!acceptedTermsAndPrivacy ||
+                    !string.Equals(
+                        legalTermsVersion,
+                        BillWatchLegalDocuments.CurrentVersion,
+                        StringComparison.Ordinal))
+                {
+                    return Results.Redirect(
+                        "/register?error=" +
+                        Uri.EscapeDataString(
+                            localizer[
+                                "Accept the current BillWatch Terms and Privacy Notice to create an account."]));
+                }
+
                 var result =
                     await authenticationService
                         .RegisterAsync(
                             context,
                             email,
                             password,
+                            acceptedTermsAndPrivacy,
+                            legalTermsVersion,
                             context.RequestAborted);
 
                 if (!result.Succeeded)

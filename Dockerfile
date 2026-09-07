@@ -50,6 +50,10 @@ RUN dotnet publish BillWatch.API/BillWatch.API.csproj \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
+ARG BILLWATCH_RELEASE_ID=unknown
+
+LABEL org.opencontainers.image.revision="$BILLWATCH_RELEASE_ID"
+
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         ca-certificates \

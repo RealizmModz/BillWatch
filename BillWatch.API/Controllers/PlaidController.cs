@@ -1,4 +1,5 @@
-﻿using BillWatch.API.Data.Entities;
+﻿using BillWatch.API.Data;
+using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Plaid;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -14,8 +15,7 @@ public sealed class PlaidController : ControllerBase
     private readonly PlaidLinkService _plaidLinkService;
     private readonly PlaidConnectionExchangeService _exchangeService;
     private readonly PlaidHostedLinkCompletionService _completionService;
-    private readonly PlaidAccountSyncService _accountSyncService;
-    private readonly PlaidTransactionSyncService _transactionSyncService;
+    private readonly PlaidConnectionSyncCoordinator _syncCoordinator;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public PlaidController(
@@ -24,13 +24,17 @@ public sealed class PlaidController : ControllerBase
         PlaidHostedLinkCompletionService completionService,
         PlaidAccountSyncService accountSyncService,
         PlaidTransactionSyncService transactionSyncService,
+        BillWatchDbContext dbContext,
         UserManager<ApplicationUser> userManager)
     {
         _plaidLinkService = plaidLinkService;
         _exchangeService = exchangeService;
         _completionService = completionService;
-        _accountSyncService = accountSyncService;
-        _transactionSyncService = transactionSyncService;
+        _syncCoordinator =
+            new PlaidConnectionSyncCoordinator(
+                dbContext,
+                accountSyncService,
+                transactionSyncService);
         _userManager = userManager;
     }
 
@@ -135,7 +139,7 @@ public sealed class PlaidController : ControllerBase
         }
 
         var result =
-            await _accountSyncService.SyncAllAccountsAsync(
+            await _syncCoordinator.SyncAllAccountsAsync(
                 userId,
                 cancellationToken);
 
@@ -152,7 +156,7 @@ public sealed class PlaidController : ControllerBase
         }
 
         var result =
-            await _transactionSyncService.SyncAllAsync(
+            await _syncCoordinator.SyncAllTransactionsAsync(
                 userId,
                 cancellationToken);
 
@@ -172,7 +176,7 @@ public sealed class PlaidController : ControllerBase
         try
         {
             var syncedCount =
-                await _accountSyncService.SyncAccountsAsync(
+                await _syncCoordinator.SyncAccountsAsync(
                     userId,
                     connectionId,
                     cancellationToken);
@@ -205,7 +209,7 @@ public sealed class PlaidController : ControllerBase
         try
         {
             var result =
-                await _transactionSyncService.SyncConnectionAsync(
+                await _syncCoordinator.SyncTransactionsAsync(
                     userId,
                     connectionId,
                     cancellationToken);

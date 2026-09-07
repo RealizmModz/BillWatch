@@ -4,6 +4,7 @@ Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target
 ConditionPathExists=/opt/billwatch/.env.production
+OnFailure=billwatch-operations-alert@%n.service
 
 [Service]
 Type=oneshot

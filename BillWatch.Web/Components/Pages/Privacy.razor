@@ -1,0 +1,156 @@
+@page "/privacy"
+@using BillWatch.Core.Legal
+
+<PageTitle>Privacy Notice — BillWatch</PageTitle>
+
+<link rel="stylesheet" href="/legal.css" />
+
+<div class="legal-page">
+    <header class="legal-topbar">
+        <a class="legal-brand" href="/" aria-label="BillWatch home">
+            <span class="legal-brand-mark" aria-hidden="true"></span>
+            <strong>BillWatch</strong>
+        </a>
+
+        <nav class="legal-nav" aria-label="Legal navigation">
+            <a href="/terms">Terms</a>
+            <a class="is-active" href="/privacy">Privacy</a>
+            <a href="/">Home</a>
+        </nav>
+    </header>
+
+    <main class="legal-shell">
+        <aside class="legal-toc" aria-label="Privacy sections">
+            <span class="legal-toc-label">On this page</span>
+            <a href="#scope">Scope</a>
+            <a href="#collect">Information collected</a>
+            <a href="#financial">Financial data</a>
+            <a href="#statements">Statements & OCR</a>
+            <a href="#use">How data is used</a>
+            <a href="#providers">Service providers</a>
+            <a href="#retention">Retention</a>
+            <a href="#security">Security</a>
+            <a href="#choices">Your choices</a>
+            <a href="#changes">Changes</a>
+            <a href="#contact">Contact</a>
+        </aside>
+
+        <article class="legal-document">
+            <div class="legal-hero">
+                <span class="legal-kicker">Privacy</span>
+                <h1>Privacy Notice</h1>
+                <p class="legal-lead">This notice explains how BillWatch handles account information, connected financial data, bill statements, and operational information while providing the service.</p>
+                <div class="legal-meta">
+                    <span>Version @BillWatchLegalDocuments.CurrentVersion</span>
+                    <span>Effective September 4, 2026</span>
+                    <span>Last updated September 4, 2026</span>
+                </div>
+            </div>
+
+            <div class="legal-callout">
+                <strong>BillWatch is read-only.</strong>
+                Connected financial data is used to monitor and explain bills. BillWatch does not use connected accounts to initiate payments, transfers, trades, withdrawals, or deposits.
+            </div>
+
+            <section id="scope">
+                <h2>1. Scope</h2>
+                <p>This notice applies to BillWatch websites, applications, APIs, and beta services that link to it. Third-party services such as financial institutions, Plaid, email providers, hosting providers, and other disclosed processors have their own privacy practices.</p>
+            </section>
+
+            <section id="collect">
+                <h2>2. Information BillWatch collects</h2>
+                <p>Depending on the features you use, BillWatch may collect:</p>
+                <ul>
+                    <li>account information such as your email address, account identifiers, authentication state, security settings, and account timestamps;</li>
+                    <li>connected institution and financial-account metadata that you authorize through a data provider;</li>
+                    <li>transaction information used to identify recurring bills and changes;</li>
+                    <li>bill streams, bill history, alerts, evidence, and subscription or beta-access state;</li>
+                    <li>statements and images you upload, along with extracted text and validated bill facts;</li>
+                    <li>technical and security information needed to operate, protect, diagnose, and rate-limit the service, such as request timing, security events, and limited network metadata.</li>
+                </ul>
+            </section>
+
+            <section id="financial">
+                <h2>3. Connected financial information</h2>
+                <p>BillWatch may use Plaid or another disclosed financial-data provider to connect to institutions you choose. The provider's connection interface collects the credentials or authentication information needed to connect to your institution. BillWatch is designed to receive provider access credentials or tokens rather than your institution password.</p>
+                <p>Provider access tokens are treated as sensitive secrets, kept server-side, and protected at rest. Browser clients are not intended to receive Plaid access tokens.</p>
+                <p>BillWatch uses authorized financial information to discover recurring bills, synchronize transaction history, monitor connection health, identify likely bill payments, calculate bill changes, and support related product features.</p>
+            </section>
+
+            <section id="statements">
+                <h2>4. Statements, images, OCR, and extracted evidence</h2>
+                <p>When you upload a supported bill document, BillWatch stores the source file in user-isolated statement storage and may extract text from PDFs or run OCR on images and scanned documents. BillWatch then validates candidate fields before using them as bill evidence.</p>
+                <p>Stored statement paths are internal implementation details and are not intended to be exposed to clients. Download and status requests are scoped to the authenticated owner.</p>
+                <p>Do not upload unrelated documents or documents you are not authorized to provide.</p>
+            </section>
+
+            <section id="use">
+                <h2>5. How BillWatch uses information</h2>
+                <p>BillWatch uses collected information to provide and secure the service, including to:</p>
+                <ul>
+                    <li>create and authenticate your account;</li>
+                    <li>connect and synchronize financial institutions you authorize;</li>
+                    <li>detect recurring bills and meaningful changes;</li>
+                    <li>process statements and generate evidence-backed explanations or alerts;</li>
+                    <li>maintain subscriptions, beta access, and account preferences;</li>
+                    <li>prevent abuse, enforce ownership boundaries, investigate failures, and protect service integrity;</li>
+                    <li>send transactional messages such as email verification, password recovery, security notices, and service notices;</li>
+                    <li>evaluate and improve product accuracy and reliability using controlled, privacy-aware testing.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>6. Automated and AI-assisted processing</h2>
+                <p>BillWatch uses deterministic software for security decisions, ownership enforcement, financial arithmetic, comparisons, and final persistence decisions. Where separately enabled, AI-assisted processing may interpret limited statement evidence or produce candidate facts for evaluation.</p>
+                <p>BillWatch's current architecture does not treat AI output as evidence by itself. Candidate facts must pass deterministic validation before they can influence persisted bill evidence. Controlled shadow evaluation is designed not to expose raw statement text in normal telemetry.</p>
+            </section>
+
+            <section id="providers">
+                <h2>7. Service providers and disclosures</h2>
+                <p>BillWatch may disclose information to service providers only as needed to operate the service, such as financial-data connectivity, hosting, email delivery, payment processing, backup infrastructure, security operations, and explicitly enabled document or AI processing.</p>
+                <p>BillWatch may also disclose information when reasonably necessary to comply with law, respond to lawful process, protect users or the service, investigate fraud or abuse, or complete a corporate transaction subject to appropriate protections.</p>
+                <p>BillWatch does not sell connected financial transaction data for advertising. If the business model changes materially, this notice and applicable consent flows must be updated before relying on that change.</p>
+            </section>
+
+            <section id="retention">
+                <h2>8. Retention, backups, and deletion</h2>
+                <p>BillWatch keeps active account and financial records for as long as needed to provide the service and maintain the bill history you use. When you delete your account through supported controls, BillWatch is designed to remove user-owned database records and stored statement files after required bank-connection revocation steps complete safely.</p>
+                <p>Encrypted operational backups can retain previously deleted information for a limited recovery lifecycle until the applicable backup snapshots expire under BillWatch's retention policy. Backups are intended for disaster recovery rather than routine access to deleted records.</p>
+                <p>BillWatch may retain limited records longer when necessary for security, fraud prevention, legal obligations, dispute resolution, or enforcement of agreements.</p>
+            </section>
+
+            <section id="security">
+                <h2>9. Security practices</h2>
+                <p>BillWatch uses technical safeguards intended to reduce unauthorized access, including HTTPS, authentication and authorization controls, owner-scoped queries, antiforgery protections for browser mutations, rate limits, protected server-side credentials, security headers, encrypted or protected secrets, isolated statement storage, release-integrity checks, encrypted backups, and recovery verification.</p>
+                <p>No internet service can guarantee absolute security. You should use a unique password, enable available two-factor authentication, protect recovery codes, and promptly act on account-security notices.</p>
+            </section>
+
+            <section id="choices">
+                <h2>10. Your choices and controls</h2>
+                <p>Depending on the current BillWatch release, you may be able to update account preferences, change account security settings, disconnect linked financial institutions, download supported records, and permanently delete your account.</p>
+                <p>You can stop future financial synchronization by disconnecting a bank connection. Disconnecting does not automatically erase historical records already needed for your BillWatch bill history; account deletion is the broader deletion control.</p>
+                <p>Privacy rights can differ by location. BillWatch should evaluate and support legally required access, correction, deletion, portability, restriction, or appeal rights before expanding availability into jurisdictions where those rights apply.</p>
+            </section>
+
+            <section>
+                <h2>11. Children</h2>
+                <p>BillWatch is not designed for children under 13. The service should not knowingly collect personal information from a child under 13. Additional age or consent requirements may apply in some jurisdictions and should be reviewed before broad public availability.</p>
+            </section>
+
+            <section id="changes">
+                <h2>12. Changes to this notice</h2>
+                <p>BillWatch may update this Privacy Notice as the product, providers, law, or data practices change. The version and effective date above identify the current notice. Material changes should be communicated through a reasonable notice or consent flow before BillWatch relies on them when required.</p>
+            </section>
+
+            <section id="contact">
+                <h2>13. Contact</h2>
+                <p>Privacy questions or requests may be submitted through the contact or support method published by BillWatch in the service. A dedicated privacy contact and mailing address should be added before a broad commercial launch if required by applicable law.</p>
+            </section>
+
+            <div class="legal-endnote">
+                <strong>Beta legal draft.</strong>
+                This notice is designed to describe BillWatch's current architecture and data flows. It should be reviewed by qualified counsel before a broad commercial launch and updated whenever material data practices change.
+            </div>
+        </article>
+    </main>
+</div>

@@ -34,6 +34,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\BillWatch.API\BillWatch.API.csproj" />
 		<ProjectReference Include="..\BillWatch.Core\BillWatch.Core.csproj" />
+		<ProjectReference Include="..\BillWatch.Web\BillWatch.Web.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

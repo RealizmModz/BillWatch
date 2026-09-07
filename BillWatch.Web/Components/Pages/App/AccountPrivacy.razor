@@ -1,4 +1,4 @@
-﻿@page "/app/account/privacy"
+@page "/app/account/privacy"
 
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
@@ -86,6 +86,7 @@
             <span>@L["Imported bank transactions"]</span>
             <span>@L["Bill Streams, statements, line items and changes"]</span>
             <span>@L["BillWatch alerts and stored statement files"]</span>
+            <span>@L["Subscription entitlements and program memberships"]</span>
             <span>@L["Your BillWatch Identity account"]</span>
         </div>
 
@@ -101,11 +102,30 @@
         {
             <div class="delete-confirmation">
                 <strong>@L["This cannot be undone."]</strong>
-                <p>@L["Type DELETE below to confirm permanent account deletion."]</p>
+                <p>@L["Re-enter your current credentials, then type DELETE to confirm permanent account deletion."]</p>
 
-                <InputText class="delete-confirmation-input"
-                           autocomplete="off"
-                           @bind-Value="_deleteConfirmation" />
+                <label>
+                    <span>@L["Current password"]</span>
+                    <InputText class="delete-confirmation-input"
+                               type="password"
+                               autocomplete="current-password"
+                               @bind-Value="_currentPassword" />
+                </label>
+
+                <label>
+                    <span>@L["Authenticator code (if two-factor authentication is enabled)"]</span>
+                    <InputText class="delete-confirmation-input"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               @bind-Value="_twoFactorCode" />
+                </label>
+
+                <label>
+                    <span>@L["Type DELETE to confirm"]</span>
+                    <InputText class="delete-confirmation-input"
+                               autocomplete="off"
+                               @bind-Value="_deleteConfirmation" />
+                </label>
 
                 <div class="delete-confirmation-actions">
                     <button type="button"
@@ -129,15 +149,19 @@
 
 @code {
     private IJSObjectReference? _bffModule;
+    private IJSObjectReference? _deleteModule;
     private bool _isExporting;
     private bool _isDeleting;
     private bool _showDeleteConfirmation;
     private bool _messageSucceeded;
     private string _deleteConfirmation = string.Empty;
+    private string _currentPassword = string.Empty;
+    private string _twoFactorCode = string.Empty;
     private string? _message;
 
     private bool CanDelete =>
         !_isDeleting &&
+        !string.IsNullOrWhiteSpace(_currentPassword) &&
         string.Equals(
             _deleteConfirmation,
             "DELETE",
@@ -150,6 +174,15 @@
             "./js/bff.js");
 
         return _bffModule;
+    }
+
+    private async Task<IJSObjectReference> GetDeleteModuleAsync()
+    {
+        _deleteModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/account-delete.js");
+
+        return _deleteModule;
     }
 
     private async Task ExportDataAsync()
@@ -195,7 +228,7 @@
         }
 
         _showDeleteConfirmation = true;
-        _deleteConfirmation = string.Empty;
+        ClearDeletionCredentials();
         _message = null;
     }
 
@@ -207,7 +240,7 @@
         }
 
         _showDeleteConfirmation = false;
-        _deleteConfirmation = string.Empty;
+        ClearDeletionCredentials();
         _message = null;
     }
 
@@ -223,10 +256,14 @@
 
         try
         {
-            var module = await GetBffModuleAsync();
+            var module = await GetDeleteModuleAsync();
             await module.InvokeAsync<bool>(
                 "deleteBillWatchAccount",
-                _deleteConfirmation);
+                _deleteConfirmation,
+                _currentPassword,
+                _twoFactorCode);
+
+            ClearDeletionCredentials();
 
             Navigation.NavigateTo(
                 "/?accountDeleted=1",
@@ -247,6 +284,13 @@
             _isDeleting = false;
             StateHasChanged();
         }
+    }
+
+    private void ClearDeletionCredentials()
+    {
+        _deleteConfirmation = string.Empty;
+        _currentPassword = string.Empty;
+        _twoFactorCode = string.Empty;
     }
 
     private string GetMessageClass()
@@ -271,6 +315,27 @@
         }
 
         if (message.Contains(
+                "Current password is incorrect",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return L["Your current password is incorrect."];
+        }
+
+        if (message.Contains(
+                "authenticator code",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return L["Enter a valid current authenticator code to delete this account."];
+        }
+
+        if (message.Contains(
+                "staff accounts cannot be self-deleted",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return L["Staff roles must be removed through the authorized admin workflow before this account can be deleted."];
+        }
+
+        if (message.Contains(
                 "bank connection could not be revoked",
                 StringComparison.OrdinalIgnoreCase))
         {
@@ -289,17 +354,26 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (_bffModule is null)
+        if (_bffModule is not null)
         {
-            return;
+            try
+            {
+                await _bffModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
         }
 
-        try
+        if (_deleteModule is not null)
         {
-            await _bffModule.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
+            try
+            {
+                await _deleteModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+            }
         }
     }
 }

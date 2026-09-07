@@ -19,6 +19,9 @@ public sealed class AdminBffWriteProxyService(
     private const string AccountSecurityPath =
         "/api/account/security";
 
+    private const string AccountDeletionPath =
+        "/api/account";
+
     private static readonly TimeSpan RefreshBuffer =
         TimeSpan.FromMinutes(1);
 
@@ -32,8 +35,16 @@ public sealed class AdminBffWriteProxyService(
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(method);
 
+        var isAccountDeletion =
+            method == HttpMethod.Delete &&
+            string.Equals(
+                requestUri,
+                AccountDeletionPath,
+                StringComparison.Ordinal);
+
         if (method != HttpMethod.Post &&
-            method != HttpMethod.Put)
+            method != HttpMethod.Put &&
+            !isAccountDeletion)
         {
             return Task.FromResult<IResult>(
                 Results.BadRequest());
@@ -50,6 +61,7 @@ public sealed class AdminBffWriteProxyService(
             method,
             requestUri,
             body,
+            signOutOnSuccess: isAccountDeletion,
             cancellationToken);
     }
 
@@ -58,6 +70,7 @@ public sealed class AdminBffWriteProxyService(
         HttpMethod method,
         string requestUri,
         T body,
+        bool signOutOnSuccess,
         CancellationToken cancellationToken)
     {
         var session = await GetValidSessionAsync(
@@ -101,6 +114,13 @@ public sealed class AdminBffWriteProxyService(
 
         using (response)
         {
+            if (signOutOnSuccess &&
+                response.IsSuccessStatusCode)
+            {
+                await httpContext.SignOutAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+
             return await ToResultAsync(
                 response,
                 cancellationToken);
@@ -168,8 +188,7 @@ public sealed class AdminBffWriteProxyService(
     {
         var authenticateResult =
             await httpContext.AuthenticateAsync(
-                CookieAuthenticationDefaults
-                    .AuthenticationScheme);
+                CookieAuthenticationDefaults.AuthenticationScheme);
 
         if (!authenticateResult.Succeeded ||
             authenticateResult.Principal is null ||
@@ -232,8 +251,7 @@ public sealed class AdminBffWriteProxyService(
         if (!response.IsSuccessStatusCode)
         {
             await httpContext.SignOutAsync(
-                CookieAuthenticationDefaults
-                    .AuthenticationScheme);
+                CookieAuthenticationDefaults.AuthenticationScheme);
             return null;
         }
 
@@ -244,14 +262,11 @@ public sealed class AdminBffWriteProxyService(
                     cancellationToken);
 
         if (refreshedTokens is null ||
-            string.IsNullOrWhiteSpace(
-                refreshedTokens.AccessToken) ||
-            string.IsNullOrWhiteSpace(
-                refreshedTokens.RefreshToken))
+            string.IsNullOrWhiteSpace(refreshedTokens.AccessToken) ||
+            string.IsNullOrWhiteSpace(refreshedTokens.RefreshToken))
         {
             await httpContext.SignOutAsync(
-                CookieAuthenticationDefaults
-                    .AuthenticationScheme);
+                CookieAuthenticationDefaults.AuthenticationScheme);
             return null;
         }
 
@@ -302,8 +317,7 @@ public sealed class AdminBffWriteProxyService(
         session.Properties.StoreTokens(existingTokens);
 
         await httpContext.SignInAsync(
-            CookieAuthenticationDefaults
-                .AuthenticationScheme,
+            CookieAuthenticationDefaults.AuthenticationScheme,
             session.Principal,
             session.Properties);
 
@@ -349,10 +363,17 @@ public sealed class AdminBffWriteProxyService(
                 AccountSecurityPath + "/",
                 StringComparison.Ordinal);
 
+        var isAccountDeletionPath =
+            string.Equals(
+                requestUri,
+                AccountDeletionPath,
+                StringComparison.Ordinal);
+
         if (!isAdminPath &&
             !isSubscriptionRedemptionPath &&
             !isAccountPreferencesPath &&
-            !isAccountSecurityPath)
+            !isAccountSecurityPath &&
+            !isAccountDeletionPath)
         {
             return false;
         }

@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically verify the BillWatch production runtime
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+AccuracySec=30s
+Unit=billwatch-runtime-readiness.service
+
+[Install]
+WantedBy=timers.target

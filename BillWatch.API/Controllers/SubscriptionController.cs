@@ -22,6 +22,8 @@ public sealed class SubscriptionController(
     IConfiguration configuration)
     : ControllerBase
 {
+    private const int StripeWebhookMaxPayloadBytes = 256 * 1024;
+
     [HttpGet]
     public async Task<ActionResult<SubscriptionStatusResponse>> GetStatus(
         CancellationToken cancellationToken)
@@ -250,19 +252,26 @@ public sealed class SubscriptionController(
             return NotFound();
         }
 
-        using var reader = new StreamReader(
-            Request.Body,
-            Encoding.UTF8,
-            detectEncodingFromByteOrderMarks: false,
-            leaveOpen: false);
+        if (Request.ContentLength is > StripeWebhookMaxPayloadBytes)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
 
-        var payload = await reader.ReadToEndAsync(cancellationToken);
+        var payloadRead = await ReadWebhookPayloadAsync(
+            Request.Body,
+            cancellationToken);
+
+        if (payloadRead.TooLarge)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge);
+        }
+
         var signature = Request.Headers["Stripe-Signature"].ToString();
 
         try
         {
             await billing.HandleWebhookAsync(
-                payload,
+                payloadRead.Payload,
                 signature,
                 cancellationToken);
 
@@ -317,6 +326,59 @@ public sealed class SubscriptionController(
             StripeBillingOptions.FromConfiguration(configuration),
             dbContext,
             timeProvider);
+
+    private static async Task<StripeWebhookPayloadReadResult> ReadWebhookPayloadAsync(
+        Stream requestBody,
+        CancellationToken cancellationToken)
+    {
+        var buffer = new byte[8192];
+
+        using var payload = new MemoryStream(
+            capacity: StripeWebhookMaxPayloadBytes);
+
+        while (true)
+        {
+            var remaining =
+                StripeWebhookMaxPayloadBytes + 1 - (int)payload.Length;
+
+            if (remaining <= 0)
+            {
+                return new StripeWebhookPayloadReadResult(
+                    TooLarge: true,
+                    Payload: string.Empty);
+            }
+
+            var read = await requestBody.ReadAsync(
+                buffer.AsMemory(
+                    0,
+                    Math.Min(buffer.Length, remaining)),
+                cancellationToken);
+
+            if (read == 0)
+            {
+                break;
+            }
+
+            await payload.WriteAsync(
+                buffer.AsMemory(0, read),
+                cancellationToken);
+
+            if (payload.Length > StripeWebhookMaxPayloadBytes)
+            {
+                return new StripeWebhookPayloadReadResult(
+                    TooLarge: true,
+                    Payload: string.Empty);
+            }
+        }
+
+        return new StripeWebhookPayloadReadResult(
+            TooLarge: false,
+            Payload: Encoding.UTF8.GetString(payload.ToArray()));
+    }
+
+    private sealed record StripeWebhookPayloadReadResult(
+        bool TooLarge,
+        string Payload);
 }
 
 public sealed record SubscriptionCheckoutRequest(string BillingInterval);
