@@ -6,6 +6,43 @@ namespace BillWatch.Tests.Security;
 public sealed class WebExternalAuthenticationTests
 {
     [Fact]
+    public async Task Login_HidesUnconfiguredExternalProviders()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                "/login");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        var body =
+            await response.Content
+                .ReadAsStringAsync();
+
+        Assert.DoesNotContain(
+            "/auth/external/google",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "/auth/external/apple",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "/auth/external/microsoft",
+            body,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task UnconfiguredKnownProvider_FailsClosedWithoutStartingChallenge()
     {
         using var factory =
