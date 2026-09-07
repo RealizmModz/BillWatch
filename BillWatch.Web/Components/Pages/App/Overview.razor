@@ -1,5 +1,7 @@
 ﻿@page "/app"
 
+@using BillWatch.Web.Components.Shared
+
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 @layout AppLayout
@@ -474,8 +476,7 @@
                            href="@($"/app/bills/{bill.Id}")">
 
                             <div class="bill-avatar">
-                                @GetProviderInitial(
-                                    bill.ProviderName)
+                                <ProviderLogo ProviderName="@bill.ProviderName" />
                             </div>
 
                             <div class="bill-info">
@@ -825,21 +826,6 @@
         }
 
         return "amount-steady";
-    }
-
-    private static string
-        GetProviderInitial(
-            string providerName)
-    {
-        if (string.IsNullOrWhiteSpace(
-                providerName))
-        {
-            return "?";
-        }
-
-        return char.ToUpperInvariant(
-                providerName.Trim()[0])
-            .ToString();
     }
 
     private string FormatCategory(
