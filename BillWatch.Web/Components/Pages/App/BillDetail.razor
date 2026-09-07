@@ -52,11 +52,25 @@
     {
         var transactionDifference = GetTransactionDifference();
         var latestChange = LatestChange;
+        var providerLogoUrl =
+            BillWatch.Web.Services.ProviderLogoResolver.Resolve(
+                _detail.ProviderName);
 
         <header class="bill-detail-header">
             <div class="bill-detail-provider">
                 <div class="detail-provider-avatar">
-                    @GetProviderInitial(_detail.ProviderName)
+                    @if (!string.IsNullOrWhiteSpace(providerLogoUrl))
+                    {
+                        <img src="@providerLogoUrl"
+                             alt=""
+                             referrerpolicy="no-referrer"
+                             decoding="async"
+                             style="width:100%;height:100%;object-fit:contain;border-radius:inherit;padding:8px;" />
+                    }
+                    else
+                    {
+                        @GetProviderInitial(_detail.ProviderName)
+                    }
                 </div>
 
                 <div>
