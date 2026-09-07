@@ -45,6 +45,7 @@ public sealed class WebAntiforgeryBoundaryTests
         yield return ["POST", "/bff/account/security/two-factor/recovery-codes"];
         yield return ["POST", "/bff/account/security/two-factor/disable"];
         yield return ["POST", "/bff/account/security/two-factor/reset"];
+        yield return ["POST", "/bff/account/external/link"];
 
         yield return ["POST", $"/bff/admin/users/{id:D}/roles/Admin"];
         yield return ["DELETE", $"/bff/admin/users/{id:D}/roles/Moderator"];

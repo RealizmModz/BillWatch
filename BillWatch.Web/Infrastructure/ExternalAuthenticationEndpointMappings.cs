@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BillWatch.Web.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -18,6 +19,15 @@ public static class ExternalAuthenticationEndpointMappings
 
     private const string ExternalProviderProperty =
         "billwatch:external-provider";
+
+    private const string ExternalPurposeProperty =
+        "billwatch:external-purpose";
+
+    private const string LoginPurpose =
+        "login";
+
+    private const string LinkPurpose =
+        "link";
 
     private static readonly ExternalProviderDefinition[] Providers =
     [
@@ -134,13 +144,62 @@ public static class ExternalAuthenticationEndpointMappings
                 CompleteExternalSignInAsync)
             .AllowAnonymous();
 
+        endpoints.MapGet(
+                "/auth/external/{provider}/link",
+                BeginExternalLinkAsync)
+            .RequireAuthorization();
+
+        endpoints.MapPost(
+                "/bff/account/external/link",
+                CompleteExternalLinkAsync)
+            .RequireAuthorization();
+
         return endpoints;
     }
 
-    private static async Task<IResult>
+    private static Task<IResult>
         BeginExternalSignInAsync(
             string provider,
             IAuthenticationSchemeProvider schemeProvider)
+    {
+        return BeginExternalChallengeAsync(
+            provider,
+            LoginPurpose,
+            schemeProvider,
+            unavailableRedirectBuilder:
+                BuildLoginErrorRedirect,
+            redirectUriBuilder:
+                normalizedProvider =>
+                    "/auth/external/complete?provider=" +
+                    Uri.EscapeDataString(
+                        normalizedProvider));
+    }
+
+    private static Task<IResult>
+        BeginExternalLinkAsync(
+            string provider,
+            IAuthenticationSchemeProvider schemeProvider)
+    {
+        return BeginExternalChallengeAsync(
+            provider,
+            LinkPurpose,
+            schemeProvider,
+            unavailableRedirectBuilder:
+                BuildAccountSettingsErrorRedirect,
+            redirectUriBuilder:
+                normalizedProvider =>
+                    "/app/account/settings?externalLink=" +
+                    Uri.EscapeDataString(
+                        normalizedProvider));
+    }
+
+    private static async Task<IResult>
+        BeginExternalChallengeAsync(
+            string provider,
+            string purpose,
+            IAuthenticationSchemeProvider schemeProvider,
+            Func<string, string> unavailableRedirectBuilder,
+            Func<string, string> redirectUriBuilder)
     {
         var providerDefinition =
             FindProvider(
@@ -158,7 +217,7 @@ public static class ExternalAuthenticationEndpointMappings
         if (registeredScheme is null)
         {
             return Results.Redirect(
-                BuildLoginErrorRedirect(
+                unavailableRedirectBuilder(
                     "That sign-in option is not available yet."));
         }
 
@@ -169,14 +228,17 @@ public static class ExternalAuthenticationEndpointMappings
             new AuthenticationProperties
             {
                 RedirectUri =
-                    "/auth/external/complete?provider=" +
-                    Uri.EscapeDataString(
+                    redirectUriBuilder(
                         normalizedProvider)
             };
 
         properties.Items[
             ExternalProviderProperty] =
             normalizedProvider;
+
+        properties.Items[
+            ExternalPurposeProperty] =
+            purpose;
 
         return Results.Challenge(
             properties,
@@ -210,56 +272,13 @@ public static class ExternalAuthenticationEndpointMappings
             await context.AuthenticateAsync(
                 ExternalCookieScheme);
 
-        if (!externalResult.Succeeded ||
-            externalResult.Principal is null ||
-            externalResult.Properties is null)
-        {
-            await ClearExternalSessionAsync(
-                context);
-
-            return Results.Redirect(
-                BuildLoginErrorRedirect(
-                    "External sign-in could not be completed."));
-        }
-
-        externalResult.Properties.Items.TryGetValue(
-            ExternalProviderProperty,
-            out var storedProvider);
-
-        if (!string.Equals(
-                storedProvider,
+        if (!TryGetExternalIdentity(
+                externalResult,
                 providerDefinition.Provider,
-                StringComparison.Ordinal))
-        {
-            await ClearExternalSessionAsync(
-                context);
-
-            return Results.Redirect(
-                BuildLoginErrorRedirect(
-                    "External sign-in could not be completed."));
-        }
-
-        externalResult.Properties.Items.TryGetValue(
-            ExternalIdTokenProperty,
-            out var idToken);
-
-        var subject =
-            externalResult.Principal
-                .FindFirst("sub")?
-                .Value;
-
-        var email =
-            externalResult.Principal
-                .FindFirst("email")?
-                .Value ??
-            externalResult.Principal
-                .FindFirst(ClaimTypes.Email)?
-                .Value;
-
-        if (string.IsNullOrWhiteSpace(
-                idToken) ||
-            string.IsNullOrWhiteSpace(
-                subject))
+                LoginPurpose,
+                out var idToken,
+                out var subject,
+                out var email))
         {
             await ClearExternalSessionAsync(
                 context);
@@ -274,8 +293,8 @@ public static class ExternalAuthenticationEndpointMappings
                 .LoginExternalAsync(
                     context,
                     providerDefinition.Provider,
-                    idToken,
-                    subject,
+                    idToken!,
+                    subject!,
                     email,
                     cancellationToken);
 
@@ -292,6 +311,146 @@ public static class ExternalAuthenticationEndpointMappings
 
         return Results.Redirect(
             "/app");
+    }
+
+    private static async Task<IResult>
+        CompleteExternalLinkAsync(
+            HttpContext context,
+            IAntiforgery antiforgery,
+            AdminBffWriteProxyService writeProxyService,
+            ExternalIdentityLinkBffRequest request,
+            CancellationToken cancellationToken)
+    {
+        await antiforgery.ValidateRequestAsync(
+            context);
+
+        var providerDefinition =
+            FindProvider(
+                request.Provider);
+
+        if (providerDefinition is null)
+        {
+            await ClearExternalSessionAsync(
+                context);
+
+            return Results.BadRequest();
+        }
+
+        var externalResult =
+            await context.AuthenticateAsync(
+                ExternalCookieScheme);
+
+        if (!TryGetExternalIdentity(
+                externalResult,
+                providerDefinition.Provider,
+                LinkPurpose,
+                out var idToken,
+                out _,
+                out _))
+        {
+            await ClearExternalSessionAsync(
+                context);
+
+            return Results.BadRequest(
+                new
+                {
+                    error =
+                        "ExternalLinkExpired"
+                });
+        }
+
+        /*
+         * The provider proof is single-use at the BFF layer. Clear the
+         * temporary external cookie before the API reauthentication request
+         * so a failed password/2FA attempt cannot be replayed repeatedly with
+         * the same provider assertion.
+         */
+        await ClearExternalSessionAsync(
+            context);
+
+        return await writeProxyService.ForwardJsonAsync(
+            context,
+            HttpMethod.Post,
+            "/api/auth/external/link",
+            new
+            {
+                provider =
+                    providerDefinition.Provider,
+
+                idToken,
+
+                currentPassword =
+                    request.CurrentPassword,
+
+                twoFactorCode =
+                    request.TwoFactorCode
+            },
+            cancellationToken);
+    }
+
+    private static bool TryGetExternalIdentity(
+        AuthenticateResult externalResult,
+        string expectedProvider,
+        string expectedPurpose,
+        out string? idToken,
+        out string? subject,
+        out string? email)
+    {
+        idToken =
+            null;
+        subject =
+            null;
+        email =
+            null;
+
+        if (!externalResult.Succeeded ||
+            externalResult.Principal is null ||
+            externalResult.Properties is null)
+        {
+            return false;
+        }
+
+        externalResult.Properties.Items.TryGetValue(
+            ExternalProviderProperty,
+            out var storedProvider);
+
+        externalResult.Properties.Items.TryGetValue(
+            ExternalPurposeProperty,
+            out var storedPurpose);
+
+        if (!string.Equals(
+                storedProvider,
+                expectedProvider,
+                StringComparison.Ordinal) ||
+            !string.Equals(
+                storedPurpose,
+                expectedPurpose,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        externalResult.Properties.Items.TryGetValue(
+            ExternalIdTokenProperty,
+            out idToken);
+
+        subject =
+            externalResult.Principal
+                .FindFirst("sub")?
+                .Value;
+
+        email =
+            externalResult.Principal
+                .FindFirst("email")?
+                .Value ??
+            externalResult.Principal
+                .FindFirst(ClaimTypes.Email)?
+                .Value;
+
+        return !string.IsNullOrWhiteSpace(
+                   idToken) &&
+               !string.IsNullOrWhiteSpace(
+                   subject);
     }
 
     private static void ConfigureOpenIdConnect(
@@ -481,6 +640,14 @@ public static class ExternalAuthenticationEndpointMappings
                    error);
     }
 
+    private static string BuildAccountSettingsErrorRedirect(
+        string error)
+    {
+        return "/app/account/settings?externalError=" +
+               Uri.EscapeDataString(
+                   error);
+    }
+
     private sealed record ExternalProviderDefinition(
         string Provider,
         string Scheme,
@@ -490,6 +657,11 @@ public static class ExternalAuthenticationEndpointMappings
         string ResponseMode,
         bool IncludeProfileScope);
 }
+
+public sealed record ExternalIdentityLinkBffRequest(
+    string Provider,
+    string CurrentPassword,
+    string? TwoFactorCode);
 
 public sealed class ExternalWebIdentityOptions
 {
