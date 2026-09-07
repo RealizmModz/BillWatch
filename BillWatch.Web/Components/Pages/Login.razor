@@ -1,5 +1,6 @@
 ﻿@page "/login"
 
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
 
 <PageTitle>@L[TwoFactor ? "Two-factor verification — BillWatch" : "Sign in — BillWatch"]</PageTitle>
@@ -61,6 +62,55 @@
                      role="alert">
                     <span>!</span>
                     @Error
+                </div>
+            }
+
+            @if (!TwoFactor && HasExternalSignIn)
+            {
+                <div class="external-signin-list"
+                     aria-label="@L["External sign-in options"]">
+
+                    @if (GoogleSignInConfigured)
+                    {
+                        <a class="external-signin-button"
+                           href="/auth/external/google">
+                            <span class="external-provider-mark provider-google"
+                                  aria-hidden="true">G</span>
+
+                            <span>@L["Continue with Google"]</span>
+                        </a>
+                    }
+
+                    @if (AppleSignInConfigured)
+                    {
+                        <a class="external-signin-button"
+                           href="/auth/external/apple">
+                            <span class="external-provider-mark provider-apple"
+                                  aria-hidden="true">A</span>
+
+                            <span>@L["Continue with Apple"]</span>
+                        </a>
+                    }
+
+                    @if (MicrosoftSignInConfigured)
+                    {
+                        <a class="external-signin-button"
+                           href="/auth/external/microsoft">
+                            <span class="external-provider-mark provider-microsoft"
+                                  aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+
+                            <span>@L["Continue with Microsoft"]</span>
+                        </a>
+                    }
+                </div>
+
+                <div class="auth-choice-separator auth-provider-separator">
+                    <span>@L["or continue with email"]</span>
                 </div>
             }
 
@@ -204,4 +254,38 @@
     [SupplyParameterFromQuery(
         Name = "twoFactor")]
     public bool TwoFactor { get; set; }
+
+    private bool GoogleSignInConfigured =>
+        IsExternalProviderConfigured(
+            "Google");
+
+    private bool AppleSignInConfigured =>
+        IsExternalProviderConfigured(
+            "Apple");
+
+    private bool MicrosoftSignInConfigured =>
+        IsExternalProviderConfigured(
+            "Microsoft");
+
+    private bool HasExternalSignIn =>
+        GoogleSignInConfigured ||
+        AppleSignInConfigured ||
+        MicrosoftSignInConfigured;
+
+    private bool IsExternalProviderConfigured(
+        string provider)
+    {
+        var clientId =
+            Configuration[
+                $"ExternalIdentity:{provider}:ClientId"];
+
+        var clientSecret =
+            Configuration[
+                $"ExternalIdentity:{provider}:ClientSecret"];
+
+        return !string.IsNullOrWhiteSpace(
+                   clientId) &&
+               !string.IsNullOrWhiteSpace(
+                   clientSecret);
+    }
 }
