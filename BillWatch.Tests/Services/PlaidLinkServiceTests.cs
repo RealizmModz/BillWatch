@@ -14,6 +14,90 @@ namespace BillWatch.Tests.Services;
 public sealed class PlaidLinkServiceTests
 {
     [Fact]
+    public async Task InitialMode_RequestsMaximumTransactionHistory()
+    {
+        await using var dbContext =
+            CreateDbContext();
+
+        var userId =
+            Guid.NewGuid();
+
+        var tokenProtector =
+            new PlaidTokenProtector(
+                new EphemeralDataProtectionProvider());
+
+        using var handler =
+            new ScriptedHttpMessageHandler(
+                JsonResponse(
+                    HttpStatusCode.OK,
+                    """
+                    {
+                      "link_token": "link-sandbox-initial",
+                      "hosted_link_url": "https://secure.plaid.com/initial-test",
+                      "expiration": "2099-08-30T18:00:00Z"
+                    }
+                    """));
+
+        using var httpClient =
+            new HttpClient(
+                handler);
+
+        var service =
+            new PlaidLinkService(
+                CreateApiClient(
+                    httpClient),
+                tokenProtector,
+                dbContext);
+
+        var result =
+            await service.CreateLinkSessionAsync(
+                userId);
+
+        Assert.NotEqual(
+            Guid.Empty,
+            result.SessionId);
+
+        var request =
+            Assert.Single(
+                handler.Requests);
+
+        using var requestJson =
+            JsonDocument.Parse(
+                request.Body);
+
+        var root =
+            requestJson.RootElement;
+
+        Assert.Equal(
+            "transactions",
+            Assert.Single(
+                    root.GetProperty(
+                            "products")
+                        .EnumerateArray())
+                .GetString());
+
+        Assert.Equal(
+            730,
+            root.GetProperty(
+                    "transactions")
+                .GetProperty(
+                    "days_requested")
+                .GetInt32());
+
+        Assert.False(
+            root.TryGetProperty(
+                "access_token",
+                out _));
+
+        var session =
+            await dbContext.PlaidLinkSessions
+                .SingleAsync();
+
+        Assert.Null(
+            session.BankConnectionId);
+    }
+
+    [Fact]
     public async Task UpdateMode_IsOwnershipScopedAndUsesExistingProtectedAccessToken()
     {
         await using var dbContext =
@@ -98,6 +182,11 @@ public sealed class PlaidLinkServiceTests
         Assert.False(
             requestJson.RootElement.TryGetProperty(
                 "products",
+                out _));
+
+        Assert.False(
+            requestJson.RootElement.TryGetProperty(
+                "transactions",
                 out _));
 
         var session =
