@@ -36,7 +36,7 @@
                 </strong>
             </a>
 
-            <nav class="app-nav"
+            <nav class="app-nav desktop-app-nav"
                  aria-label="@L["BillWatch navigation"]">
 
                 <NavLink href="/app"
@@ -108,21 +108,101 @@
                     <span class="nav-icon" aria-hidden="true">⚙</span>
                     <span>@L["Settings"]</span>
                 </NavLink>
+            </nav>
 
-                <NavLink href="/app/account"
-                         class="app-nav-link mobile-account-link">
+            <nav class="mobile-bottom-nav"
+                 aria-label="@L["BillWatch navigation"]">
 
-                    <span class="nav-icon"
-                          aria-hidden="true">
+                <NavLink href="/app"
+                         Match="NavLinkMatch.All"
+                         class="mobile-bottom-link">
+                    <span class="nav-icon" aria-hidden="true">
                         <svg class="bw-sprite">
-                            <use href="/assets/billwatch-sprites.svg#account"></use>
+                            <use href="/assets/billwatch-sprites.svg#overview"></use>
                         </svg>
                     </span>
-
-                    <span>
-                        @L["Account"]
-                    </span>
+                    <span>@L["Overview"]</span>
                 </NavLink>
+
+                <NavLink href="/app/bills"
+                         class="mobile-bottom-link">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg class="bw-sprite">
+                            <use href="/assets/billwatch-sprites.svg#bill"></use>
+                        </svg>
+                    </span>
+                    <span>@L["Bills"]</span>
+                </NavLink>
+
+                <NavLink href="/app/activity"
+                         class="mobile-bottom-link">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg class="bw-sprite">
+                            <use href="/assets/billwatch-sprites.svg#activity"></use>
+                        </svg>
+                    </span>
+                    <span>@L["Activity"]</span>
+                </NavLink>
+
+                <details class="mobile-more-menu">
+                    <summary class="mobile-bottom-link mobile-menu-trigger">
+                        <span class="mobile-menu-icon" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </span>
+                        <span>@L["Menu"]</span>
+                    </summary>
+
+                    <div class="mobile-menu-sheet">
+                        <div class="mobile-menu-heading">
+                            <div>
+                                <span class="page-kicker">BillWatch</span>
+                                <strong>@L["More"]</strong>
+                            </div>
+
+                            <span class="mobile-menu-hint">
+                                @L["Account and settings"]
+                            </span>
+                        </div>
+
+                        <div class="mobile-menu-links">
+                            <AdminNavLink />
+
+                            <NavLink href="/app/subscription"
+                                     class="app-nav-link">
+                                <span class="nav-icon" aria-hidden="true">◆</span>
+                                <span>@L["Subscription"]</span>
+                            </NavLink>
+
+                            <NavLink href="/app/profile"
+                                     class="app-nav-link">
+                                <span class="nav-icon" aria-hidden="true">
+                                    <svg class="bw-sprite">
+                                        <use href="/assets/billwatch-sprites.svg#account"></use>
+                                    </svg>
+                                </span>
+                                <span>@L["Profile"]</span>
+                            </NavLink>
+
+                            <NavLink href="/app/account/settings"
+                                     class="app-nav-link">
+                                <span class="nav-icon" aria-hidden="true">⚙</span>
+                                <span>@L["Settings"]</span>
+                            </NavLink>
+
+                            <NavLink href="/app/account"
+                                     class="app-nav-link">
+                                <span class="nav-icon" aria-hidden="true">
+                                    <svg class="bw-sprite">
+                                        <use href="/assets/billwatch-sprites.svg#account"></use>
+                                    </svg>
+                                </span>
+                                <span>@L["Account"]</span>
+                            </NavLink>
+                        </div>
+                    </div>
+                </details>
             </nav>
         </div>
 
