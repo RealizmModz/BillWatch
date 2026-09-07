@@ -25,9 +25,6 @@ public sealed class ExternalIdentityTokenValidator :
     private const int MaxIdentityTokenLength =
         32 * 1024;
 
-    private const int MaxProviderSubjectLength =
-        128;
-
     private static readonly TimeSpan ClockSkew =
         TimeSpan.FromMinutes(2);
 
@@ -42,6 +39,17 @@ public sealed class ExternalIdentityTokenValidator :
         ConfigurationManager<OpenIdConnectConfiguration>>
         _configurationManagers =
             new(StringComparer.OrdinalIgnoreCase);
+
+    public ExternalIdentityTokenValidator(
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory)
+        : this(
+            Options.Create(
+                BindOptions(
+                    configuration)),
+            httpClientFactory)
+    {
+    }
 
     public ExternalIdentityTokenValidator(
         IOptions<ExternalIdentityOptions> options,
@@ -199,7 +207,7 @@ public sealed class ExternalIdentityTokenValidator :
                 .Trim();
 
         if (string.IsNullOrWhiteSpace(subject) ||
-            subject.Length > MaxProviderSubjectLength ||
+            subject.Length > 512 ||
             subject.Any(char.IsControl))
         {
             return null;
@@ -267,6 +275,24 @@ public sealed class ExternalIdentityTokenValidator :
             RefreshInterval =
                 TimeSpan.FromMinutes(5)
         };
+    }
+
+    private static ExternalIdentityOptions BindOptions(
+        IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(
+            configuration);
+
+        var options =
+            new ExternalIdentityOptions();
+
+        configuration
+            .GetSection(
+                ExternalIdentityOptions.SectionName)
+            .Bind(
+                options);
+
+        return options;
     }
 
     private static Uri ValidateMetadataAddress(
