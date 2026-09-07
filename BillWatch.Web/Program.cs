@@ -219,6 +219,7 @@ app.MapStaticAssets();
 app.MapBillWatchHealthEndpoints();
 app.MapBillWatchAuthEndpoints();
 app.MapBillWatchExternalAuthenticationEndpoints();
+app.MapBillWatchExternalIdentityManagementEndpoints();
 app.MapBillWatchBffEndpoints();
 app.MapBillWatchAdminBffEndpoints();
 app.MapBillWatchAccountPreferenceBffEndpoints();
