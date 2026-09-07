@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using BillWatch.API.Data;
 using BillWatch.API.Data.Entities;
@@ -13,6 +13,9 @@ public sealed class PlaidLinkService
 
     private const int MaxHostedLinkUrlLength =
         4 * 1024;
+
+    private const int MaxTransactionHistoryDays =
+        730;
 
     private static readonly TimeSpan
         DefaultLinkSessionLifetime =
@@ -126,6 +129,13 @@ public sealed class PlaidLinkService
                         new[]
                         {
                             "transactions"
+                        },
+
+                    transactions =
+                        new
+                        {
+                            days_requested =
+                                MaxTransactionHistoryDays
                         },
 
                     country_codes =
