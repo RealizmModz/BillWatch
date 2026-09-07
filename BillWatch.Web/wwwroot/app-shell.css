@@ -1,4 +1,4 @@
-﻿.app-shell {
+.app-shell {
     min-height: 100vh;
     display: grid;
     grid-template-columns: 250px minmax(0, 1fr);
@@ -314,7 +314,7 @@
     }
 
     .mobile-bottom-link.active,
-    .mobile-more-menu[open] > .mobile-menu-trigger {
+    .mobile-more-menu.is-open > .mobile-menu-trigger {
         border-color: rgba(98, 119, 255, 0.28);
         background: linear-gradient(145deg, rgba(62, 86, 225, 0.28), rgba(75, 96, 221, 0.14));
         color: var(--bw-text);
@@ -336,7 +336,7 @@
         min-width: 0;
     }
 
-    .mobile-more-menu[open]::before {
+    .mobile-more-menu.is-open::before {
         content: "";
         position: fixed;
         z-index: 110;
@@ -347,18 +347,12 @@
         -webkit-backdrop-filter: blur(12px) saturate(86%);
     }
 
-    .mobile-more-menu > summary {
-        list-style: none;
-    }
-
-    .mobile-more-menu > summary::-webkit-details-marker {
-        display: none;
-    }
-
     .mobile-menu-trigger {
         position: relative;
         width: 100%;
         box-sizing: border-box;
+        appearance: none;
+        -webkit-appearance: none;
     }
 
     .mobile-menu-icon {

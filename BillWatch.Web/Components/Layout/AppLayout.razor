@@ -115,7 +115,8 @@
 
                 <NavLink href="/app"
                          Match="NavLinkMatch.All"
-                         class="mobile-bottom-link">
+                         class="mobile-bottom-link"
+                         @onclick="CloseMobileMenu">
                     <span class="nav-icon" aria-hidden="true">
                         <svg class="bw-sprite">
                             <use href="/assets/billwatch-sprites.svg#overview"></use>
@@ -125,7 +126,8 @@
                 </NavLink>
 
                 <NavLink href="/app/bills"
-                         class="mobile-bottom-link">
+                         class="mobile-bottom-link"
+                         @onclick="CloseMobileMenu">
                     <span class="nav-icon" aria-hidden="true">
                         <svg class="bw-sprite">
                             <use href="/assets/billwatch-sprites.svg#bill"></use>
@@ -135,7 +137,8 @@
                 </NavLink>
 
                 <NavLink href="/app/activity"
-                         class="mobile-bottom-link">
+                         class="mobile-bottom-link"
+                         @onclick="CloseMobileMenu">
                     <span class="nav-icon" aria-hidden="true">
                         <svg class="bw-sprite">
                             <use href="/assets/billwatch-sprites.svg#activity"></use>
@@ -144,65 +147,82 @@
                     <span>@L["Activity"]</span>
                 </NavLink>
 
-                <details class="mobile-more-menu">
-                    <summary class="mobile-bottom-link mobile-menu-trigger">
+                <div class="@GetMobileMenuClass()"
+                     @onkeydown="HandleMobileMenuKeyDown">
+                    <button type="button"
+                            class="mobile-bottom-link mobile-menu-trigger"
+                            @onclick="ToggleMobileMenu"
+                            aria-expanded="@_mobileMenuOpen.ToString().ToLowerInvariant()"
+                            aria-controls="billwatch-mobile-menu"
+                            aria-haspopup="true">
                         <span class="mobile-menu-icon" aria-hidden="true">
                             <span></span>
                             <span></span>
                             <span></span>
                         </span>
                         <span>@L["Menu"]</span>
-                    </summary>
+                    </button>
 
-                    <div class="mobile-menu-sheet">
-                        <div class="mobile-menu-heading">
-                            <div>
-                                <span class="page-kicker">BillWatch</span>
-                                <strong>@L["More"]</strong>
+                    @if (_mobileMenuOpen)
+                    {
+                        <button type="button"
+                                class="mobile-menu-backdrop"
+                                aria-label="@L["Close menu"]"
+                                @onclick="CloseMobileMenu">
+                        </button>
+
+                        <div id="billwatch-mobile-menu"
+                             class="mobile-menu-sheet">
+                            <div class="mobile-menu-heading">
+                                <div>
+                                    <span class="page-kicker">BillWatch</span>
+                                    <strong>@L["More"]</strong>
+                                </div>
+
+                                <span class="mobile-menu-hint">
+                                    @L["Account and settings"]
+                                </span>
                             </div>
 
-                            <span class="mobile-menu-hint">
-                                @L["Account and settings"]
-                            </span>
+                            <div class="mobile-menu-links"
+                                 @onclick="CloseMobileMenu">
+                                <AdminNavLink />
+
+                                <NavLink href="/app/subscription"
+                                         class="app-nav-link">
+                                    <span class="nav-icon" aria-hidden="true">◆</span>
+                                    <span>@L["Subscription"]</span>
+                                </NavLink>
+
+                                <NavLink href="/app/profile"
+                                         class="app-nav-link">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg class="bw-sprite">
+                                            <use href="/assets/billwatch-sprites.svg#account"></use>
+                                        </svg>
+                                    </span>
+                                    <span>@L["Profile"]</span>
+                                </NavLink>
+
+                                <NavLink href="/app/account/settings"
+                                         class="app-nav-link">
+                                    <span class="nav-icon" aria-hidden="true">⚙</span>
+                                    <span>@L["Settings"]</span>
+                                </NavLink>
+
+                                <NavLink href="/app/account"
+                                         class="app-nav-link">
+                                    <span class="nav-icon" aria-hidden="true">
+                                        <svg class="bw-sprite">
+                                            <use href="/assets/billwatch-sprites.svg#account"></use>
+                                        </svg>
+                                    </span>
+                                    <span>@L["Account"]</span>
+                                </NavLink>
+                            </div>
                         </div>
-
-                        <div class="mobile-menu-links">
-                            <AdminNavLink />
-
-                            <NavLink href="/app/subscription"
-                                     class="app-nav-link">
-                                <span class="nav-icon" aria-hidden="true">◆</span>
-                                <span>@L["Subscription"]</span>
-                            </NavLink>
-
-                            <NavLink href="/app/profile"
-                                     class="app-nav-link">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg class="bw-sprite">
-                                        <use href="/assets/billwatch-sprites.svg#account"></use>
-                                    </svg>
-                                </span>
-                                <span>@L["Profile"]</span>
-                            </NavLink>
-
-                            <NavLink href="/app/account/settings"
-                                     class="app-nav-link">
-                                <span class="nav-icon" aria-hidden="true">⚙</span>
-                                <span>@L["Settings"]</span>
-                            </NavLink>
-
-                            <NavLink href="/app/account"
-                                     class="app-nav-link">
-                                <span class="nav-icon" aria-hidden="true">
-                                    <svg class="bw-sprite">
-                                        <use href="/assets/billwatch-sprites.svg#account"></use>
-                                    </svg>
-                                </span>
-                                <span>@L["Account"]</span>
-                            </NavLink>
-                        </div>
-                    </div>
-                </details>
+                    }
+                </div>
             </nav>
         </div>
 
@@ -266,7 +286,8 @@
     <div class="app-main">
         <header class="app-topbar">
             <div class="mobile-brand">
-                <a href="/app">
+                <a href="/app"
+                   @onclick="CloseMobileMenu">
                     BillWatch
                 </a>
             </div>
@@ -289,6 +310,7 @@
 
 @code {
     private IJSObjectReference? _timeModule;
+    private bool _mobileMenuOpen;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -311,6 +333,35 @@
             // Timestamp formatting is presentation-only and must never
             // prevent the authenticated application from rendering.
         }
+    }
+
+    private void ToggleMobileMenu()
+    {
+        _mobileMenuOpen = !_mobileMenuOpen;
+    }
+
+    private void CloseMobileMenu()
+    {
+        _mobileMenuOpen = false;
+    }
+
+    private void HandleMobileMenuKeyDown(
+        KeyboardEventArgs args)
+    {
+        if (string.Equals(
+                args.Key,
+                "Escape",
+                StringComparison.Ordinal))
+        {
+            CloseMobileMenu();
+        }
+    }
+
+    private string GetMobileMenuClass()
+    {
+        return _mobileMenuOpen
+            ? "mobile-more-menu is-open"
+            : "mobile-more-menu";
     }
 
     private static string GetInitial(
