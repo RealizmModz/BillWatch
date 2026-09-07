@@ -1,5 +1,7 @@
 ﻿@page "/app/bills"
 
+@using BillWatch.Web.Components.Shared
+
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 @layout AppLayout
@@ -168,9 +170,13 @@
                             <div class="bill-provider">
                                 <div class="@GetBillAvatarClass(bill.Category)"
                                      aria-hidden="true">
-                                    <svg class="bw-sprite bill-category-sprite">
-                                        <use href="@GetBillSpriteHref(bill.Category)"></use>
-                                    </svg>
+                                    <ProviderLogo ProviderName="@bill.ProviderName">
+                                        <FallbackContent>
+                                            <svg class="bw-sprite bill-category-sprite">
+                                                <use href="@GetBillSpriteHref(bill.Category)"></use>
+                                            </svg>
+                                        </FallbackContent>
+                                    </ProviderLogo>
                                 </div>
 
                                 <div>
