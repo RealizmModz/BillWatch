@@ -109,17 +109,11 @@ public sealed class WebAuthenticationService
         }
 
         var tokenResponse =
-            await response.Content
-                .ReadFromJsonAsync<
-                    AccessTokenResponse>(
-                    cancellationToken:
-                        cancellationToken);
+            await ReadAccessTokenResponseAsync(
+                response,
+                cancellationToken);
 
-        if (tokenResponse is null ||
-            string.IsNullOrWhiteSpace(
-                tokenResponse.AccessToken) ||
-            string.IsNullOrWhiteSpace(
-                tokenResponse.RefreshToken))
+        if (tokenResponse is null)
         {
             return new AuthOperationResult(
                 false,
@@ -128,9 +122,97 @@ public sealed class WebAuthenticationService
 
         await SignInWebSessionAsync(
             httpContext,
-            email,
+            displayName:
+                email,
+            nameIdentifier:
+                email,
+            email:
+                email,
             tokenResponse,
             rememberMe);
+
+        return AuthOperationResult.Success;
+    }
+
+    public async Task<AuthOperationResult>
+        LoginExternalAsync(
+            HttpContext httpContext,
+            string provider,
+            string idToken,
+            string providerSubject,
+            string? email,
+            CancellationToken cancellationToken = default)
+    {
+        provider =
+            provider.Trim()
+                .ToLowerInvariant();
+
+        providerSubject =
+            providerSubject.Trim();
+
+        email =
+            string.IsNullOrWhiteSpace(
+                    email)
+                ? null
+                : email.Trim();
+
+        if (string.IsNullOrWhiteSpace(
+                provider) ||
+            string.IsNullOrWhiteSpace(
+                idToken) ||
+            string.IsNullOrWhiteSpace(
+                providerSubject))
+        {
+            return new AuthOperationResult(
+                false,
+                "External sign-in could not be completed.");
+        }
+
+        var client =
+            _httpClientFactory
+                .CreateClient(
+                    "BillWatchApi");
+
+        using var response =
+            await client.PostAsJsonAsync(
+                "/api/auth/external/login",
+                new
+                {
+                    provider,
+                    idToken
+                },
+                cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return new AuthOperationResult(
+                false,
+                GetSafeExternalLoginError(
+                    response.StatusCode));
+        }
+
+        var tokenResponse =
+            await ReadAccessTokenResponseAsync(
+                response,
+                cancellationToken);
+
+        if (tokenResponse is null)
+        {
+            return new AuthOperationResult(
+                false,
+                "BillWatch received an invalid external sign-in response.");
+        }
+
+        await SignInWebSessionAsync(
+            httpContext,
+            displayName:
+                email ?? "BillWatch user",
+            nameIdentifier:
+                $"{provider}:{providerSubject}",
+            email,
+            tokenResponse,
+            rememberMe:
+                false);
 
         return AuthOperationResult.Success;
     }
@@ -314,10 +396,37 @@ public sealed class WebAuthenticationService
                 .AuthenticationScheme);
     }
 
+    private static async Task<AccessTokenResponse?>
+        ReadAccessTokenResponseAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+    {
+        var tokenResponse =
+            await response.Content
+                .ReadFromJsonAsync<
+                    AccessTokenResponse>(
+                    cancellationToken:
+                        cancellationToken);
+
+        if (tokenResponse is null ||
+            string.IsNullOrWhiteSpace(
+                tokenResponse.AccessToken) ||
+            string.IsNullOrWhiteSpace(
+                tokenResponse.RefreshToken) ||
+            tokenResponse.ExpiresIn <= 0)
+        {
+            return null;
+        }
+
+        return tokenResponse;
+    }
+
     private static async Task
         SignInWebSessionAsync(
             HttpContext httpContext,
-            string email,
+            string displayName,
+            string nameIdentifier,
+            string? email,
             AccessTokenResponse tokenResponse,
             bool rememberMe)
     {
@@ -326,16 +435,21 @@ public sealed class WebAuthenticationService
             {
                 new(
                     ClaimTypes.Name,
-                    email),
-
-                new(
-                    ClaimTypes.Email,
-                    email),
+                    displayName),
 
                 new(
                     ClaimTypes.NameIdentifier,
-                    email)
+                    nameIdentifier)
             };
+
+        if (!string.IsNullOrWhiteSpace(
+                email))
+        {
+            claims.Add(
+                new Claim(
+                    ClaimTypes.Email,
+                    email));
+        }
 
         var identity =
             new ClaimsIdentity(
@@ -488,6 +602,16 @@ public sealed class WebAuthenticationService
             _ =>
                 "BillWatch could not sign you in right now."
         };
+    }
+
+    private static string
+        GetSafeExternalLoginError(
+            HttpStatusCode statusCode)
+    {
+        return statusCode ==
+            HttpStatusCode.TooManyRequests
+            ? "Too many sign-in attempts. Wait a minute and try again."
+            : "External sign-in could not be completed. Sign in with email and password or try again.";
     }
 
     private static async Task<string?>
