@@ -49,12 +49,13 @@ public sealed class ExternalIdentityController : ControllerBase
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login(
-        [FromBody] ExternalIdentityRequest request,
+        [FromBody] ExternalIdentityLoginRequest request,
         CancellationToken cancellationToken)
     {
         var externalIdentity =
             await ValidateIdentityAsync(
-                request,
+                request.Provider,
+                request.IdToken,
                 cancellationToken);
 
         if (externalIdentity is null)
@@ -78,6 +79,24 @@ public sealed class ExternalIdentityController : ControllerBase
              * external identities.
              */
             return Unauthorized();
+        }
+
+        /*
+         * External identity proof must not silently bypass BillWatch's own
+         * two-factor requirement. Until the Web/BFF flow can complete the
+         * local second-factor step after provider authentication, fail closed
+         * for accounts that have BillWatch 2FA enabled.
+         */
+        if (await _userManager.GetTwoFactorEnabledAsync(
+                user))
+        {
+            return Problem(
+                statusCode:
+                    StatusCodes.Status401Unauthorized,
+                title:
+                    "Additional verification required.",
+                detail:
+                    "RequiresTwoFactor");
         }
 
         user.LastLoginAtUtc =
@@ -116,7 +135,7 @@ public sealed class ExternalIdentityController : ControllerBase
     [HttpPost("link")]
     [Authorize]
     public async Task<IActionResult> Link(
-        [FromBody] ExternalIdentityRequest request,
+        [FromBody] ExternalIdentityLinkRequest request,
         CancellationToken cancellationToken)
     {
         var user =
@@ -124,14 +143,54 @@ public sealed class ExternalIdentityController : ControllerBase
                 User);
 
         if (user is null ||
-            !user.IsActive)
+            !user.IsActive ||
+            await _userManager.IsLockedOutAsync(
+                user))
         {
             return Unauthorized();
         }
 
+        /*
+         * Adding a new sign-in method is an account-takeover-sensitive
+         * operation. An existing bearer session is not sufficient proof on
+         * its own because a stolen session must not be able to permanently
+         * bind an attacker's Google/Apple/Microsoft identity.
+         */
+        if (string.IsNullOrWhiteSpace(
+                request.CurrentPassword) ||
+            !await _userManager.CheckPasswordAsync(
+                user,
+                request.CurrentPassword))
+        {
+            return Unauthorized();
+        }
+
+        if (await _userManager.GetTwoFactorEnabledAsync(
+                user))
+        {
+            if (string.IsNullOrWhiteSpace(
+                    request.TwoFactorCode))
+            {
+                return Unauthorized();
+            }
+
+            var validTwoFactorCode =
+                await _userManager.VerifyTwoFactorTokenAsync(
+                    user,
+                    _userManager.Options.Tokens.AuthenticatorTokenProvider,
+                    NormalizeAuthenticatorCode(
+                        request.TwoFactorCode));
+
+            if (!validTwoFactorCode)
+            {
+                return Unauthorized();
+            }
+        }
+
         var externalIdentity =
             await ValidateIdentityAsync(
-                request,
+                request.Provider,
+                request.IdToken,
                 cancellationToken);
 
         if (externalIdentity is null)
@@ -213,13 +272,14 @@ public sealed class ExternalIdentityController : ControllerBase
 
     private async Task<ExternalIdentity?>
         ValidateIdentityAsync(
-            ExternalIdentityRequest request,
+            string provider,
+            string idToken,
             CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(
-                request.Provider) ||
+                provider) ||
             string.IsNullOrWhiteSpace(
-                request.IdToken))
+                idToken))
         {
             return null;
         }
@@ -227,8 +287,8 @@ public sealed class ExternalIdentityController : ControllerBase
         try
         {
             return await _tokenValidator.ValidateAsync(
-                request.Provider,
-                request.IdToken,
+                provider,
+                idToken,
                 cancellationToken);
         }
         catch (ExternalIdentityProviderUnavailableException)
@@ -240,6 +300,20 @@ public sealed class ExternalIdentityController : ControllerBase
              */
             return null;
         }
+    }
+
+    private static string NormalizeAuthenticatorCode(
+        string code)
+    {
+        return code
+            .Replace(
+                " ",
+                string.Empty,
+                StringComparison.Ordinal)
+            .Replace(
+                "-",
+                string.Empty,
+                StringComparison.Ordinal);
     }
 
     private static string GetProviderDisplayName(
@@ -262,6 +336,12 @@ public sealed class ExternalIdentityController : ControllerBase
     }
 }
 
-public sealed record ExternalIdentityRequest(
+public sealed record ExternalIdentityLoginRequest(
     string Provider,
     string IdToken);
+
+public sealed record ExternalIdentityLinkRequest(
+    string Provider,
+    string IdToken,
+    string CurrentPassword,
+    string? TwoFactorCode);
