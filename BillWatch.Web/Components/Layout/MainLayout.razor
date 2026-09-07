@@ -1,84 +1,28 @@
 ﻿@inherits LayoutComponentBase
 
+@inject NavigationManager Navigation
 @inject Microsoft.Extensions.Localization.IStringLocalizer<BillWatch.Web.Components.App> L
 
-<link rel="stylesheet"
-      href="/theme.css" />
+@if (UseStandaloneLegalLayout)
+{
+    @Body
+}
+else
+{
+    <link rel="stylesheet"
+          href="/theme.css" />
 
-<link rel="stylesheet"
-      href="/premium-public.css" />
+    <link rel="stylesheet"
+          href="/premium-public.css" />
 
-<div class="site-shell">
-    <header class="site-header">
-        <div class="header-inner">
-            <a class="brand"
-               href="/"
-               aria-label="@L["BillWatch home"]">
-
-                <span class="brand-mark">
-                    <span class="brand-mark-inner"></span>
-                </span>
-
-                <span class="brand-name">
-                    BillWatch
-                </span>
-            </a>
-
-            <nav class="desktop-nav"
-                 aria-label="@L["Primary navigation"]">
-
-                <a href="/#how-it-works">
-                    @L["How it works"]
-                </a>
-
-                <a href="/#example">
-                    @L["Example"]
-                </a>
-
-                <a href="/#security">
-                    @L["Security"]
-                </a>
-            </nav>
-
-            <div class="header-actions">
-                <ThemeToggle />
-
-                <AuthorizeView>
-                    <Authorized>
-                        <a class="header-action"
-                           href="/app">
-                            @L["Dashboard"]
-                        </a>
-                    </Authorized>
-
-                    <NotAuthorized>
-                        <a class="header-action"
-                           href="/login">
-                            @L["Sign in"]
-                        </a>
-
-                        <a class="header-action"
-                           href="/register">
-                            @L["Get started"]
-                        </a>
-                    </NotAuthorized>
-                </AuthorizeView>
-            </div>
-        </div>
-    </header>
-
-    <main>
-        @Body
-    </main>
-
-    <footer class="site-footer">
-        <div class="footer-inner">
-            <div class="footer-brand">
+    <div class="site-shell">
+        <header class="site-header">
+            <div class="header-inner">
                 <a class="brand"
                    href="/"
                    aria-label="@L["BillWatch home"]">
 
-                    <span class="brand-mark brand-mark-small">
+                    <span class="brand-mark">
                         <span class="brand-mark-inner"></span>
                     </span>
 
@@ -87,22 +31,105 @@
                     </span>
                 </a>
 
-                <p>
-                    @L["Know when your bills change — and why."]
-                </p>
-            </div>
+                <nav class="desktop-nav"
+                     aria-label="@L["Primary navigation"]">
 
-            <div class="footer-status">
-                <span class="status-dot"></span>
+                    <a href="/#how-it-works">
+                        @L["How it works"]
+                    </a>
 
-                <span>
-                    @L["Built around privacy, clarity, and evidence."]
-                </span>
-            </div>
+                    <a href="/#example">
+                        @L["Example"]
+                    </a>
 
-            <div class="footer-copy">
-                © @DateTime.UtcNow.Year BillWatch
+                    <a href="/#security">
+                        @L["Security"]
+                    </a>
+                </nav>
+
+                <div class="header-actions">
+                    <ThemeToggle />
+
+                    <AuthorizeView>
+                        <Authorized>
+                            <a class="header-action"
+                               href="/app">
+                                @L["Dashboard"]
+                            </a>
+                        </Authorized>
+
+                        <NotAuthorized>
+                            <a class="header-action"
+                               href="/login">
+                                @L["Sign in"]
+                            </a>
+
+                            <a class="header-action"
+                               href="/register">
+                                @L["Get started"]
+                            </a>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
             </div>
-        </div>
-    </footer>
-</div>
+        </header>
+
+        <main>
+            @Body
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-inner">
+                <div class="footer-brand">
+                    <a class="brand"
+                       href="/"
+                       aria-label="@L["BillWatch home"]">
+
+                        <span class="brand-mark brand-mark-small">
+                            <span class="brand-mark-inner"></span>
+                        </span>
+
+                        <span class="brand-name">
+                            BillWatch
+                        </span>
+                    </a>
+
+                    <p>
+                        @L["Know when your bills change — and why."]
+                    </p>
+                </div>
+
+                <div class="footer-status">
+                    <span class="status-dot"></span>
+
+                    <span>
+                        @L["Built around privacy, clarity, and evidence."]
+                    </span>
+                </div>
+
+                <div class="footer-copy">
+                    © @DateTime.UtcNow.Year BillWatch
+                </div>
+            </div>
+        </footer>
+    </div>
+}
+
+@code {
+    private bool UseStandaloneLegalLayout
+    {
+        get
+        {
+            var path = new Uri(
+                    Navigation.Uri)
+                .AbsolutePath;
+
+            return path.Equals(
+                       "/terms",
+                       StringComparison.OrdinalIgnoreCase) ||
+                   path.Equals(
+                       "/privacy",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+    }
+}

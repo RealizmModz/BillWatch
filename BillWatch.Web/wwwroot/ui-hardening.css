@@ -165,6 +165,28 @@ html[data-theme="dark"] .system-card {
         min-height: 100dvh !important;
     }
 
+    .app-shell .app-topbar {
+        height: calc(68px + env(safe-area-inset-top)) !important;
+        padding-top: env(safe-area-inset-top) !important;
+    }
+
+    .site-shell .site-header {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .site-shell .site-footer {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .legal-topbar {
+        padding-top: calc(14px + env(safe-area-inset-top)) !important;
+    }
+
+    .settings-toast,
+    .subscription-toast {
+        top: calc(72px + env(safe-area-inset-top)) !important;
+    }
+
     .app-shell .app-sidebar {
         bottom: calc(10px + env(safe-area-inset-bottom)) !important;
         height: 72px !important;
@@ -194,7 +216,13 @@ html[data-theme="dark"] .system-card {
     }
 
     .mobile-menu-sheet {
-        max-height: min(calc(100dvh - 176px - env(safe-area-inset-bottom)), 520px) !important;
+        max-height: min(calc(100dvh - 176px - env(safe-area-inset-bottom) - env(safe-area-inset-top)), 520px) !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .site-shell .header-actions .header-action:last-child {
+        display: inline-flex;
     }
 }
 
@@ -226,6 +254,17 @@ html[data-theme="dark"] .system-card {
     }
 }
 
+@media (max-width: 900px) and (pointer: coarse) {
+    .site-shell input:not([type="checkbox"]):not([type="radio"]),
+    .site-shell select,
+    .site-shell textarea,
+    .app-shell input:not([type="checkbox"]):not([type="radio"]),
+    .app-shell select,
+    .app-shell textarea {
+        font-size: 16px !important;
+    }
+}
+
 @media (pointer: coarse) {
     .bill-filter,
     .activity-filter,
@@ -242,8 +281,16 @@ html[data-theme="dark"] .system-card {
     .admin-primary-button,
     .admin-secondary-button,
     .admin-danger-button,
-    .admin-refresh-button {
+    .admin-refresh-button,
+    .legal-nav a,
+    .legal-toc a {
         min-height: 44px !important;
+    }
+
+    .legal-nav a,
+    .legal-toc a {
+        display: inline-flex;
+        align-items: center;
     }
 }
 
