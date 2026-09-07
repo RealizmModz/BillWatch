@@ -45,6 +45,24 @@ async function readError(response, fallback) {
     return fallback;
 }
 
+async function getJson(path, fallback) {
+    const response = await fetch(
+        path,
+        {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: {
+                Accept: "application/json"
+            }
+        });
+
+    if (!response.ok) {
+        throw new Error(await readError(response, fallback));
+    }
+
+    return await response.json();
+}
+
 async function postJson(path, body, fallback) {
     const requestToken = await getAntiforgeryToken();
 
@@ -77,25 +95,76 @@ async function postJson(path, body, fallback) {
         : null;
 }
 
-export async function getAccountSecurity() {
-    const response = await fetch(
+export function getAccountSecurity() {
+    return getJson(
         "/bff/account/security",
-        {
-            credentials: "same-origin",
-            cache: "no-store",
-            headers: {
-                Accept: "application/json"
-            }
-        });
+        "BillWatch could not load account security settings.");
+}
 
-    if (!response.ok) {
-        throw new Error(
-            await readError(
-                response,
-                "BillWatch could not load account security settings."));
+export function getExternalIdentityStatus() {
+    return getJson(
+        "/bff/account/external",
+        "BillWatch could not load linked sign-in methods.");
+}
+
+function setExternalProviderLinkState(provider, isLinked) {
+    const link = document.querySelector(
+        `a[href="/auth/external/${provider}/link"]`);
+
+    if (!(link instanceof HTMLAnchorElement)) {
+        return;
     }
 
-    return await response.json();
+    if (isLinked) {
+        link.dataset.externalLinked = "true";
+        link.setAttribute("aria-disabled", "true");
+        link.removeAttribute("href");
+        link.replaceChildren(
+            document.createTextNode("Linked "),
+            Object.assign(document.createElement("span"), {
+                textContent: "✓"
+            }));
+        return;
+    }
+
+    if (link.dataset.externalLinked !== "true") {
+        return;
+    }
+
+    const displayName =
+        provider === "google"
+            ? "Google"
+            : provider === "apple"
+                ? "Apple"
+                : "Microsoft";
+
+    link.dataset.externalLinked = "false";
+    link.removeAttribute("aria-disabled");
+    link.href = `/auth/external/${provider}/link`;
+    link.replaceChildren(
+        document.createTextNode(`Link ${displayName} `),
+        Object.assign(document.createElement("span"), {
+            textContent: "→"
+        }));
+}
+
+export async function refreshExternalIdentityStatusUi() {
+    const status = await getExternalIdentityStatus();
+    const linkedProviders = new Set(
+        Array.isArray(status?.linkedProviders)
+            ? status.linkedProviders
+                .map(item => item?.provider)
+                .filter(provider => typeof provider === "string")
+                .map(provider => provider.toLowerCase())
+            : []);
+
+    for (const provider of ["google", "apple", "microsoft"]) {
+        setExternalProviderLinkState(
+            provider,
+            linkedProviders.has(provider));
+    }
+
+    return status;
 }
 
 export function updateProfile(displayName) {
@@ -129,8 +198,8 @@ export function requestEmailChange(currentPassword, newEmail, twoFactorCode) {
         "BillWatch could not start the email change.");
 }
 
-export function linkExternalIdentity(provider, currentPassword, twoFactorCode) {
-    return postJson(
+export async function linkExternalIdentity(provider, currentPassword, twoFactorCode) {
+    const result = await postJson(
         "/bff/account/external/link",
         {
             provider,
@@ -138,6 +207,9 @@ export function linkExternalIdentity(provider, currentPassword, twoFactorCode) {
             twoFactorCode: twoFactorCode || null
         },
         "BillWatch could not link this sign-in method. Start the provider link again and try again.");
+
+    await refreshExternalIdentityStatusUi();
+    return result;
 }
 
 export function clearExternalLinkQuery() {
@@ -198,3 +270,7 @@ export function resetTwoFactor(currentPassword, twoFactorCode) {
         },
         "BillWatch could not reset two-factor authentication.");
 }
+
+void refreshExternalIdentityStatusUi().catch(() => {
+    // Fail closed: if status cannot be loaded, keep the existing Link actions.
+});
