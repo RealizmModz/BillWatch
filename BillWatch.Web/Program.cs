@@ -99,37 +99,42 @@ builder.Services
 builder.Services
     .AddCascadingAuthenticationState();
 
-builder.Services
-    .AddAuthentication(
-        CookieAuthenticationDefaults
-            .AuthenticationScheme)
-    .AddCookie(
-        options =>
-        {
-            options.Cookie.Name =
-                "__Host-BillWatch.Web.Auth";
+var authenticationBuilder =
+    builder.Services
+        .AddAuthentication(
+            CookieAuthenticationDefaults
+                .AuthenticationScheme)
+        .AddCookie(
+            options =>
+            {
+                options.Cookie.Name =
+                    "__Host-BillWatch.Web.Auth";
 
-            options.Cookie.HttpOnly =
-                true;
+                options.Cookie.HttpOnly =
+                    true;
 
-            options.Cookie.SecurePolicy =
-                CookieSecurePolicy.Always;
+                options.Cookie.SecurePolicy =
+                    CookieSecurePolicy.Always;
 
-            options.Cookie.SameSite =
-                SameSiteMode.Lax;
+                options.Cookie.SameSite =
+                    SameSiteMode.Lax;
 
-            options.Cookie.Path =
-                "/";
+                options.Cookie.Path =
+                    "/";
 
-            options.LoginPath =
-                "/login";
+                options.LoginPath =
+                    "/login";
 
-            options.AccessDeniedPath =
-                "/login";
+                options.AccessDeniedPath =
+                    "/login";
 
-            options.SlidingExpiration =
-                false;
-        });
+                options.SlidingExpiration =
+                    false;
+            });
+
+authenticationBuilder
+    .AddBillWatchExternalAuthentication(
+        builder.Configuration);
 
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
@@ -213,6 +218,7 @@ app.MapStaticAssets();
 
 app.MapBillWatchHealthEndpoints();
 app.MapBillWatchAuthEndpoints();
+app.MapBillWatchExternalAuthenticationEndpoints();
 app.MapBillWatchBffEndpoints();
 app.MapBillWatchAdminBffEndpoints();
 app.MapBillWatchAccountPreferenceBffEndpoints();
