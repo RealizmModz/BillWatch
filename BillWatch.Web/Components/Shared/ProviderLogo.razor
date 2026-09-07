@@ -1,0 +1,44 @@
+@using BillWatch.Web.Services
+
+@{
+    var logoUrl = ProviderLogoResolver.Resolve(ProviderName);
+}
+
+@if (!string.IsNullOrWhiteSpace(logoUrl))
+{
+    <img src="@logoUrl"
+         alt=""
+         aria-hidden="true"
+         referrerpolicy="no-referrer"
+         decoding="async"
+         class="@ImageClass" />
+}
+else if (FallbackContent is not null)
+{
+    @FallbackContent
+}
+else
+{
+    @GetInitial(ProviderName)
+}
+
+@code {
+    [Parameter]
+    public string? ProviderName { get; set; }
+
+    [Parameter]
+    public string ImageClass { get; set; } = "provider-logo-image";
+
+    [Parameter]
+    public RenderFragment? FallbackContent { get; set; }
+
+    private static string GetInitial(string? providerName)
+    {
+        if (string.IsNullOrWhiteSpace(providerName))
+        {
+            return "?";
+        }
+
+        return char.ToUpperInvariant(providerName.Trim()[0]).ToString();
+    }
+}
