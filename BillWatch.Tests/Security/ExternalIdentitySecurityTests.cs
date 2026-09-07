@@ -1,13 +1,19 @@
 using System.Net;
 using System.Net.Http.Json;
+using BillWatch.API.Data.Entities;
 using BillWatch.API.Services.Identity;
 using BillWatch.Tests.Infrastructure;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BillWatch.Tests.Security;
 
 public sealed class ExternalIdentitySecurityTests
 {
+    private const string TestPassword =
+        "BillWatch!Tests123";
+
     [Fact]
     public async Task ExternalLogin_UnconfiguredProvider_FailsClosed()
     {
@@ -52,7 +58,119 @@ public sealed class ExternalIdentitySecurityTests
                         ExternalIdentityProviders.Google,
 
                     idToken =
-                        "not-a-real-provider-token"
+                        "not-a-real-provider-token",
+
+                    currentPassword =
+                        TestPassword,
+
+                    twoFactorCode =
+                        (string?)null
+                });
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExternalLink_AuthenticatedCallerWithoutPasswordReauthentication_IsRejected()
+    {
+        using var factory =
+            new BillWatchApiFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        var session =
+            await TestUserAuthentication
+                .RegisterAndLoginAsync(
+                    client);
+
+        TestUserAuthentication.Authorize(
+            client,
+            session);
+
+        using var response =
+            await client.PostAsJsonAsync(
+                "/api/auth/external/link",
+                new
+                {
+                    provider =
+                        ExternalIdentityProviders.Google,
+
+                    idToken =
+                        "not-a-real-provider-token",
+
+                    currentPassword =
+                        string.Empty,
+
+                    twoFactorCode =
+                        (string?)null
+                });
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExternalLink_TwoFactorAccountWithoutSecondFactor_IsRejected()
+    {
+        using var factory =
+            new BillWatchApiFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        var session =
+            await TestUserAuthentication
+                .RegisterAndLoginAsync(
+                    client);
+
+        await using (
+            var scope =
+                factory.Services.CreateAsyncScope())
+        {
+            var userManager =
+                scope.ServiceProvider
+                    .GetRequiredService<
+                        UserManager<ApplicationUser>>();
+
+            var user =
+                await userManager.FindByEmailAsync(
+                    session.Email);
+
+            Assert.NotNull(user);
+
+            var enableResult =
+                await userManager.SetTwoFactorEnabledAsync(
+                    user!,
+                    true);
+
+            Assert.True(
+                enableResult.Succeeded);
+        }
+
+        TestUserAuthentication.Authorize(
+            client,
+            session);
+
+        using var response =
+            await client.PostAsJsonAsync(
+                "/api/auth/external/link",
+                new
+                {
+                    provider =
+                        ExternalIdentityProviders.Google,
+
+                    idToken =
+                        "not-a-real-provider-token",
+
+                    currentPassword =
+                        TestPassword,
+
+                    twoFactorCode =
+                        (string?)null
                 });
 
         Assert.Equal(
@@ -87,7 +205,13 @@ public sealed class ExternalIdentitySecurityTests
                         ExternalIdentityProviders.Google,
 
                     idToken =
-                        "not-a-real-provider-token"
+                        "not-a-real-provider-token",
+
+                    currentPassword =
+                        TestPassword,
+
+                    twoFactorCode =
+                        (string?)null
                 });
 
         Assert.Equal(
