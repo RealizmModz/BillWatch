@@ -107,13 +107,22 @@ export function getExternalIdentityStatus() {
         "BillWatch could not load linked sign-in methods.");
 }
 
+function createStatusGlyph(text) {
+    const glyph = document.createElement("span");
+    glyph.setAttribute("aria-hidden", "true");
+    glyph.textContent = text;
+    return glyph;
+}
+
 function setExternalProviderLinkState(provider, isLinked) {
     const link = document.querySelector(
-        `a[href="/auth/external/${provider}/link"]`);
+        `a[data-external-provider="${provider}"], a[href="/auth/external/${provider}/link"]`);
 
     if (!(link instanceof HTMLAnchorElement)) {
         return;
     }
+
+    link.dataset.externalProvider = provider;
 
     if (isLinked) {
         link.dataset.externalLinked = "true";
@@ -121,9 +130,7 @@ function setExternalProviderLinkState(provider, isLinked) {
         link.removeAttribute("href");
         link.replaceChildren(
             document.createTextNode("Linked "),
-            Object.assign(document.createElement("span"), {
-                textContent: "✓"
-            }));
+            createStatusGlyph("✓"));
         return;
     }
 
@@ -140,12 +147,10 @@ function setExternalProviderLinkState(provider, isLinked) {
 
     link.dataset.externalLinked = "false";
     link.removeAttribute("aria-disabled");
-    link.href = `/auth/external/${provider}/link`;
+    link.setAttribute("href", `/auth/external/${provider}/link`);
     link.replaceChildren(
         document.createTextNode(`Link ${displayName} `),
-        Object.assign(document.createElement("span"), {
-            textContent: "→"
-        }));
+        createStatusGlyph("→"));
 }
 
 export async function refreshExternalIdentityStatusUi() {
