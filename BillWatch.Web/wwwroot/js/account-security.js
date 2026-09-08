@@ -114,6 +114,52 @@ function createStatusGlyph(text) {
     return glyph;
 }
 
+function getExternalProviderDisplayName(provider) {
+    return provider === "google"
+        ? "Google"
+        : provider === "apple"
+            ? "Apple"
+            : "Microsoft";
+}
+
+async function beginExternalIdentityUnlink(provider) {
+    const displayName = getExternalProviderDisplayName(provider);
+
+    if (!window.confirm(`Remove ${displayName} as a BillWatch sign-in method?`)) {
+        return;
+    }
+
+    const currentPassword = window.prompt("Enter your current BillWatch password to continue.");
+
+    if (!currentPassword) {
+        return;
+    }
+
+    let twoFactorCode = null;
+
+    try {
+        const security = await getAccountSecurity();
+
+        if (security?.twoFactorEnabled === true) {
+            twoFactorCode = window.prompt("Enter your current BillWatch authenticator code.");
+
+            if (!twoFactorCode) {
+                return;
+            }
+        }
+
+        await unlinkExternalIdentity(provider, currentPassword, twoFactorCode);
+        window.alert(`${displayName} was removed from your BillWatch sign-in methods.`);
+    }
+    catch (error) {
+        const message = error instanceof Error
+            ? error.message
+            : "BillWatch could not remove this sign-in method.";
+
+        window.alert(message);
+    }
+}
+
 function setExternalProviderLinkState(provider, isLinked) {
     const link = document.querySelector(
         `a[data-external-provider="${provider}"], a[href="/auth/external/${provider}/link"]`);
@@ -122,32 +168,27 @@ function setExternalProviderLinkState(provider, isLinked) {
         return;
     }
 
+    const displayName = getExternalProviderDisplayName(provider);
     link.dataset.externalProvider = provider;
 
     if (isLinked) {
         link.dataset.externalLinked = "true";
-        link.setAttribute("aria-disabled", "true");
-        link.removeAttribute("href");
+        link.removeAttribute("aria-disabled");
+        link.setAttribute("href", "#");
         link.replaceChildren(
-            document.createTextNode("Linked "),
-            createStatusGlyph("✓"));
+            document.createTextNode(`Remove ${displayName} `),
+            createStatusGlyph("×"));
+        link.onclick = event => {
+            event.preventDefault();
+            void beginExternalIdentityUnlink(provider);
+        };
         return;
     }
-
-    if (link.dataset.externalLinked !== "true") {
-        return;
-    }
-
-    const displayName =
-        provider === "google"
-            ? "Google"
-            : provider === "apple"
-                ? "Apple"
-                : "Microsoft";
 
     link.dataset.externalLinked = "false";
     link.removeAttribute("aria-disabled");
     link.setAttribute("href", `/auth/external/${provider}/link`);
+    link.onclick = null;
     link.replaceChildren(
         document.createTextNode(`Link ${displayName} `),
         createStatusGlyph("→"));
@@ -212,6 +253,20 @@ export async function linkExternalIdentity(provider, currentPassword, twoFactorC
             twoFactorCode: twoFactorCode || null
         },
         "BillWatch could not link this sign-in method. Start the provider link again and try again.");
+
+    await refreshExternalIdentityStatusUi();
+    return result;
+}
+
+export async function unlinkExternalIdentity(provider, currentPassword, twoFactorCode) {
+    const result = await postJson(
+        "/bff/account/external/unlink",
+        {
+            provider,
+            currentPassword,
+            twoFactorCode: twoFactorCode || null
+        },
+        "BillWatch could not remove this sign-in method.");
 
     await refreshExternalIdentityStatusUi();
     return result;
