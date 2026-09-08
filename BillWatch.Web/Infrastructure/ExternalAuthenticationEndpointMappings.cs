@@ -571,9 +571,25 @@ public static class ExternalAuthenticationEndpointMappings
                     {
                         context.HandleResponse();
 
+                        var purpose =
+                            context.Properties?.Items.TryGetValue(
+                                ExternalPurposeProperty,
+                                out var storedPurpose) == true
+                                ? storedPurpose
+                                : null;
+
+                        var error =
+                            "External sign-in could not be completed.";
+
                         context.Response.Redirect(
-                            BuildLoginErrorRedirect(
-                                "External sign-in could not be completed."));
+                            string.Equals(
+                                purpose,
+                                LinkPurpose,
+                                StringComparison.Ordinal)
+                                ? BuildAccountSettingsErrorRedirect(
+                                    error)
+                                : BuildLoginErrorRedirect(
+                                    error));
 
                         return Task.CompletedTask;
                     }
