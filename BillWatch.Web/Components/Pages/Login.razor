@@ -45,8 +45,7 @@
                 </p>
             </div>
 
-            @if (!string.IsNullOrWhiteSpace(
-                Message))
+            @if (!string.IsNullOrWhiteSpace(Message))
             {
                 <div class="auth-success"
                      role="status">
@@ -55,8 +54,15 @@
                 </div>
             }
 
-            @if (!string.IsNullOrWhiteSpace(
-                Error))
+            @if (ExternalError)
+            {
+                <div class="auth-error"
+                     role="alert">
+                    <span>!</span>
+                    @L["BillWatch could not complete that external sign-in. Try again or sign in with email."]
+                </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(Error))
             {
                 <div class="auth-error"
                      role="alert">
@@ -246,6 +252,10 @@
     [SupplyParameterFromQuery(
         Name = "error")]
     public string? Error { get; set; }
+
+    [SupplyParameterFromQuery(
+        Name = "externalError")]
+    public bool ExternalError { get; set; }
 
     [SupplyParameterFromQuery(
         Name = "message")]
