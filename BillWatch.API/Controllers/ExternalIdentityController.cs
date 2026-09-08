@@ -23,6 +23,9 @@ public sealed class ExternalIdentityController : ControllerBase
     private readonly IExternalIdentityTokenValidator
         _tokenValidator;
 
+    private readonly ExternalIdentitySecondFactorVerifier
+        _secondFactorVerifier;
+
     public ExternalIdentityController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -44,6 +47,10 @@ public sealed class ExternalIdentityController : ControllerBase
             new ExternalIdentityTokenValidator(
                 configuration,
                 httpClientFactory);
+
+        _secondFactorVerifier =
+            new ExternalIdentitySecondFactorVerifier(
+                userManager);
     }
 
     [HttpPost("login")]
@@ -82,13 +89,19 @@ public sealed class ExternalIdentityController : ControllerBase
         }
 
         /*
-         * External identity proof must not silently bypass BillWatch's own
-         * two-factor requirement. Until the Web/BFF flow can complete the
-         * local second-factor step after provider authentication, fail closed
-         * for accounts that have BillWatch 2FA enabled.
+         * Provider authentication proves the external identity only.
+         * BillWatch's own second factor remains mandatory when enabled.
+         * Recovery codes are redeemed at this API boundary so they preserve
+         * the same one-time semantics as password sign-in.
          */
-        if (await _userManager.GetTwoFactorEnabledAsync(
-                user))
+        var secondFactorResult =
+            await _secondFactorVerifier.VerifyAsync(
+                user,
+                request.TwoFactorCode,
+                request.TwoFactorRecoveryCode);
+
+        if (secondFactorResult ==
+            ExternalIdentitySecondFactorResult.Required)
         {
             return Problem(
                 statusCode:
@@ -97,6 +110,12 @@ public sealed class ExternalIdentityController : ControllerBase
                     "Additional verification required.",
                 detail:
                     "RequiresTwoFactor");
+        }
+
+        if (secondFactorResult ==
+            ExternalIdentitySecondFactorResult.Failed)
+        {
+            return Unauthorized();
         }
 
         user.LastLoginAtUtc =
@@ -459,7 +478,9 @@ public sealed class ExternalIdentityController : ControllerBase
 
 public sealed record ExternalIdentityLoginRequest(
     string Provider,
-    string IdToken);
+    string IdToken,
+    string? TwoFactorCode,
+    string? TwoFactorRecoveryCode);
 
 public sealed record ExternalIdentityLinkRequest(
     string Provider,
