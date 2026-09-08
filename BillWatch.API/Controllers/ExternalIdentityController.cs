@@ -139,52 +139,19 @@ public sealed class ExternalIdentityController : ControllerBase
         CancellationToken cancellationToken)
     {
         var user =
-            await _userManager.GetUserAsync(
-                User);
+            await GetActiveUserAsync();
 
-        if (user is null ||
-            !user.IsActive ||
-            await _userManager.IsLockedOutAsync(
-                user))
+        if (user is null)
         {
             return Unauthorized();
         }
 
-        /*
-         * Adding a new sign-in method is an account-takeover-sensitive
-         * operation. An existing bearer session is not sufficient proof on
-         * its own because a stolen session must not be able to permanently
-         * bind an attacker's Google/Apple/Microsoft identity.
-         */
-        if (string.IsNullOrWhiteSpace(
-                request.CurrentPassword) ||
-            !await _userManager.CheckPasswordAsync(
+        if (!await ReauthenticateAsync(
                 user,
-                request.CurrentPassword))
+                request.CurrentPassword,
+                request.TwoFactorCode))
         {
             return Unauthorized();
-        }
-
-        if (await _userManager.GetTwoFactorEnabledAsync(
-                user))
-        {
-            if (string.IsNullOrWhiteSpace(
-                    request.TwoFactorCode))
-            {
-                return Unauthorized();
-            }
-
-            var validTwoFactorCode =
-                await _userManager.VerifyTwoFactorTokenAsync(
-                    user,
-                    _userManager.Options.Tokens.AuthenticatorTokenProvider,
-                    NormalizeAuthenticatorCode(
-                        request.TwoFactorCode));
-
-            if (!validTwoFactorCode)
-            {
-                return Unauthorized();
-            }
         }
 
         var externalIdentity =
@@ -270,6 +237,134 @@ public sealed class ExternalIdentityController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("unlink")]
+    [Authorize]
+    public async Task<IActionResult> Unlink(
+        [FromBody] ExternalIdentityUnlinkRequest request)
+    {
+        var user =
+            await GetActiveUserAsync();
+
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        if (!await ReauthenticateAsync(
+                user,
+                request.CurrentPassword,
+                request.TwoFactorCode))
+        {
+            return Unauthorized();
+        }
+
+        var provider =
+            NormalizeSupportedProvider(
+                request.Provider);
+
+        if (provider is null)
+        {
+            return BadRequest(
+                new
+                {
+                    error =
+                        "ExternalProviderInvalid"
+                });
+        }
+
+        var currentLogins =
+            await _userManager.GetLoginsAsync(
+                user);
+
+        var login =
+            currentLogins.FirstOrDefault(
+                candidate =>
+                    string.Equals(
+                        candidate.LoginProvider,
+                        provider,
+                        StringComparison.OrdinalIgnoreCase));
+
+        if (login is null)
+        {
+            /*
+             * Treat an already-unlinked provider as an idempotent success.
+             * This avoids leaking stale client state and makes retries safe.
+             */
+            return NoContent();
+        }
+
+        var removeResult =
+            await _userManager.RemoveLoginAsync(
+                user,
+                login.LoginProvider,
+                login.ProviderKey);
+
+        if (!removeResult.Succeeded)
+        {
+            return Problem(
+                statusCode:
+                    StatusCodes.Status503ServiceUnavailable,
+                title:
+                    "External sign-in method could not be removed.");
+        }
+
+        return NoContent();
+    }
+
+    private async Task<ApplicationUser?> GetActiveUserAsync()
+    {
+        var user =
+            await _userManager.GetUserAsync(
+                User);
+
+        if (user is null ||
+            !user.IsActive ||
+            await _userManager.IsLockedOutAsync(
+                user))
+        {
+            return null;
+        }
+
+        return user;
+    }
+
+    private async Task<bool> ReauthenticateAsync(
+        ApplicationUser user,
+        string currentPassword,
+        string? twoFactorCode)
+    {
+        /*
+         * Linking or unlinking a sign-in method changes a durable account
+         * takeover boundary. A bearer session alone is never sufficient.
+         */
+        if (string.IsNullOrWhiteSpace(
+                currentPassword) ||
+            !await _userManager.CheckPasswordAsync(
+                user,
+                currentPassword))
+        {
+            return false;
+        }
+
+        if (!await _userManager.GetTwoFactorEnabledAsync(
+                user))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                twoFactorCode))
+        {
+            return false;
+        }
+
+        return await _userManager.VerifyTwoFactorTokenAsync(
+            user,
+            _userManager.Options.Tokens.AuthenticatorTokenProvider,
+            NormalizeAuthenticatorCode(
+                twoFactorCode));
+    }
+
     private async Task<ExternalIdentity?>
         ValidateIdentityAsync(
             string provider,
@@ -316,6 +411,32 @@ public sealed class ExternalIdentityController : ControllerBase
                 StringComparison.Ordinal);
     }
 
+    private static string? NormalizeSupportedProvider(
+        string? provider)
+    {
+        if (string.IsNullOrWhiteSpace(
+                provider))
+        {
+            return null;
+        }
+
+        return provider.Trim()
+            .ToLowerInvariant() switch
+        {
+            ExternalIdentityProviders.Google =>
+                ExternalIdentityProviders.Google,
+
+            ExternalIdentityProviders.Apple =>
+                ExternalIdentityProviders.Apple,
+
+            ExternalIdentityProviders.Microsoft =>
+                ExternalIdentityProviders.Microsoft,
+
+            _ =>
+                null
+        };
+    }
+
     private static string GetProviderDisplayName(
         string provider)
     {
@@ -343,5 +464,10 @@ public sealed record ExternalIdentityLoginRequest(
 public sealed record ExternalIdentityLinkRequest(
     string Provider,
     string IdToken,
+    string CurrentPassword,
+    string? TwoFactorCode);
+
+public sealed record ExternalIdentityUnlinkRequest(
+    string Provider,
     string CurrentPassword,
     string? TwoFactorCode);

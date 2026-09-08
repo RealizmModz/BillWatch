@@ -22,6 +22,9 @@ public sealed class AdminBffWriteProxyService(
     private const string ExternalIdentityLinkPath =
         "/api/auth/external/link";
 
+    private const string ExternalIdentityUnlinkPath =
+        "/api/auth/external/unlink";
+
     private const string AccountDeletionPath =
         "/api/account";
 
@@ -372,6 +375,12 @@ public sealed class AdminBffWriteProxyService(
                 ExternalIdentityLinkPath,
                 StringComparison.Ordinal);
 
+        var isExternalIdentityUnlinkPath =
+            string.Equals(
+                requestUri,
+                ExternalIdentityUnlinkPath,
+                StringComparison.Ordinal);
+
         var isAccountDeletionPath =
             string.Equals(
                 requestUri,
@@ -383,6 +392,7 @@ public sealed class AdminBffWriteProxyService(
             !isAccountPreferencesPath &&
             !isAccountSecurityPath &&
             !isExternalIdentityLinkPath &&
+            !isExternalIdentityUnlinkPath &&
             !isAccountDeletionPath)
         {
             return false;
