@@ -144,6 +144,11 @@ public static class ExternalAuthenticationEndpointMappings
                 CompleteExternalSignInAsync)
             .AllowAnonymous();
 
+        endpoints.MapPost(
+                "/auth/external/two-factor",
+                CompleteExternalSecondFactorAsync)
+            .AllowAnonymous();
+
         endpoints.MapGet(
                 "/auth/external/{provider}/link",
                 BeginExternalLinkAsync)
@@ -251,7 +256,7 @@ public static class ExternalAuthenticationEndpointMappings
         CompleteExternalSignInAsync(
             HttpContext context,
             string? provider,
-            WebAuthenticationService authenticationService,
+            IHttpClientFactory httpClientFactory,
             CancellationToken cancellationToken)
     {
         var providerDefinition =
@@ -289,17 +294,121 @@ public static class ExternalAuthenticationEndpointMappings
         }
 
         var loginResult =
-            await authenticationService
-                .LoginExternalAsync(
-                    context,
+            await ExternalWebSignInFlow.LoginAsync(
+                context,
+                httpClientFactory,
+                providerDefinition.Provider,
+                idToken!,
+                subject!,
+                email,
+                twoFactorCode: null,
+                recoveryCode: null,
+                cancellationToken);
+
+        if (loginResult.RequiresTwoFactor)
+        {
+            return Results.Redirect(
+                BuildExternalTwoFactorRedirect(
                     providerDefinition.Provider,
-                    idToken!,
-                    subject!,
-                    email,
-                    cancellationToken);
+                    factorError: false));
+        }
 
         await ClearExternalSessionAsync(
             context);
+
+        if (!loginResult.Succeeded)
+        {
+            return Results.Redirect(
+                BuildLoginErrorRedirect(
+                    loginResult.ErrorMessage ??
+                    "External sign-in could not be completed."));
+        }
+
+        return Results.Redirect(
+            "/app");
+    }
+
+    private static async Task<IResult>
+        CompleteExternalSecondFactorAsync(
+            HttpContext context,
+            IAntiforgery antiforgery,
+            IHttpClientFactory httpClientFactory)
+    {
+        await antiforgery.ValidateRequestAsync(
+            context);
+
+        var form =
+            await context.Request.ReadFormAsync(
+                context.RequestAborted);
+
+        var providerDefinition =
+            FindProvider(
+                form["provider"].ToString());
+
+        if (providerDefinition is null)
+        {
+            await ClearExternalSessionAsync(
+                context);
+
+            return Results.Redirect(
+                BuildLoginErrorRedirect(
+                    "External sign-in could not be completed."));
+        }
+
+        var twoFactorCode =
+            form["twoFactorCode"].ToString().Trim();
+
+        var recoveryCode =
+            form["recoveryCode"].ToString().Trim();
+
+        if (string.IsNullOrWhiteSpace(twoFactorCode) ==
+            string.IsNullOrWhiteSpace(recoveryCode))
+        {
+            return Results.Redirect(
+                BuildExternalTwoFactorRedirect(
+                    providerDefinition.Provider,
+                    factorError: true));
+        }
+
+        var externalResult =
+            await context.AuthenticateAsync(
+                ExternalCookieScheme);
+
+        if (!TryGetExternalIdentity(
+                externalResult,
+                providerDefinition.Provider,
+                LoginPurpose,
+                out var idToken,
+                out var subject,
+                out var email))
+        {
+            await ClearExternalSessionAsync(
+                context);
+
+            return Results.Redirect(
+                BuildLoginErrorRedirect(
+                    "External sign-in could not be completed."));
+        }
+
+        /*
+         * A provider assertion may be used for only one local second-factor
+         * attempt. Clear it before calling the API so a guessed/failed code
+         * cannot be retried against the same provider proof.
+         */
+        await ClearExternalSessionAsync(
+            context);
+
+        var loginResult =
+            await ExternalWebSignInFlow.LoginAsync(
+                context,
+                httpClientFactory,
+                providerDefinition.Provider,
+                idToken!,
+                subject!,
+                email,
+                twoFactorCode,
+                recoveryCode,
+                context.RequestAborted);
 
         if (!loginResult.Succeeded)
         {
@@ -652,6 +761,22 @@ public static class ExternalAuthenticationEndpointMappings
         string _)
     {
         return "/login?externalError=true";
+    }
+
+    private static string BuildExternalTwoFactorRedirect(
+        string provider,
+        bool factorError)
+    {
+        var redirect =
+            "/login?externalTwoFactor=true&provider=" +
+            Uri.EscapeDataString(provider);
+
+        if (factorError)
+        {
+            redirect += "&externalFactorError=true";
+        }
+
+        return redirect;
     }
 
     private static string BuildAccountSettingsErrorRedirect(

@@ -79,6 +79,94 @@ public sealed class WebExternalAuthenticationTests
     }
 
     [Fact]
+    public async Task Login_ExternalTwoFactorRendersServerSideFactorFormWithoutCredentials()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                "/login?externalTwoFactor=true&provider=google");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        var body =
+            await response.Content
+                .ReadAsStringAsync();
+
+        Assert.Contains(
+            "action=\"/auth/external/two-factor\"",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "name=\"twoFactorCode\"",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "name=\"recoveryCode\"",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "name=\"password\"",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "name=\"email\"",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "idToken",
+            body,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Login_ExternalFactorErrorUsesFixedCopyInsteadOfEchoingErrorQuery()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        const string spoofedMessage =
+            "attacker-controlled-factor-message";
+
+        using var response =
+            await client.GetAsync(
+                "/login?externalTwoFactor=true&provider=google&externalFactorError=true&error=" +
+                spoofedMessage);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        var body =
+            await response.Content
+                .ReadAsStringAsync();
+
+        Assert.Contains(
+            "Enter exactly one authenticator code or recovery code.",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            spoofedMessage,
+            body,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task AccountSettings_HidesUnconfiguredExternalProviderLinks()
     {
         using var factory =
