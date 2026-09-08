@@ -48,4 +48,5 @@ public static class ExternalIdentityManagementEndpointMappings
 public sealed record ExternalIdentityUnlinkBffRequest(
     string Provider,
     string CurrentPassword,
-    string? TwoFactorCode);
+    string? TwoFactorCode,
+    string? TwoFactorRecoveryCode);
