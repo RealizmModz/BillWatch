@@ -80,5 +80,6 @@
   <data name="Old authenticator disabled. Add the new key and verify a code to re-enable 2FA." xml:space="preserve"><value>El autenticador anterior se desactivó. Añade la nueva clave y verifica un código para volver a activar la autenticación en dos pasos.</value></data>
   <data name="Enter your current password and current authenticator code." xml:space="preserve"><value>Introduce tu contraseña actual y el código actual del autenticador.</value></data>
   <data name="Timestamp preference saved." xml:space="preserve"><value>Preferencia de fecha y hora guardada.</value></data>
+  <data name="BillWatch could not complete that sign-in method. Try again." xml:space="preserve"><value>BillWatch no pudo completar ese método de inicio de sesión. Inténtalo de nuevo.</value></data>
   <data name="BillWatch could not complete that account security change." xml:space="preserve"><value>BillWatch no pudo completar ese cambio de seguridad de la cuenta.</value></data>
 </root>
