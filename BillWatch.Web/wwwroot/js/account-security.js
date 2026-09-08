@@ -122,6 +122,69 @@ function getExternalProviderDisplayName(provider) {
             : "Microsoft";
 }
 
+function normalizeExternalLinkSecondFactor(twoFactorCredential, explicitRecoveryCode) {
+    const recoveryCode = typeof explicitRecoveryCode === "string"
+        ? explicitRecoveryCode.trim()
+        : "";
+
+    if (recoveryCode) {
+        return {
+            twoFactorCode: null,
+            twoFactorRecoveryCode: recoveryCode
+        };
+    }
+
+    const credential = typeof twoFactorCredential === "string"
+        ? twoFactorCredential.trim()
+        : "";
+
+    if (!credential) {
+        return {
+            twoFactorCode: null,
+            twoFactorRecoveryCode: null
+        };
+    }
+
+    const compactAuthenticatorCode = credential.replace(/[\s-]/g, "");
+
+    if (/^\d{6}$/.test(compactAuthenticatorCode)) {
+        return {
+            twoFactorCode: credential,
+            twoFactorRecoveryCode: null
+        };
+    }
+
+    return {
+        twoFactorCode: null,
+        twoFactorRecoveryCode: credential
+    };
+}
+
+function exposeExternalLinkRecoveryCodeFallback() {
+    for (const panel of document.querySelectorAll(".authenticator-setup")) {
+        const heading = panel.querySelector(".panel-kicker");
+
+        if (heading?.textContent?.trim() !== "Confirm account link") {
+            continue;
+        }
+
+        for (const label of panel.querySelectorAll("label.settings-field")) {
+            const caption = label.querySelector("span");
+            const input = label.querySelector("input");
+
+            if (!(input instanceof HTMLInputElement) ||
+                caption?.textContent?.trim() !== "Current authenticator code") {
+                continue;
+            }
+
+            caption.textContent = "Authenticator code or recovery code";
+            input.inputMode = "text";
+            input.placeholder = "123456 or recovery code";
+            input.removeAttribute("maxlength");
+        }
+    }
+}
+
 async function beginExternalIdentityUnlink(provider) {
     const displayName = getExternalProviderDisplayName(provider);
 
@@ -220,6 +283,7 @@ export async function refreshExternalIdentityStatusUi() {
             linkedProviders.has(provider));
     }
 
+    exposeExternalLinkRecoveryCodeFallback();
     return status;
 }
 
@@ -254,13 +318,22 @@ export function requestEmailChange(currentPassword, newEmail, twoFactorCode) {
         "BillWatch could not start the email change.");
 }
 
-export async function linkExternalIdentity(provider, currentPassword, twoFactorCode) {
+export async function linkExternalIdentity(
+    provider,
+    currentPassword,
+    twoFactorCode,
+    twoFactorRecoveryCode) {
+    const secondFactor = normalizeExternalLinkSecondFactor(
+        twoFactorCode,
+        twoFactorRecoveryCode);
+
     const result = await postJson(
         "/bff/account/external/link",
         {
             provider,
             currentPassword,
-            twoFactorCode: twoFactorCode || null
+            twoFactorCode: secondFactor.twoFactorCode,
+            twoFactorRecoveryCode: secondFactor.twoFactorRecoveryCode
         },
         "BillWatch could not link this sign-in method. Start the provider link again and try again.");
 

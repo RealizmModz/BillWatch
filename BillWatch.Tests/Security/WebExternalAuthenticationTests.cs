@@ -286,6 +286,88 @@ public sealed class WebExternalAuthenticationTests
     }
 
     [Fact]
+    public async Task AccountSecurityScript_LinkExternalIdentityCarriesDistinctRecoveryCodeField()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                "/js/account-security.js");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        var body =
+            await response.Content.ReadAsStringAsync();
+
+        Assert.Contains(
+            "export async function linkExternalIdentity(",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "twoFactorRecoveryCode: secondFactor.twoFactorRecoveryCode",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "\"/bff/account/external/link\"",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "idToken",
+            body,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AccountSecurityScript_ExternalLinkUiAcceptsAuthenticatorOrRecoveryCode()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                "/js/account-security.js");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        var body =
+            await response.Content.ReadAsStringAsync();
+
+        Assert.Contains(
+            "Authenticator code or recovery code",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "normalizeExternalLinkSecondFactor",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "/^\\d{6}$/.test(compactAuthenticatorCode)",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "twoFactorRecoveryCode: credential",
+            body,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task UnconfiguredKnownProvider_FailsClosedWithoutStartingChallenge()
     {
         using var factory =
