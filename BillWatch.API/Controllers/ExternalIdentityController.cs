@@ -168,7 +168,8 @@ public sealed class ExternalIdentityController : ControllerBase
         if (!await ReauthenticateAsync(
                 user,
                 request.CurrentPassword,
-                request.TwoFactorCode))
+                request.TwoFactorCode,
+                request.TwoFactorRecoveryCode))
         {
             return Unauthorized();
         }
@@ -272,7 +273,8 @@ public sealed class ExternalIdentityController : ControllerBase
         if (!await ReauthenticateAsync(
                 user,
                 request.CurrentPassword,
-                request.TwoFactorCode))
+                request.TwoFactorCode,
+                request.TwoFactorRecoveryCode))
         {
             return Unauthorized();
         }
@@ -350,11 +352,15 @@ public sealed class ExternalIdentityController : ControllerBase
     private async Task<bool> ReauthenticateAsync(
         ApplicationUser user,
         string currentPassword,
-        string? twoFactorCode)
+        string? twoFactorCode,
+        string? twoFactorRecoveryCode)
     {
         /*
          * Linking or unlinking a sign-in method changes a durable account
          * takeover boundary. A bearer session alone is never sufficient.
+         * Password verification is always required, and when 2FA is enabled
+         * the caller must additionally provide exactly one valid authenticator
+         * code or one unused recovery code.
          */
         if (string.IsNullOrWhiteSpace(
                 currentPassword) ||
@@ -365,23 +371,15 @@ public sealed class ExternalIdentityController : ControllerBase
             return false;
         }
 
-        if (!await _userManager.GetTwoFactorEnabledAsync(
-                user))
-        {
-            return true;
-        }
+        var secondFactorResult =
+            await _secondFactorVerifier.VerifyAsync(
+                user,
+                twoFactorCode,
+                twoFactorRecoveryCode);
 
-        if (string.IsNullOrWhiteSpace(
-                twoFactorCode))
-        {
-            return false;
-        }
-
-        return await _userManager.VerifyTwoFactorTokenAsync(
-            user,
-            _userManager.Options.Tokens.AuthenticatorTokenProvider,
-            NormalizeAuthenticatorCode(
-                twoFactorCode));
+        return secondFactorResult is
+            ExternalIdentitySecondFactorResult.NotRequired or
+            ExternalIdentitySecondFactorResult.Succeeded;
     }
 
     private async Task<ExternalIdentity?>
@@ -414,20 +412,6 @@ public sealed class ExternalIdentityController : ControllerBase
              */
             return null;
         }
-    }
-
-    private static string NormalizeAuthenticatorCode(
-        string code)
-    {
-        return code
-            .Replace(
-                " ",
-                string.Empty,
-                StringComparison.Ordinal)
-            .Replace(
-                "-",
-                string.Empty,
-                StringComparison.Ordinal);
     }
 
     private static string? NormalizeSupportedProvider(
@@ -486,9 +470,11 @@ public sealed record ExternalIdentityLinkRequest(
     string Provider,
     string IdToken,
     string CurrentPassword,
-    string? TwoFactorCode);
+    string? TwoFactorCode,
+    string? TwoFactorRecoveryCode);
 
 public sealed record ExternalIdentityUnlinkRequest(
     string Provider,
     string CurrentPassword,
-    string? TwoFactorCode);
+    string? TwoFactorCode,
+    string? TwoFactorRecoveryCode);
