@@ -80,6 +80,52 @@ public sealed class WebExternalAuthenticationTests
     }
 
     [Fact]
+    public async Task AccountSecurityScript_UsesSafeLinkedProviderStatusSurface()
+    {
+        using var factory =
+            new BillWatchWebFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        using var response =
+            await client.GetAsync(
+                "/js/account-security.js");
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        var body =
+            await response.Content.ReadAsStringAsync();
+
+        Assert.Contains(
+            "/bff/account/external",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "linkedProviders",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.Contains(
+            "aria-disabled",
+            body,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "providerKey",
+            body,
+            StringComparison.OrdinalIgnoreCase);
+
+        Assert.DoesNotContain(
+            "subject",
+            body,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task UnconfiguredKnownProvider_FailsClosedWithoutStartingChallenge()
     {
         using var factory =
