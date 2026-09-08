@@ -64,15 +64,12 @@ public static class ExternalAuthenticationEndpointMappings
             this AuthenticationBuilder authenticationBuilder,
             IConfiguration configuration)
     {
-        ArgumentNullException.ThrowIfNull(
-            authenticationBuilder);
-        ArgumentNullException.ThrowIfNull(
-            configuration);
+        ArgumentNullException.ThrowIfNull(authenticationBuilder);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         var configuredProviders =
             configuration
-                .GetSection(
-                    ExternalWebIdentityOptions.SectionName)
+                .GetSection(ExternalWebIdentityOptions.SectionName)
                 .Get<ExternalWebIdentityOptions>()
             ?? new ExternalWebIdentityOptions();
 
@@ -82,34 +79,23 @@ public static class ExternalAuthenticationEndpointMappings
             {
                 options.Cookie.Name =
                     "__Host-BillWatch.Web.External";
-
-                options.Cookie.HttpOnly =
-                    true;
-
+                options.Cookie.HttpOnly = true;
                 options.Cookie.SecurePolicy =
                     CookieSecurePolicy.Always;
-
                 options.Cookie.SameSite =
                     SameSiteMode.Lax;
-
-                options.Cookie.Path =
-                    "/";
-
+                options.Cookie.Path = "/";
                 options.ExpireTimeSpan =
                     TimeSpan.FromMinutes(5);
-
-                options.SlidingExpiration =
-                    false;
+                options.SlidingExpiration = false;
             });
 
         foreach (var provider in Providers)
         {
             var credentials =
-                configuredProviders.GetProvider(
-                    provider.Provider);
+                configuredProviders.GetProvider(provider.Provider);
 
-            if (credentials is null ||
-                !credentials.IsConfigured)
+            if (credentials is null || !credentials.IsConfigured)
             {
                 continue;
             }
@@ -117,11 +103,10 @@ public static class ExternalAuthenticationEndpointMappings
             authenticationBuilder.AddOpenIdConnect(
                 provider.Scheme,
                 provider.DisplayName,
-                options =>
-                    ConfigureOpenIdConnect(
-                        options,
-                        provider,
-                        credentials));
+                options => ConfigureOpenIdConnect(
+                    options,
+                    provider,
+                    credentials));
         }
 
         return authenticationBuilder;
@@ -131,8 +116,7 @@ public static class ExternalAuthenticationEndpointMappings
         MapBillWatchExternalAuthenticationEndpoints(
             this IEndpointRouteBuilder endpoints)
     {
-        ArgumentNullException.ThrowIfNull(
-            endpoints);
+        ArgumentNullException.ThrowIfNull(endpoints);
 
         endpoints.MapGet(
                 "/auth/external/{provider}",
@@ -157,53 +141,44 @@ public static class ExternalAuthenticationEndpointMappings
         return endpoints;
     }
 
-    private static Task<IResult>
-        BeginExternalSignInAsync(
-            string provider,
-            IAuthenticationSchemeProvider schemeProvider)
+    private static Task<IResult> BeginExternalSignInAsync(
+        string provider,
+        IAuthenticationSchemeProvider schemeProvider)
     {
         return BeginExternalChallengeAsync(
             provider,
             LoginPurpose,
             schemeProvider,
-            unavailableRedirectBuilder:
-                BuildLoginErrorRedirect,
+            unavailableRedirectBuilder: BuildLoginErrorRedirect,
             redirectUriBuilder:
                 normalizedProvider =>
                     "/auth/external/complete?provider=" +
-                    Uri.EscapeDataString(
-                        normalizedProvider));
+                    Uri.EscapeDataString(normalizedProvider));
     }
 
-    private static Task<IResult>
-        BeginExternalLinkAsync(
-            string provider,
-            IAuthenticationSchemeProvider schemeProvider)
+    private static Task<IResult> BeginExternalLinkAsync(
+        string provider,
+        IAuthenticationSchemeProvider schemeProvider)
     {
         return BeginExternalChallengeAsync(
             provider,
             LinkPurpose,
             schemeProvider,
-            unavailableRedirectBuilder:
-                BuildAccountSettingsErrorRedirect,
+            unavailableRedirectBuilder: BuildAccountSettingsErrorRedirect,
             redirectUriBuilder:
                 normalizedProvider =>
                     "/app/account/settings?externalLink=" +
-                    Uri.EscapeDataString(
-                        normalizedProvider));
+                    Uri.EscapeDataString(normalizedProvider));
     }
 
-    private static async Task<IResult>
-        BeginExternalChallengeAsync(
-            string provider,
-            string purpose,
-            IAuthenticationSchemeProvider schemeProvider,
-            Func<string, string> unavailableRedirectBuilder,
-            Func<string, string> redirectUriBuilder)
+    private static async Task<IResult> BeginExternalChallengeAsync(
+        string provider,
+        string purpose,
+        IAuthenticationSchemeProvider schemeProvider,
+        Func<string, string> unavailableRedirectBuilder,
+        Func<string, string> redirectUriBuilder)
     {
-        var providerDefinition =
-            FindProvider(
-                provider);
+        var providerDefinition = FindProvider(provider);
 
         if (providerDefinition is null)
         {
@@ -211,8 +186,7 @@ public static class ExternalAuthenticationEndpointMappings
         }
 
         var registeredScheme =
-            await schemeProvider.GetSchemeAsync(
-                providerDefinition.Scheme);
+            await schemeProvider.GetSchemeAsync(providerDefinition.Scheme);
 
         if (registeredScheme is null)
         {
@@ -221,56 +195,40 @@ public static class ExternalAuthenticationEndpointMappings
                     "That sign-in option is not available yet."));
         }
 
-        var normalizedProvider =
-            providerDefinition.Provider;
+        var normalizedProvider = providerDefinition.Provider;
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = redirectUriBuilder(normalizedProvider)
+        };
 
-        var properties =
-            new AuthenticationProperties
-            {
-                RedirectUri =
-                    redirectUriBuilder(
-                        normalizedProvider)
-            };
-
-        properties.Items[
-            ExternalProviderProperty] =
+        properties.Items[ExternalProviderProperty] =
             normalizedProvider;
-
-        properties.Items[
-            ExternalPurposeProperty] =
+        properties.Items[ExternalPurposeProperty] =
             purpose;
 
         return Results.Challenge(
             properties,
-            [
-                providerDefinition.Scheme
-            ]);
+            [providerDefinition.Scheme]);
     }
 
-    private static async Task<IResult>
-        CompleteExternalSignInAsync(
-            HttpContext context,
-            string? provider,
-            WebAuthenticationService authenticationService,
-            CancellationToken cancellationToken)
+    private static async Task<IResult> CompleteExternalSignInAsync(
+        HttpContext context,
+        string? provider,
+        WebAuthenticationService authenticationService,
+        CancellationToken cancellationToken)
     {
-        var providerDefinition =
-            FindProvider(
-                provider);
+        var providerDefinition = FindProvider(provider);
 
         if (providerDefinition is null)
         {
-            await ClearExternalSessionAsync(
-                context);
-
+            await ClearExternalSessionAsync(context);
             return Results.Redirect(
                 BuildLoginErrorRedirect(
                     "External sign-in could not be completed."));
         }
 
         var externalResult =
-            await context.AuthenticateAsync(
-                ExternalCookieScheme);
+            await context.AuthenticateAsync(ExternalCookieScheme);
 
         if (!TryGetExternalIdentity(
                 externalResult,
@@ -280,26 +238,22 @@ public static class ExternalAuthenticationEndpointMappings
                 out var subject,
                 out var email))
         {
-            await ClearExternalSessionAsync(
-                context);
-
+            await ClearExternalSessionAsync(context);
             return Results.Redirect(
                 BuildLoginErrorRedirect(
                     "External sign-in could not be completed."));
         }
 
         var loginResult =
-            await authenticationService
-                .LoginExternalAsync(
-                    context,
-                    providerDefinition.Provider,
-                    idToken!,
-                    subject!,
-                    email,
-                    cancellationToken);
+            await authenticationService.LoginExternalAsync(
+                context,
+                providerDefinition.Provider,
+                idToken!,
+                subject!,
+                email,
+                cancellationToken);
 
-        await ClearExternalSessionAsync(
-            context);
+        await ClearExternalSessionAsync(context);
 
         if (!loginResult.Succeeded)
         {
@@ -309,36 +263,28 @@ public static class ExternalAuthenticationEndpointMappings
                     "External sign-in could not be completed."));
         }
 
-        return Results.Redirect(
-            "/app");
+        return Results.Redirect("/app");
     }
 
-    private static async Task<IResult>
-        CompleteExternalLinkAsync(
-            HttpContext context,
-            IAntiforgery antiforgery,
-            AdminBffWriteProxyService writeProxyService,
-            ExternalIdentityLinkBffRequest request,
-            CancellationToken cancellationToken)
+    private static async Task<IResult> CompleteExternalLinkAsync(
+        HttpContext context,
+        IAntiforgery antiforgery,
+        AdminBffWriteProxyService writeProxyService,
+        ExternalIdentityLinkBffRequest request,
+        CancellationToken cancellationToken)
     {
-        await antiforgery.ValidateRequestAsync(
-            context);
+        await antiforgery.ValidateRequestAsync(context);
 
-        var providerDefinition =
-            FindProvider(
-                request.Provider);
+        var providerDefinition = FindProvider(request.Provider);
 
         if (providerDefinition is null)
         {
-            await ClearExternalSessionAsync(
-                context);
-
+            await ClearExternalSessionAsync(context);
             return Results.BadRequest();
         }
 
         var externalResult =
-            await context.AuthenticateAsync(
-                ExternalCookieScheme);
+            await context.AuthenticateAsync(ExternalCookieScheme);
 
         if (!TryGetExternalIdentity(
                 externalResult,
@@ -348,15 +294,9 @@ public static class ExternalAuthenticationEndpointMappings
                 out _,
                 out _))
         {
-            await ClearExternalSessionAsync(
-                context);
-
+            await ClearExternalSessionAsync(context);
             return Results.BadRequest(
-                new
-                {
-                    error =
-                        "ExternalLinkExpired"
-                });
+                new { error = "ExternalLinkExpired" });
         }
 
         /*
@@ -365,8 +305,7 @@ public static class ExternalAuthenticationEndpointMappings
          * so a failed password/2FA attempt cannot be replayed repeatedly with
          * the same provider assertion.
          */
-        await ClearExternalSessionAsync(
-            context);
+        await ClearExternalSessionAsync(context);
 
         return await writeProxyService.ForwardJsonAsync(
             context,
@@ -374,16 +313,10 @@ public static class ExternalAuthenticationEndpointMappings
             "/api/auth/external/link",
             new
             {
-                provider =
-                    providerDefinition.Provider,
-
+                provider = providerDefinition.Provider,
                 idToken,
-
-                currentPassword =
-                    request.CurrentPassword,
-
-                twoFactorCode =
-                    request.TwoFactorCode
+                currentPassword = request.CurrentPassword,
+                twoFactorCode = request.TwoFactorCode
             },
             cancellationToken);
     }
@@ -396,12 +329,9 @@ public static class ExternalAuthenticationEndpointMappings
         out string? subject,
         out string? email)
     {
-        idToken =
-            null;
-        subject =
-            null;
-        email =
-            null;
+        idToken = null;
+        subject = null;
+        email = null;
 
         if (!externalResult.Succeeded ||
             externalResult.Principal is null ||
@@ -413,7 +343,6 @@ public static class ExternalAuthenticationEndpointMappings
         externalResult.Properties.Items.TryGetValue(
             ExternalProviderProperty,
             out var storedProvider);
-
         externalResult.Properties.Items.TryGetValue(
             ExternalPurposeProperty,
             out var storedPurpose);
@@ -435,22 +364,13 @@ public static class ExternalAuthenticationEndpointMappings
             out idToken);
 
         subject =
-            externalResult.Principal
-                .FindFirst("sub")?
-                .Value;
-
+            externalResult.Principal.FindFirst("sub")?.Value;
         email =
-            externalResult.Principal
-                .FindFirst("email")?
-                .Value ??
-            externalResult.Principal
-                .FindFirst(ClaimTypes.Email)?
-                .Value;
+            externalResult.Principal.FindFirst("email")?.Value ??
+            externalResult.Principal.FindFirst(ClaimTypes.Email)?.Value;
 
-        return !string.IsNullOrWhiteSpace(
-                   idToken) &&
-               !string.IsNullOrWhiteSpace(
-                   subject);
+        return !string.IsNullOrWhiteSpace(idToken) &&
+               !string.IsNullOrWhiteSpace(subject);
     }
 
     private static void ConfigureOpenIdConnect(
@@ -458,194 +378,144 @@ public static class ExternalAuthenticationEndpointMappings
         ExternalProviderDefinition provider,
         ExternalWebIdentityCredentialOptions credentials)
     {
-        options.SignInScheme =
-            ExternalCookieScheme;
-
-        options.Authority =
-            provider.Authority;
-
-        options.ClientId =
-            credentials.ClientId!.Trim();
-
-        options.ClientSecret =
-            credentials.ClientSecret!.Trim();
-
-        options.CallbackPath =
-            provider.CallbackPath;
-
-        options.ResponseType =
-            OpenIdConnectResponseType.Code;
-
-        options.ResponseMode =
-            provider.ResponseMode;
-
-        options.UsePkce =
-            true;
-
-        options.RequireHttpsMetadata =
-            true;
-
-        options.GetClaimsFromUserInfoEndpoint =
-            false;
+        options.SignInScheme = ExternalCookieScheme;
+        options.Authority = provider.Authority;
+        options.ClientId = credentials.ClientId!.Trim();
+        options.ClientSecret = credentials.ClientSecret!.Trim();
+        options.CallbackPath = provider.CallbackPath;
+        options.ResponseType = OpenIdConnectResponseType.Code;
+        options.ResponseMode = provider.ResponseMode;
+        options.UsePkce = true;
+        options.RequireHttpsMetadata = true;
+        options.GetClaimsFromUserInfoEndpoint = false;
 
         /*
          * BillWatch needs only the provider-issued ID token long enough to
          * validate the linked identity again at the API boundary. Provider
          * access and refresh tokens are deliberately not persisted.
          */
-        options.SaveTokens =
-            false;
-
-        options.MapInboundClaims =
-            false;
+        options.SaveTokens = false;
+        options.MapInboundClaims = false;
 
         options.Scope.Clear();
-        options.Scope.Add(
-            OpenIdConnectScope.OpenId);
-        options.Scope.Add(
-            OpenIdConnectScope.Email);
+        options.Scope.Add(OpenIdConnectScope.OpenId);
+        options.Scope.Add(OpenIdConnectScope.Email);
 
         if (provider.IncludeProfileScope)
         {
-            options.Scope.Add(
-                OpenIdConnectScope.Profile);
+            options.Scope.Add(OpenIdConnectScope.Profile);
         }
 
-        options.TokenValidationParameters =
-            new TokenValidationParameters
-            {
-                ValidateIssuer =
-                    true,
-
-                ValidateAudience =
-                    true,
-
-                NameClaimType =
-                    "email"
-            };
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            NameClaimType = "email"
+        };
 
         ConfigureRemoteCookie(
             options.CorrelationCookie,
             $"__Host-BillWatch.Web.{provider.DisplayName}.Correlation.");
-
         ConfigureRemoteCookie(
             options.NonceCookie,
             $"__Host-BillWatch.Web.{provider.DisplayName}.Nonce.");
 
-        options.Events =
-            new OpenIdConnectEvents
-            {
-                OnTokenValidated =
-                    context =>
+        options.Events = new OpenIdConnectEvents
+        {
+            OnTokenValidated =
+                context =>
+                {
+                    var idToken =
+                        context.TokenEndpointResponse?.IdToken;
+                    var properties = context.Properties;
+
+                    if (string.IsNullOrWhiteSpace(idToken) ||
+                        properties is null)
                     {
-                        var idToken =
-                            context.TokenEndpointResponse?
-                                .IdToken;
-
-                        var properties =
-                            context.Properties;
-
-                        if (string.IsNullOrWhiteSpace(
-                                idToken) ||
-                            properties is null)
-                        {
-                            context.Fail(
-                                "The identity provider did not return a valid sign-in state.");
-
-                            return Task.CompletedTask;
-                        }
-
-                        properties.Items[
-                            ExternalIdTokenProperty] =
-                            idToken;
-
-                        properties.Items[
-                            ExternalProviderProperty] =
-                            provider.Provider;
-
-                        return Task.CompletedTask;
-                    },
-
-                OnRemoteFailure =
-                    context =>
-                    {
-                        context.HandleResponse();
-
-                        context.Response.Redirect(
-                            BuildLoginErrorRedirect(
-                                "External sign-in could not be completed."));
-
+                        context.Fail(
+                            "The identity provider did not return a valid sign-in state.");
                         return Task.CompletedTask;
                     }
-            };
+
+                    properties.Items[ExternalIdTokenProperty] =
+                        idToken;
+                    properties.Items[ExternalProviderProperty] =
+                        provider.Provider;
+
+                    return Task.CompletedTask;
+                },
+
+            OnRemoteFailure =
+                context =>
+                {
+                    context.HandleResponse();
+
+                    context.Properties?.Items.TryGetValue(
+                        ExternalPurposeProperty,
+                        out var purpose);
+
+                    var redirect = string.Equals(
+                        purpose,
+                        LinkPurpose,
+                        StringComparison.Ordinal)
+                        ? BuildAccountSettingsErrorRedirect(
+                            "External sign-in could not be completed.")
+                        : BuildLoginErrorRedirect(
+                            "External sign-in could not be completed.");
+
+                    context.Response.Redirect(redirect);
+                    return Task.CompletedTask;
+                }
+        };
     }
 
     private static void ConfigureRemoteCookie(
         CookieBuilder cookie,
         string name)
     {
-        cookie.Name =
-            name;
-
-        cookie.HttpOnly =
-            true;
-
-        cookie.SecurePolicy =
-            CookieSecurePolicy.Always;
-
-        cookie.SameSite =
-            SameSiteMode.None;
-
-        cookie.Path =
-            "/";
-
-        cookie.IsEssential =
-            true;
+        cookie.Name = name;
+        cookie.HttpOnly = true;
+        cookie.SecurePolicy = CookieSecurePolicy.Always;
+        cookie.SameSite = SameSiteMode.None;
+        cookie.Path = "/";
+        cookie.IsEssential = true;
     }
 
-    private static ExternalProviderDefinition?
-        FindProvider(
-            string? provider)
+    private static ExternalProviderDefinition? FindProvider(
+        string? provider)
     {
-        if (string.IsNullOrWhiteSpace(
-                provider))
+        if (string.IsNullOrWhiteSpace(provider))
         {
             return null;
         }
 
         var normalizedProvider =
-            provider.Trim()
-                .ToLowerInvariant();
+            provider.Trim().ToLowerInvariant();
 
         return Providers.FirstOrDefault(
-            candidate =>
-                string.Equals(
-                    candidate.Provider,
-                    normalizedProvider,
-                    StringComparison.Ordinal));
+            candidate => string.Equals(
+                candidate.Provider,
+                normalizedProvider,
+                StringComparison.Ordinal));
     }
 
     private static async Task ClearExternalSessionAsync(
         HttpContext context)
     {
-        await context.SignOutAsync(
-            ExternalCookieScheme);
+        await context.SignOutAsync(ExternalCookieScheme);
     }
 
-    private static string BuildLoginErrorRedirect(
-        string error)
+    private static string BuildLoginErrorRedirect(string error)
     {
         return "/login?error=" +
-               Uri.EscapeDataString(
-                   error);
+               Uri.EscapeDataString(error);
     }
 
     private static string BuildAccountSettingsErrorRedirect(
         string error)
     {
         return "/app/account/settings?externalError=" +
-               Uri.EscapeDataString(
-                   error);
+               Uri.EscapeDataString(error);
     }
 
     private sealed record ExternalProviderDefinition(
@@ -665,8 +535,7 @@ public sealed record ExternalIdentityLinkBffRequest(
 
 public sealed class ExternalWebIdentityOptions
 {
-    public const string SectionName =
-        "ExternalIdentity";
+    public const string SectionName = "ExternalIdentity";
 
     public ExternalWebIdentityCredentialOptions Google { get; set; } =
         new();
@@ -682,17 +551,10 @@ public sealed class ExternalWebIdentityOptions
     {
         return provider switch
         {
-            "google" =>
-                Google,
-
-            "apple" =>
-                Apple,
-
-            "microsoft" =>
-                Microsoft,
-
-            _ =>
-                null
+            "google" => Google,
+            "apple" => Apple,
+            "microsoft" => Microsoft,
+            _ => null
         };
     }
 }
@@ -700,12 +562,9 @@ public sealed class ExternalWebIdentityOptions
 public sealed class ExternalWebIdentityCredentialOptions
 {
     public string? ClientId { get; set; }
-
     public string? ClientSecret { get; set; }
 
     public bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(
-            ClientId) &&
-        !string.IsNullOrWhiteSpace(
-            ClientSecret);
+        !string.IsNullOrWhiteSpace(ClientId) &&
+        !string.IsNullOrWhiteSpace(ClientSecret);
 }
