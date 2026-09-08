@@ -741,7 +741,8 @@
                 ExternalError))
         {
             SetError(
-                ExternalError.Trim());
+                L["BillWatch could not complete that sign-in method. Try again."]
+                    .Value);
         }
     }
 

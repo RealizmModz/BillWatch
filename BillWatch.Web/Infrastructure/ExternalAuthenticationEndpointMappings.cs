@@ -649,19 +649,15 @@ public static class ExternalAuthenticationEndpointMappings
     }
 
     private static string BuildLoginErrorRedirect(
-        string error)
+        string _)
     {
-        return "/login?error=" +
-               Uri.EscapeDataString(
-                   error);
+        return "/login?externalError=true";
     }
 
     private static string BuildAccountSettingsErrorRedirect(
-        string error)
+        string _)
     {
-        return "/app/account/settings?externalError=" +
-               Uri.EscapeDataString(
-                   error);
+        return "/app/account/settings?externalError=true";
     }
 
     private sealed record ExternalProviderDefinition(
