@@ -34,6 +34,9 @@ public sealed class ExternalIdentityUnlinkSecurityTests
                         TestPassword,
 
                     twoFactorCode =
+                        (string?)null,
+
+                    twoFactorRecoveryCode =
                         (string?)null
                 });
 
@@ -77,6 +80,9 @@ public sealed class ExternalIdentityUnlinkSecurityTests
                         "definitely-wrong-password",
 
                     twoFactorCode =
+                        (string?)null,
+
+                    twoFactorRecoveryCode =
                         (string?)null
                 });
 
@@ -130,12 +136,106 @@ public sealed class ExternalIdentityUnlinkSecurityTests
                         TestPassword,
 
                     twoFactorCode =
+                        (string?)null,
+
+                    twoFactorRecoveryCode =
                         (string?)null
                 });
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
             response.StatusCode);
+
+        Assert.True(
+            await HasExternalLoginAsync(
+                factory,
+                session.Email,
+                ExternalIdentityProviders.Google));
+    }
+
+    [Fact]
+    public async Task Unlink_TwoFactorAccountWithRecoveryCode_RemovesLoginAndConsumesCode()
+    {
+        using var factory =
+            new BillWatchApiFactory();
+
+        using var client =
+            factory.CreateHttpsClient();
+
+        var session =
+            await TestUserAuthentication.RegisterAndLoginAsync(
+                client);
+
+        await AddExternalLoginAsync(
+            factory,
+            session.Email,
+            ExternalIdentityProviders.Google,
+            "google-subject");
+
+        var recoveryCode =
+            await EnableTwoFactorAndCreateRecoveryCodeAsync(
+                factory,
+                session.Email);
+
+        TestUserAuthentication.Authorize(
+            client,
+            session);
+
+        using var response =
+            await client.PostAsJsonAsync(
+                "/api/auth/external/unlink",
+                new
+                {
+                    provider =
+                        ExternalIdentityProviders.Google,
+
+                    currentPassword =
+                        TestPassword,
+
+                    twoFactorCode =
+                        (string?)null,
+
+                    twoFactorRecoveryCode =
+                        recoveryCode
+                });
+
+        Assert.Equal(
+            HttpStatusCode.NoContent,
+            response.StatusCode);
+
+        Assert.False(
+            await HasExternalLoginAsync(
+                factory,
+                session.Email,
+                ExternalIdentityProviders.Google));
+
+        await AddExternalLoginAsync(
+            factory,
+            session.Email,
+            ExternalIdentityProviders.Google,
+            "google-subject-relinked");
+
+        using var replayResponse =
+            await client.PostAsJsonAsync(
+                "/api/auth/external/unlink",
+                new
+                {
+                    provider =
+                        ExternalIdentityProviders.Google,
+
+                    currentPassword =
+                        TestPassword,
+
+                    twoFactorCode =
+                        (string?)null,
+
+                    twoFactorRecoveryCode =
+                        recoveryCode
+                });
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            replayResponse.StatusCode);
 
         Assert.True(
             await HasExternalLoginAsync(
@@ -185,6 +285,9 @@ public sealed class ExternalIdentityUnlinkSecurityTests
                         TestPassword,
 
                     twoFactorCode =
+                        (string?)null,
+
+                    twoFactorRecoveryCode =
                         (string?)null
                 });
 
@@ -289,5 +392,45 @@ public sealed class ExternalIdentityUnlinkSecurityTests
 
         Assert.True(
             result.Succeeded);
+    }
+
+    private static async Task<string> EnableTwoFactorAndCreateRecoveryCodeAsync(
+        BillWatchApiFactory factory,
+        string email)
+    {
+        await using var scope =
+            factory.Services.CreateAsyncScope();
+
+        var userManager =
+            scope.ServiceProvider.GetRequiredService<
+                UserManager<ApplicationUser>>();
+
+        var user =
+            await userManager.FindByEmailAsync(
+                email);
+
+        Assert.NotNull(user);
+
+        var enableResult =
+            await userManager.SetTwoFactorEnabledAsync(
+                user!,
+                true);
+
+        Assert.True(
+            enableResult.Succeeded);
+
+        var recoveryCodes =
+            await userManager.GenerateNewTwoFactorRecoveryCodesAsync(
+                user!,
+                1);
+
+        var recoveryCode =
+            recoveryCodes?.SingleOrDefault();
+
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                recoveryCode));
+
+        return recoveryCode!;
     }
 }

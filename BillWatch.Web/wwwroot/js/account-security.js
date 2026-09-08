@@ -136,19 +136,29 @@ async function beginExternalIdentityUnlink(provider) {
     }
 
     let twoFactorCode = null;
+    let twoFactorRecoveryCode = null;
 
     try {
         const security = await getAccountSecurity();
 
         if (security?.twoFactorEnabled === true) {
-            twoFactorCode = window.prompt("Enter your current BillWatch authenticator code.");
+            twoFactorCode = window.prompt(
+                "Enter your current BillWatch authenticator code, or leave this blank to use a recovery code.");
 
             if (!twoFactorCode) {
-                return;
+                twoFactorRecoveryCode = window.prompt("Enter one unused BillWatch recovery code.");
+
+                if (!twoFactorRecoveryCode) {
+                    return;
+                }
             }
         }
 
-        await unlinkExternalIdentity(provider, currentPassword, twoFactorCode);
+        await unlinkExternalIdentity(
+            provider,
+            currentPassword,
+            twoFactorCode,
+            twoFactorRecoveryCode);
         window.alert(`${displayName} was removed from your BillWatch sign-in methods.`);
     }
     catch (error) {
@@ -258,13 +268,18 @@ export async function linkExternalIdentity(provider, currentPassword, twoFactorC
     return result;
 }
 
-export async function unlinkExternalIdentity(provider, currentPassword, twoFactorCode) {
+export async function unlinkExternalIdentity(
+    provider,
+    currentPassword,
+    twoFactorCode,
+    twoFactorRecoveryCode) {
     const result = await postJson(
         "/bff/account/external/unlink",
         {
             provider,
             currentPassword,
-            twoFactorCode: twoFactorCode || null
+            twoFactorCode: twoFactorCode || null,
+            twoFactorRecoveryCode: twoFactorRecoveryCode || null
         },
         "BillWatch could not remove this sign-in method.");
 
