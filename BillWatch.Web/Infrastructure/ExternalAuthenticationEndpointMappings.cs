@@ -492,7 +492,10 @@ public static class ExternalAuthenticationEndpointMappings
                     request.CurrentPassword,
 
                 twoFactorCode =
-                    request.TwoFactorCode
+                    request.TwoFactorCode,
+
+                twoFactorRecoveryCode =
+                    request.TwoFactorRecoveryCode
             },
             cancellationToken);
     }
@@ -798,7 +801,8 @@ public static class ExternalAuthenticationEndpointMappings
 public sealed record ExternalIdentityLinkBffRequest(
     string Provider,
     string CurrentPassword,
-    string? TwoFactorCode);
+    string? TwoFactorCode,
+    string? TwoFactorRecoveryCode);
 
 public sealed class ExternalWebIdentityOptions
 {
