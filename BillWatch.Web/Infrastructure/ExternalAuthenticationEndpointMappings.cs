@@ -299,12 +299,6 @@ public static class ExternalAuthenticationEndpointMappings
                 new { error = "ExternalLinkExpired" });
         }
 
-        /*
-         * The provider proof is single-use at the BFF layer. Clear the
-         * temporary external cookie before the API reauthentication request
-         * so a failed password/2FA attempt cannot be replayed repeatedly with
-         * the same provider assertion.
-         */
         await ClearExternalSessionAsync(context);
 
         return await writeProxyService.ForwardJsonAsync(
@@ -388,12 +382,6 @@ public static class ExternalAuthenticationEndpointMappings
         options.UsePkce = true;
         options.RequireHttpsMetadata = true;
         options.GetClaimsFromUserInfoEndpoint = false;
-
-        /*
-         * BillWatch needs only the provider-issued ID token long enough to
-         * validate the linked identity again at the API boundary. Provider
-         * access and refresh tokens are deliberately not persisted.
-         */
         options.SaveTokens = false;
         options.MapInboundClaims = false;
 
@@ -454,16 +442,14 @@ public static class ExternalAuthenticationEndpointMappings
                         ExternalPurposeProperty,
                         out var purpose);
 
-                    var redirect = string.Equals(
-                        purpose,
-                        LinkPurpose,
-                        StringComparison.Ordinal)
-                        ? BuildAccountSettingsErrorRedirect(
-                            "External sign-in could not be completed.")
-                        : BuildLoginErrorRedirect(
-                            "External sign-in could not be completed.");
+                    context.Response.Redirect(
+                        string.Equals(
+                            purpose,
+                            LinkPurpose,
+                            StringComparison.Ordinal)
+                            ? BuildAccountSettingsErrorRedirect(string.Empty)
+                            : BuildLoginErrorRedirect(string.Empty));
 
-                    context.Response.Redirect(redirect);
                     return Task.CompletedTask;
                 }
         };
@@ -505,17 +491,16 @@ public static class ExternalAuthenticationEndpointMappings
         await context.SignOutAsync(ExternalCookieScheme);
     }
 
-    private static string BuildLoginErrorRedirect(string error)
+    private static string BuildLoginErrorRedirect(string _)
     {
-        return "/login?error=" +
-               Uri.EscapeDataString(error);
+        return "/login?externalError=true";
     }
 
-    private static string BuildAccountSettingsErrorRedirect(
-        string error)
+    private static string BuildAccountSettingsErrorRedirect(string _)
     {
         return "/app/account/settings?externalError=" +
-               Uri.EscapeDataString(error);
+               Uri.EscapeDataString(
+                   "BillWatch could not complete that sign-in method. Try again.");
     }
 
     private sealed record ExternalProviderDefinition(
