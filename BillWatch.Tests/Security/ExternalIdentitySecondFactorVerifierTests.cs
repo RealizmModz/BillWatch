@@ -148,13 +148,13 @@ public sealed class ExternalIdentitySecondFactorVerifierTests
             await verifier.VerifyAsync(
                 user!,
                 authenticatorCode: null,
-                recoveryCode);
+                recoveryCode: recoveryCode);
 
         var secondResult =
             await verifier.VerifyAsync(
                 user!,
                 authenticatorCode: null,
-                recoveryCode);
+                recoveryCode: recoveryCode);
 
         Assert.Equal(
             ExternalIdentitySecondFactorResult.Succeeded,
@@ -215,13 +215,13 @@ public sealed class ExternalIdentitySecondFactorVerifierTests
             await verifier.VerifyAsync(
                 user!,
                 authenticatorCode: "123456",
-                recoveryCode);
+                recoveryCode: recoveryCode);
 
         var recoveryResult =
             await verifier.VerifyAsync(
                 user!,
                 authenticatorCode: null,
-                recoveryCode);
+                recoveryCode: recoveryCode);
 
         Assert.Equal(
             ExternalIdentitySecondFactorResult.Failed,
