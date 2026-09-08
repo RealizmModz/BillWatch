@@ -254,13 +254,18 @@ export function requestEmailChange(currentPassword, newEmail, twoFactorCode) {
         "BillWatch could not start the email change.");
 }
 
-export async function linkExternalIdentity(provider, currentPassword, twoFactorCode) {
+export async function linkExternalIdentity(
+    provider,
+    currentPassword,
+    twoFactorCode,
+    twoFactorRecoveryCode) {
     const result = await postJson(
         "/bff/account/external/link",
         {
             provider,
             currentPassword,
-            twoFactorCode: twoFactorCode || null
+            twoFactorCode: twoFactorCode || null,
+            twoFactorRecoveryCode: twoFactorRecoveryCode || null
         },
         "BillWatch could not link this sign-in method. Start the provider link again and try again.");
 
