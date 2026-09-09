@@ -96,7 +96,16 @@ timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 [ -n "$unit_safe" ] || unit_safe=unknown
 [ -n "$host_safe" ] || host_safe=unknown
 
-payload="{\"source\":\"billwatch-production\",\"event\":\"$event_safe\",\"unit\":\"$unit_safe\",\"host\":\"$host_safe\",\"occurredAtUtc\":\"$timestamp\"}"
+generic_payload="{\"source\":\"billwatch-production\",\"event\":\"$event_safe\",\"unit\":\"$unit_safe\",\"host\":\"$host_safe\",\"occurredAtUtc\":\"$timestamp\"}"
+
+case "$webhook_url" in
+    https://hooks.slack.com/services/*)
+        payload="{\"text\":\"BillWatch production alert\\nSource: billwatch-production\\nEvent: $event_safe\\nUnit: $unit_safe\\nHost: $host_safe\\nOccurred at UTC: $timestamp\"}"
+        ;;
+    *)
+        payload="$generic_payload"
+        ;;
+esac
 
 curl_config="$(mktemp)"
 printf 'url = "%s"\n' "$webhook_url" > "$curl_config"
