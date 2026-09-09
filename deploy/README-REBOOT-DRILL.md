@@ -25,23 +25,27 @@ The state file is removed only after a successful postflight. A failed postfligh
 
 ## Run the drill
 
-Use the deployed checkout, normally `/opt/billwatch`. The default state file is `/var/lib/billwatch/reboot-drill.state`; it is intentionally outside the Git checkout. A different absolute path can be supplied with `BILLWATCH_REBOOT_DRILL_STATE_FILE`.
+Use the deployed checkout, normally `/opt/billwatch`, and run both phases as the same deployment account that owns the checkout and `.env.production`. Do **not** run the harness with `sudo`: the beta-readiness verifier intentionally requires the protected production environment to remain owned by the deployment account.
+
+By default the state file is stored under the deployment account's state directory at `${XDG_STATE_HOME:-$HOME}/billwatch/reboot-drill.state`; it remains outside the Git checkout and is created mode `600`. A different absolute path outside the deployment checkout can be supplied with `BILLWATCH_REBOOT_DRILL_STATE_FILE`.
 
 Before reboot:
 
 ```sh
-sudo BILLWATCH_REBOOT_DRILL_ALLOW=true \
-  sh /opt/billwatch/deploy/run-controlled-reboot-drill.sh \
+cd /opt/billwatch
+BILLWATCH_REBOOT_DRILL_ALLOW=true \
+  sh deploy/run-controlled-reboot-drill.sh \
   preflight /opt/billwatch
 ```
 
 Only after preflight succeeds, perform the VPS reboot through the normal operator/provider control path. Do not deploy another commit, edit `.billwatch-release`, or replace the checkout between phases.
 
-After the host returns:
+After the host returns, sign back in as the same deployment account and run:
 
 ```sh
-sudo BILLWATCH_REBOOT_DRILL_ALLOW=true \
-  sh /opt/billwatch/deploy/run-controlled-reboot-drill.sh \
+cd /opt/billwatch
+BILLWATCH_REBOOT_DRILL_ALLOW=true \
+  sh deploy/run-controlled-reboot-drill.sh \
   postflight /opt/billwatch
 ```
 
