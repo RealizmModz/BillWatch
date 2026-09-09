@@ -123,4 +123,23 @@ verify_count="$(wc -l < "$verify_log" | tr -d ' ')"
 grep -Fq 'is-enabled --quiet docker' "$systemctl_log" || fail "drill did not verify Docker enablement."
 grep -Fq 'is-active --quiet docker' "$systemctl_log" || fail "drill did not verify Docker activity."
 
+default_state_root="$temp_dir/default-state"
+mkdir -p "$default_state_root"
+: > "$verify_log"
+: > "$systemctl_log"
+BILLWATCH_TEST_BOOT_ID_VALUE='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+PATH="$fake_bin:$PATH" \
+BILLWATCH_TEST_GIT_HEAD="$release_a" \
+BILLWATCH_TEST_BOOT_ID="$BILLWATCH_TEST_BOOT_ID_VALUE" \
+BILLWATCH_TEST_SYSTEMCTL_LOG="$systemctl_log" \
+BILLWATCH_TEST_VERIFY_LOG="$verify_log" \
+XDG_STATE_HOME="$default_state_root" \
+BILLWATCH_REBOOT_DRILL_ALLOW=true \
+sh "$drill" preflight "$deployment" >/dev/null || fail "default deployment-owned state preflight failed."
+
+default_state_file="$default_state_root/billwatch/reboot-drill.state"
+[ -f "$default_state_file" ] || fail "default state did not use the deployment account state directory."
+[ "$(stat -c '%a' "$default_state_file")" = "600" ] || fail "default deployment-owned state was not mode 600."
+rm -f "$default_state_file"
+
 printf '%s\n' 'Controlled reboot recovery drill regression tests passed.'
