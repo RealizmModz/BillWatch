@@ -54,21 +54,14 @@ The admin smoke test proves that a fresh bearer session can satisfy `AdminOrOwne
 
 ## Systemd production units
 
-Install the backup, runtime-watchdog, and alert units together so no `OnFailure` route can point at a missing template:
+Install the backup, runtime-watchdog, and alert units together so no `OnFailure` route can point at a missing template. Use the installer rather than raw `cp`: production checkout hardening may make source unit files mode `600`, while systemd unit files need to remain readable to non-root verification commands such as `systemctl cat`.
 
 ```sh
-sudo cp \
-  deploy/systemd/billwatch-backup.service \
-  deploy/systemd/billwatch-backup.timer \
-  deploy/systemd/billwatch-runtime-readiness.service \
-  deploy/systemd/billwatch-runtime-readiness.timer \
-  deploy/systemd/billwatch-operations-alert@.service \
-  /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now \
-  billwatch-backup.timer \
-  billwatch-runtime-readiness.timer
+cd /opt/billwatch
+sudo sh deploy/install-production-systemd-units.sh /opt/billwatch
 ```
+
+The installer validates each required source unit, refuses symlinked unit sources, installs every unit with mode `0644`, reloads systemd, and enables both production timers.
 
 The runtime watchdog waits briefly after boot and then executes the guarded production verifier every five minutes. It verifies checked-out source, protected release marker, running release revisions, exposure rules, container health, and public readiness. It does **not** automatically deploy, roll back, restart PostgreSQL, or rewrite the verified release marker. A failure is surfaced through the metadata-only operations alert path.
 

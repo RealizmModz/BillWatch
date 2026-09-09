@@ -121,4 +121,7 @@ grep -Fq 'check-runtime-watchdog.sh' "$root_dir/deploy/verify-beta-readiness.sh"
 grep -Fq 'billwatch-runtime-readiness.service' "$root_dir/deploy/check-operations-alerting.sh" ||
     fail "operations alert verification must cover runtime readiness failures."
 
+sh "$root_dir/deploy/tests/systemd-install-tests.sh" ||
+    fail "systemd installation regression suite failed."
+
 printf '%s\n' 'Runtime watchdog tests passed.'

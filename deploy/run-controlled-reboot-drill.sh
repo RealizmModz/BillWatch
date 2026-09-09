@@ -6,7 +6,6 @@ umask 077
 
 phase="${1:-}"
 deployment_directory="${2:-}"
-state_file="${BILLWATCH_REBOOT_DRILL_STATE_FILE:-/var/lib/billwatch/reboot-drill.state}"
 allow_drill="${BILLWATCH_REBOOT_DRILL_ALLOW:-false}"
 
 fail()
@@ -20,6 +19,14 @@ usage()
     printf '%s\n' "Usage: BILLWATCH_REBOOT_DRILL_ALLOW=true $0 <preflight|postflight> <deployment-directory>" >&2
     exit 64
 }
+
+if [ -n "${BILLWATCH_REBOOT_DRILL_STATE_FILE:-}" ]; then
+    state_file="$BILLWATCH_REBOOT_DRILL_STATE_FILE"
+else
+    state_root="${XDG_STATE_HOME:-${HOME:-}}"
+    [ -n "$state_root" ] || fail "Set HOME, XDG_STATE_HOME, or BILLWATCH_REBOOT_DRILL_STATE_FILE for reboot-drill state." 64
+    state_file="$state_root/billwatch/reboot-drill.state"
+fi
 
 [ "$phase" = "preflight" ] || [ "$phase" = "postflight" ] || usage
 [ -n "$deployment_directory" ] || usage
