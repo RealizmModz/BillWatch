@@ -79,6 +79,7 @@ jobs:
       - name: Validate production operation scripts
         run: |
           sh deploy/tests/production-operations-tests.sh
+          sh deploy/tests/operations-alert-sender-tests.sh
           sh deploy/tests/backup-trust-boundary-tests.sh
           sh deploy/tests/release-integrity-tests.sh
           sh deploy/tests/runtime-release-tests.sh
