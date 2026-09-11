@@ -199,16 +199,10 @@ public sealed class AccountSecurityController(
                 user,
                 newEmail);
 
-        var encodedCode =
-            WebEncoders.Base64UrlEncode(
-                Encoding.UTF8.GetBytes(token));
-
-        var publicBase =
-            emailOptions.Value.PublicWebBaseUrl
-                .TrimEnd('/');
-
-        var confirmationLink =
-            $"{publicBase}/auth/confirm-email?userId={Uri.EscapeDataString(user.Id.ToString())}&code={Uri.EscapeDataString(encodedCode)}&changedEmail={Uri.EscapeDataString(newEmail)}";
+        var confirmationLink = BuildConfirmationLink(
+            user.Id,
+            token,
+            newEmail);
 
         await emailSender.SendConfirmationLinkAsync(
             user,
@@ -220,6 +214,56 @@ public sealed class AccountSecurityController(
             {
                 message =
                     "Check the new email address to confirm the change."
+            });
+    }
+
+    [HttpPost("email/verification")]
+    public async Task<IActionResult> ResendEmailVerification()
+    {
+        var user = await GetCurrentUserAsync();
+
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        if (await userManager.IsEmailConfirmedAsync(user))
+        {
+            return NoContent();
+        }
+
+        if (!emailOptions.Value.Enabled)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Account email delivery is not configured yet.");
+        }
+
+        var email = user.Email?.Trim();
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return ValidationProblem(
+                "Your account does not have an email address to verify.");
+        }
+
+        var token =
+            await userManager.GenerateEmailConfirmationTokenAsync(user);
+
+        var confirmationLink = BuildConfirmationLink(
+            user.Id,
+            token);
+
+        await emailSender.SendConfirmationLinkAsync(
+            user,
+            email,
+            confirmationLink);
+
+        return Ok(
+            new
+            {
+                message =
+                    "Check your email to verify your BillWatch account."
             });
     }
 
@@ -524,6 +568,27 @@ public sealed class AccountSecurityController(
             await userManager.GetTwoFactorEnabledAsync(user),
             !string.IsNullOrWhiteSpace(authenticatorKey),
             await userManager.CountRecoveryCodesAsync(user));
+    }
+
+    private string BuildConfirmationLink(
+        Guid userId,
+        string token,
+        string? changedEmail = null)
+    {
+        var encodedCode =
+            WebEncoders.Base64UrlEncode(
+                Encoding.UTF8.GetBytes(token));
+
+        var publicBase =
+            emailOptions.Value.PublicWebBaseUrl
+                .TrimEnd('/');
+
+        var confirmationLink =
+            $"{publicBase}/auth/confirm-email?userId={Uri.EscapeDataString(userId.ToString())}&code={Uri.EscapeDataString(encodedCode)}";
+
+        return string.IsNullOrWhiteSpace(changedEmail)
+            ? confirmationLink
+            : $"{confirmationLink}&changedEmail={Uri.EscapeDataString(changedEmail)}";
     }
 
     private ObjectResult UnauthorizedProblem(
