@@ -4,9 +4,7 @@
 @using QRCoder
 
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
-
 @layout AppLayout
-
 @implements IAsyncDisposable
 
 @inject IJSRuntime JS
@@ -14,7 +12,6 @@
 @inject Microsoft.Extensions.Localization.IStringLocalizer<AccountSettings> L
 
 <PageTitle>@L["Settings — BillWatch"]</PageTitle>
-
 <link rel="stylesheet" href="/account-settings.css" />
 
 <div class="app-page settings-page">
@@ -45,7 +42,7 @@
         <div>
             <span class="page-kicker">@L["Settings"]</span>
             <h1>@L["Account & security"]</h1>
-            <p>@L["Manage sign-in protection and account preferences without exposing sensitive credentials until they are actually needed."]</p>
+            <p>@L["Manage sign-in protection and account preferences. Sensitive credentials appear only when an action needs them."]</p>
         </div>
     </header>
 
@@ -118,21 +115,13 @@
                 <div class="settings-actions">
                     @if (_security.TwoFactorEnabled)
                     {
-                        <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.RecoveryCodes)">
-                            @L["New recovery codes"]
-                        </button>
-                        <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.ReplaceAuthenticator)">
-                            @L["Replace authenticator"]
-                        </button>
-                        <button type="button" class="danger-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.DisableTwoFactor)">
-                            @L["Disable 2FA"]
-                        </button>
+                        <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.RecoveryCodes)">@L["New recovery codes"]</button>
+                        <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.ReplaceAuthenticator)">@L["Replace authenticator"]</button>
+                        <button type="button" class="danger-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.DisableTwoFactor)">@L["Disable 2FA"]</button>
                     }
                     else
                     {
-                        <button type="button" class="primary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.SetupTwoFactor)">
-                            @L["Set up 2FA"]
-                        </button>
+                        <button type="button" class="primary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.SetupTwoFactor)">@L["Set up 2FA"]</button>
                     }
                 </div>
             </section>
@@ -157,14 +146,10 @@
                 </div>
 
                 <div class="settings-actions">
-                    <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.ChangeEmail)">
-                        @L["Change email"]
-                    </button>
+                    <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.ChangeEmail)">@L["Change email"]</button>
                     @if (!_security.EmailConfirmed)
                     {
-                        <button type="button" class="primary-action subtle-primary" disabled="@_isBusy" @onclick="ResendVerificationEmailAsync">
-                            @L["Send verification email"]
-                        </button>
+                        <button type="button" class="primary-action subtle-primary" disabled="@_isBusy" @onclick="ResendVerificationEmailAsync">@L["Send verification email"]</button>
                     }
                 </div>
             </section>
@@ -184,9 +169,7 @@
                 </div>
 
                 <div class="settings-actions">
-                    <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.ChangePassword)">
-                        @L["Change password"]
-                    </button>
+                    <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="() => OpenDialogAsync(SecurityDialog.ChangePassword)">@L["Change password"]</button>
                 </div>
             </section>
 
@@ -204,24 +187,15 @@
                     <div class="provider-row">
                         @if (GoogleSignInConfigured)
                         {
-                            <div class="provider-item">
-                                <strong>Google</strong>
-                                <a class="secondary-link" href="/auth/external/google/link">@L["Link Google"] <span aria-hidden="true">→</span></a>
-                            </div>
+                            <div class="provider-item"><strong>Google</strong><a class="secondary-link" href="/auth/external/google/link">@L["Link Google"] <span aria-hidden="true">→</span></a></div>
                         }
                         @if (AppleSignInConfigured)
                         {
-                            <div class="provider-item">
-                                <strong>Apple</strong>
-                                <a class="secondary-link" href="/auth/external/apple/link">@L["Link Apple"] <span aria-hidden="true">→</span></a>
-                            </div>
+                            <div class="provider-item"><strong>Apple</strong><a class="secondary-link" href="/auth/external/apple/link">@L["Link Apple"] <span aria-hidden="true">→</span></a></div>
                         }
                         @if (MicrosoftSignInConfigured)
                         {
-                            <div class="provider-item">
-                                <strong>Microsoft</strong>
-                                <a class="secondary-link" href="/auth/external/microsoft/link">@L["Link Microsoft"] <span aria-hidden="true">→</span></a>
-                            </div>
+                            <div class="provider-item"><strong>Microsoft</strong><a class="secondary-link" href="/auth/external/microsoft/link">@L["Link Microsoft"] <span aria-hidden="true">→</span></a></div>
                         }
                     </div>
 
@@ -247,9 +221,7 @@
                                 }
                             </div>
                             <div class="settings-actions">
-                                <button type="button" class="primary-action" disabled="@(_isBusy || _securityModule is null)" @onclick="LinkExternalProviderAsync">
-                                    @L["Confirm and link"]
-                                </button>
+                                <button type="button" class="primary-action" disabled="@(_isBusy || _securityModule is null)" @onclick="LinkExternalProviderAsync">@L["Confirm and link"]</button>
                             </div>
                         </div>
                     }
@@ -264,7 +236,6 @@
                         <p>@L["Choose how BillWatch displays dates and times."]</p>
                     </div>
                 </div>
-
                 @if (_isLoadingPreference)
                 {
                     <div class="settings-loading">@L["Loading preference…"]</div>
@@ -278,9 +249,7 @@
                             <option value="Utc">@L["UTC — 09/03/2026 06:26 UTC"]</option>
                         </select>
                     </label>
-                    <div class="settings-actions">
-                        <button type="button" class="secondary-action" disabled="@_isBusy" @onclick="SaveTimestampAsync">@L["Save preference"]</button>
-                    </div>
+                    <div class="settings-actions"><button type="button" class="secondary-action" disabled="@_isBusy" @onclick="SaveTimestampAsync">@L["Save preference"]</button></div>
                 }
             </section>
 
@@ -316,30 +285,15 @@
                 {
                     case SecurityDialog.ChangePassword:
                         <div class="settings-grid single-column">
-                            <label class="settings-field">
-                                <span>@L["Current password"]</span>
-                                <input autofocus type="password" autocomplete="current-password" @bind="_passwordCurrent" />
-                            </label>
-                            <label class="settings-field">
-                                <span>@L["New password"]</span>
-                                <input type="password" autocomplete="new-password" @bind="_passwordNew" />
-                            </label>
-                            <label class="settings-field">
-                                <span>@L["Confirm new password"]</span>
-                                <input type="password" autocomplete="new-password" @bind="_passwordConfirm" />
-                            </label>
+                            <label class="settings-field"><span>@L["Current password"]</span><input autofocus type="password" autocomplete="current-password" @bind="_passwordCurrent" /></label>
+                            <label class="settings-field"><span>@L["New password"]</span><input type="password" autocomplete="new-password" @bind="_passwordNew" /></label>
+                            <label class="settings-field"><span>@L["Confirm new password"]</span><input type="password" autocomplete="new-password" @bind="_passwordConfirm" /></label>
                             @if (_security?.TwoFactorEnabled == true)
                             {
-                                <label class="settings-field">
-                                    <span>@L["Current authenticator code"]</span>
-                                    <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_passwordTwoFactorCode" />
-                                </label>
+                                <label class="settings-field"><span>@L["Current authenticator code"]</span><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_passwordTwoFactorCode" /></label>
                             }
                         </div>
-                        <div class="password-rules">
-                            <strong>@L["Password requirements"]</strong>
-                            <span>@L["At least 12 characters, uppercase and lowercase letters, at least one number, and at least one symbol."]</span>
-                        </div>
+                        <div class="password-rules"><strong>@L["Password requirements"]</strong><span>@L["At least 12 characters, uppercase and lowercase letters, at least one number, and at least one symbol."]</span></div>
                         <div class="settings-dialog-actions">
                             <button type="button" class="secondary-action" data-dialog-cancel @onclick="CloseDialogAsync">@L["Cancel"]</button>
                             <button type="button" class="primary-action" disabled="@_isBusy" @onclick="ChangePasswordAsync">@L["Change password"]</button>
@@ -348,20 +302,11 @@
 
                     case SecurityDialog.ChangeEmail:
                         <div class="settings-grid single-column">
-                            <label class="settings-field">
-                                <span>@L["New email address"]</span>
-                                <input autofocus type="email" autocomplete="email" @bind="_newEmail" />
-                            </label>
-                            <label class="settings-field">
-                                <span>@L["Current password"]</span>
-                                <input type="password" autocomplete="current-password" @bind="_emailCurrentPassword" />
-                            </label>
+                            <label class="settings-field"><span>@L["New email address"]</span><input autofocus type="email" autocomplete="email" @bind="_newEmail" /></label>
+                            <label class="settings-field"><span>@L["Current password"]</span><input type="password" autocomplete="current-password" @bind="_emailCurrentPassword" /></label>
                             @if (_security?.TwoFactorEnabled == true)
                             {
-                                <label class="settings-field">
-                                    <span>@L["Current authenticator code"]</span>
-                                    <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_emailTwoFactorCode" />
-                                </label>
+                                <label class="settings-field"><span>@L["Current authenticator code"]</span><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_emailTwoFactorCode" /></label>
                             }
                         </div>
                         <p class="dialog-note">@L["Your sign-in email changes only after the new inbox opens the verification link."]</p>
@@ -374,7 +319,10 @@
                     case SecurityDialog.RecoveryCodes:
                         @if (_twoFactorStep == 1)
                         {
-                            <SensitiveCredentialFields Password="@_twoFactorCurrentPassword" PasswordChanged="value => _twoFactorCurrentPassword = value" Code="@_twoFactorCurrentCode" CodeChanged="value => _twoFactorCurrentCode = value" />
+                            <div class="settings-grid single-column">
+                                <label class="settings-field"><span>@L["Current password"]</span><input autofocus type="password" autocomplete="current-password" @bind="_twoFactorCurrentPassword" /></label>
+                                <label class="settings-field"><span>@L["Current authenticator code"]</span><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_twoFactorCurrentCode" /></label>
+                            </div>
                             <p class="dialog-note">@L["Generating a new set permanently invalidates every recovery code you currently have."]</p>
                             <div class="settings-dialog-actions">
                                 <button type="button" class="secondary-action" data-dialog-cancel @onclick="CloseDialogAsync">@L["Cancel"]</button>
@@ -383,19 +331,20 @@
                         }
                         else
                         {
-                            <RecoveryCodeList Codes="@_recoveryCodes" />
-                            <div class="settings-dialog-actions">
-                                <button type="button" class="primary-action" data-dialog-cancel @onclick="CloseDialogAsync">@L["I saved these codes"]</button>
+                            <div class="recovery-code-panel" role="status">
+                                <div class="recovery-code-warning"><strong>@L["Store these somewhere safe now."]</strong><span>@L["BillWatch will not show this set again after you close the dialog."]</span></div>
+                                <div class="recovery-code-grid">@foreach (var recoveryCode in _recoveryCodes) { <code>@recoveryCode</code> }</div>
                             </div>
+                            <div class="settings-dialog-actions"><button type="button" class="primary-action" data-dialog-cancel @onclick="CloseDialogAsync">@L["I saved these codes"]</button></div>
                         }
                         break;
 
                     case SecurityDialog.DisableTwoFactor:
-                        <div class="danger-confirmation">
-                            <strong>@L["This removes the second sign-in factor."]</strong>
-                            <span>@L["Your password will become the only factor protecting normal password sign-in until you enable 2FA again."]</span>
+                        <div class="danger-confirmation"><strong>@L["This removes the second sign-in factor."]</strong><span>@L["Your password will become the only factor protecting normal password sign-in until you enable 2FA again."]</span></div>
+                        <div class="settings-grid single-column">
+                            <label class="settings-field"><span>@L["Current password"]</span><input autofocus type="password" autocomplete="current-password" @bind="_twoFactorCurrentPassword" /></label>
+                            <label class="settings-field"><span>@L["Current authenticator code"]</span><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_twoFactorCurrentCode" /></label>
                         </div>
-                        <SensitiveCredentialFields Password="@_twoFactorCurrentPassword" PasswordChanged="value => _twoFactorCurrentPassword = value" Code="@_twoFactorCurrentCode" CodeChanged="value => _twoFactorCurrentCode = value" />
                         <div class="settings-dialog-actions">
                             <button type="button" class="secondary-action" data-dialog-cancel @onclick="CloseDialogAsync">@L["Keep 2FA"]</button>
                             <button type="button" class="danger-action strong-danger" disabled="@_isBusy" @onclick="DisableTwoFactorAsync">@L["Disable 2FA"]</button>
@@ -407,20 +356,11 @@
                         @if (_twoFactorStep == 1)
                         {
                             <div class="settings-grid single-column">
-                                <label class="settings-field">
-                                    <span>@L["Current password"]</span>
-                                    <input autofocus type="password" autocomplete="current-password" @bind="_twoFactorCurrentPassword" />
-                                </label>
+                                <label class="settings-field"><span>@L["Current password"]</span><input autofocus type="password" autocomplete="current-password" @bind="_twoFactorCurrentPassword" /></label>
                                 @if (_activeDialog == SecurityDialog.ReplaceAuthenticator)
                                 {
-                                    <label class="settings-field">
-                                        <span>@L["Current authenticator code"]</span>
-                                        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_twoFactorCurrentCode" />
-                                    </label>
-                                    <div class="danger-confirmation subtle-danger-confirmation">
-                                        <strong>@L["Your old authenticator stops working after this step."]</strong>
-                                        <span>@L["Finish the new authenticator setup before leaving this dialog."]</span>
-                                    </div>
+                                    <label class="settings-field"><span>@L["Current authenticator code"]</span><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_twoFactorCurrentCode" /></label>
+                                    <div class="danger-confirmation subtle-danger-confirmation"><strong>@L["Your old authenticator stops working after this step."]</strong><span>@L["Finish the new authenticator setup before leaving this dialog."]</span></div>
                                 }
                             </div>
                             <div class="settings-dialog-actions">
@@ -438,16 +378,10 @@
                                 <div class="authenticator-setup-copy">
                                     <strong>@L["Scan this QR code"]</strong>
                                     <span>@L["Use your authenticator app, then enter the current six-digit code below."]</span>
-                                    <div class="authenticator-manual-key">
-                                        <span>@L["Manual setup key"]</span>
-                                        <code>@_twoFactorSetup.SharedKey</code>
-                                    </div>
+                                    <div class="authenticator-manual-key"><span>@L["Manual setup key"]</span><code>@_twoFactorSetup.SharedKey</code></div>
                                 </div>
                             </div>
-                            <label class="settings-field">
-                                <span>@L["6-digit code from the new authenticator"]</span>
-                                <input autofocus type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_twoFactorEnableCode" />
-                            </label>
+                            <label class="settings-field"><span>@L["6-digit code from the new authenticator"]</span><input autofocus type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" @bind="_twoFactorEnableCode" /></label>
                             <div class="settings-dialog-actions">
                                 <button type="button" class="secondary-action" data-dialog-cancel @onclick="CloseDialogAsync">@L["Close"]</button>
                                 <button type="button" class="primary-action" disabled="@_isBusy" @onclick="EnableTwoFactorAsync">@L["Verify and enable"]</button>
@@ -455,10 +389,11 @@
                         }
                         else
                         {
-                            <RecoveryCodeList Codes="@_recoveryCodes" />
-                            <div class="settings-dialog-actions">
-                                <button type="button" class="primary-action" data-dialog-cancel @onclick="CloseDialogAsync">@L["I saved these codes"]</button>
+                            <div class="recovery-code-panel" role="status">
+                                <div class="recovery-code-warning"><strong>@L["Store these somewhere safe now."]</strong><span>@L["Each code works once. BillWatch will not show this set again after you close the dialog."]</span></div>
+                                <div class="recovery-code-grid">@foreach (var recoveryCode in _recoveryCodes) { <code>@recoveryCode</code> }</div>
                             </div>
+                            <div class="settings-dialog-actions"><button type="button" class="primary-action" data-dialog-cancel @onclick="CloseDialogAsync">@L["I saved these codes"]</button></div>
                         }
                         break;
                 }
@@ -478,21 +413,18 @@
 
     private IJSObjectReference? _timeModule;
     private IJSObjectReference? _securityModule;
-
     private bool _isBusy;
     private bool _isLoadingPreference = true;
     private bool _dialogOpenRequested;
     private string _selectedMode = "Local12Hour";
     private string? _pageError;
     private string? _pageSuccess;
-
     private AccountSecurityViewModel? _security;
     private TwoFactorSetupViewModel? _twoFactorSetup;
     private string? _twoFactorQrDataUri;
     private List<string> _recoveryCodes = [];
     private SecurityDialog _activeDialog;
     private int _twoFactorStep = 1;
-
     private string _newEmail = string.Empty;
     private string _emailCurrentPassword = string.Empty;
     private string _emailTwoFactorCode = string.Empty;
@@ -515,7 +447,6 @@
     protected override void OnParametersSet()
     {
         _pendingExternalProvider = NormalizeConfiguredExternalProvider(ExternalLink);
-
         if (!string.IsNullOrWhiteSpace(ExternalError))
         {
             SetError(L["BillWatch could not complete that sign-in method. Try again."].Value);
@@ -530,12 +461,9 @@
             {
                 _timeModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/local-time.js");
                 _securityModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/account-security.js");
-
                 var preferenceTask = _timeModule.InvokeAsync<AccountPreferenceViewModel>("getTimestampPreference").AsTask();
                 var securityTask = _securityModule.InvokeAsync<AccountSecurityViewModel>("getAccountSecurity").AsTask();
-
                 await Task.WhenAll(preferenceTask, securityTask);
-
                 _selectedMode = NormalizeMode(preferenceTask.Result.TimestampDisplayMode);
                 _security = securityTask.Result;
             }
@@ -569,21 +497,14 @@
     private async Task CloseDialogAsync()
     {
         var wasReplacingAuthenticator = _activeDialog == SecurityDialog.ReplaceAuthenticator;
-
         if (_securityModule is not null)
         {
-            try
-            {
-                await _securityModule.InvokeVoidAsync("closeSettingsDialog", DialogId);
-            }
-            catch (JSDisconnectedException)
-            {
-            }
+            try { await _securityModule.InvokeVoidAsync("closeSettingsDialog", DialogId); }
+            catch (JSDisconnectedException) { }
         }
 
         _activeDialog = SecurityDialog.None;
         ResetSensitiveDialogState();
-
         if (wasReplacingAuthenticator && _security?.TwoFactorEnabled == false)
         {
             SetError(L["Two-factor authentication is currently disabled. Finish setting up a new authenticator to restore 2FA protection."].Value);
@@ -592,107 +513,71 @@
 
     private async Task ChangeEmailAsync()
     {
-        if (_securityModule is null || _isBusy)
-        {
-            return;
-        }
-
+        if (_securityModule is null || _isBusy) return;
         if (string.IsNullOrWhiteSpace(_newEmail) || string.IsNullOrWhiteSpace(_emailCurrentPassword))
         {
             SetError(L["Enter the new email address and your current password."].Value);
             return;
         }
-
         if (_security?.TwoFactorEnabled == true && string.IsNullOrWhiteSpace(_emailTwoFactorCode))
         {
             SetError(L["Enter the current code from your authenticator app."].Value);
             return;
         }
 
-        await RunActionAsync(
-            async () =>
-            {
-                await _securityModule.InvokeVoidAsync(
-                    "requestEmailChange",
-                    _emailCurrentPassword,
-                    _newEmail,
-                    NullIfBlank(_emailTwoFactorCode));
-
-                SetSuccess(L["Verification email sent to the new address."].Value);
-                await CloseDialogAsync();
-            },
-            L["We couldn’t start the email change. Please try again."].Value);
+        await RunActionAsync(async () =>
+        {
+            await _securityModule.InvokeVoidAsync("requestEmailChange", _emailCurrentPassword, _newEmail, NullIfBlank(_emailTwoFactorCode));
+            SetSuccess(L["Verification email sent to the new address."].Value);
+            await CloseDialogAsync();
+        }, L["We couldn’t start the email change. Please try again."].Value);
     }
 
     private async Task ResendVerificationEmailAsync()
     {
-        if (_securityModule is null || _isBusy || _security?.EmailConfirmed == true)
+        if (_securityModule is null || _isBusy || _security?.EmailConfirmed == true) return;
+        await RunActionAsync(async () =>
         {
-            return;
-        }
-
-        await RunActionAsync(
-            async () =>
-            {
-                await _securityModule.InvokeVoidAsync("resendVerificationEmail");
-                SetSuccess(L["Verification email sent. Check your inbox for the confirmation link."].Value);
-            },
-            L["We couldn’t send the verification email. Please try again."].Value);
+            await _securityModule.InvokeVoidAsync("resendVerificationEmail");
+            SetSuccess(L["Verification email sent. Check your inbox for the confirmation link."].Value);
+        }, L["We couldn’t send the verification email. Please try again."].Value);
     }
 
     private async Task ChangePasswordAsync()
     {
-        if (_securityModule is null || _isBusy)
-        {
-            return;
-        }
-
+        if (_securityModule is null || _isBusy) return;
         if (string.IsNullOrWhiteSpace(_passwordCurrent) || string.IsNullOrWhiteSpace(_passwordNew))
         {
             SetError(L["Enter your current password and a new password."].Value);
             return;
         }
-
         if (!string.Equals(_passwordNew, _passwordConfirm, StringComparison.Ordinal))
         {
             SetError(L["The new passwords do not match."].Value);
             return;
         }
-
         if (_security?.TwoFactorEnabled == true && string.IsNullOrWhiteSpace(_passwordTwoFactorCode))
         {
             SetError(L["Enter the current code from your authenticator app."].Value);
             return;
         }
 
-        await RunActionAsync(
-            async () =>
-            {
-                await _securityModule.InvokeVoidAsync(
-                    "changePassword",
-                    _passwordCurrent,
-                    _passwordNew,
-                    NullIfBlank(_passwordTwoFactorCode));
-
-                SetSuccess(L["Password changed successfully."].Value);
-                await CloseDialogAsync();
-            },
-            L["We couldn’t update your password. Please try again."].Value);
+        await RunActionAsync(async () =>
+        {
+            await _securityModule.InvokeVoidAsync("changePassword", _passwordCurrent, _passwordNew, NullIfBlank(_passwordTwoFactorCode));
+            SetSuccess(L["Password changed successfully."].Value);
+            await CloseDialogAsync();
+        }, L["We couldn’t update your password. Please try again."].Value);
     }
 
     private async Task LinkExternalProviderAsync()
     {
-        if (_securityModule is null || _isBusy || string.IsNullOrWhiteSpace(_pendingExternalProvider))
-        {
-            return;
-        }
-
+        if (_securityModule is null || _isBusy || string.IsNullOrWhiteSpace(_pendingExternalProvider)) return;
         if (string.IsNullOrWhiteSpace(_externalLinkCurrentPassword))
         {
             SetError(L["Enter your current password to link this sign-in method."].Value);
             return;
         }
-
         if (_security?.TwoFactorEnabled == true && string.IsNullOrWhiteSpace(_externalLinkTwoFactorCode))
         {
             SetError(L["Enter your current authenticator code to link this sign-in method."].Value);
@@ -700,35 +585,22 @@
         }
 
         var provider = _pendingExternalProvider;
-
-        await RunActionAsync(
-            async () =>
-            {
-                await _securityModule.InvokeVoidAsync(
-                    "linkExternalIdentity",
-                    provider,
-                    _externalLinkCurrentPassword,
-                    NullIfBlank(_externalLinkTwoFactorCode));
-
-                _externalLinkCurrentPassword = string.Empty;
-                _externalLinkTwoFactorCode = string.Empty;
-                _pendingExternalProvider = null;
-                ExternalLink = null;
-                ExternalError = null;
-
-                await _securityModule.InvokeVoidAsync("clearExternalLinkQuery");
-                SetSuccess($"{GetExternalProviderDisplayName(provider)} {L["can now be used to sign in to BillWatch."].Value}");
-            },
-            L["BillWatch could not link this sign-in method. Start the provider link again and try again."].Value);
+        await RunActionAsync(async () =>
+        {
+            await _securityModule.InvokeVoidAsync("linkExternalIdentity", provider, _externalLinkCurrentPassword, NullIfBlank(_externalLinkTwoFactorCode));
+            _externalLinkCurrentPassword = string.Empty;
+            _externalLinkTwoFactorCode = string.Empty;
+            _pendingExternalProvider = null;
+            ExternalLink = null;
+            ExternalError = null;
+            await _securityModule.InvokeVoidAsync("clearExternalLinkQuery");
+            SetSuccess($"{GetExternalProviderDisplayName(provider)} {L["can now be used to sign in to BillWatch."].Value}");
+        }, L["BillWatch could not link this sign-in method. Start the provider link again and try again."].Value);
     }
 
     private async Task BeginAuthenticatorSetupAsync()
     {
-        if (_securityModule is null || _isBusy)
-        {
-            return;
-        }
-
+        if (_securityModule is null || _isBusy) return;
         if (string.IsNullOrWhiteSpace(_twoFactorCurrentPassword))
         {
             SetError(L["Enter your current password."].Value);
@@ -736,152 +608,90 @@
         }
 
         var replacing = _activeDialog == SecurityDialog.ReplaceAuthenticator;
-
         if (replacing && string.IsNullOrWhiteSpace(_twoFactorCurrentCode))
         {
             SetError(L["Enter the current code from your authenticator app."].Value);
             return;
         }
 
-        await RunActionAsync(
-            async () =>
-            {
-                _twoFactorSetup = replacing
-                    ? await _securityModule.InvokeAsync<TwoFactorSetupViewModel>(
-                        "resetTwoFactor",
-                        _twoFactorCurrentPassword,
-                        _twoFactorCurrentCode)
-                    : await _securityModule.InvokeAsync<TwoFactorSetupViewModel>(
-                        "setupTwoFactor",
-                        _twoFactorCurrentPassword,
-                        null);
-
-                _twoFactorQrDataUri = CreateAuthenticatorQrDataUri(_twoFactorSetup.OtpAuthUri);
-                _twoFactorCurrentCode = string.Empty;
-                _twoFactorStep = 2;
-                await RefreshSecurityAsync();
-            },
-            replacing
-                ? L["We couldn’t replace your authenticator. Please try again."].Value
-                : L["We couldn’t start authenticator setup. Please try again."].Value);
+        await RunActionAsync(async () =>
+        {
+            _twoFactorSetup = replacing
+                ? await _securityModule.InvokeAsync<TwoFactorSetupViewModel>("resetTwoFactor", _twoFactorCurrentPassword, _twoFactorCurrentCode)
+                : await _securityModule.InvokeAsync<TwoFactorSetupViewModel>("setupTwoFactor", _twoFactorCurrentPassword, null);
+            _twoFactorQrDataUri = CreateAuthenticatorQrDataUri(_twoFactorSetup.OtpAuthUri);
+            _twoFactorCurrentCode = string.Empty;
+            _twoFactorStep = 2;
+            await RefreshSecurityAsync();
+        }, replacing ? L["We couldn’t replace your authenticator. Please try again."].Value : L["We couldn’t start authenticator setup. Please try again."].Value);
     }
 
     private async Task EnableTwoFactorAsync()
     {
-        if (_securityModule is null || _isBusy || _twoFactorSetup is null)
-        {
-            return;
-        }
-
+        if (_securityModule is null || _isBusy || _twoFactorSetup is null) return;
         if (string.IsNullOrWhiteSpace(_twoFactorCurrentPassword) || string.IsNullOrWhiteSpace(_twoFactorEnableCode))
         {
             SetError(L["Enter the current code from the new authenticator app."].Value);
             return;
         }
 
-        await RunActionAsync(
-            async () =>
-            {
-                var result = await _securityModule.InvokeAsync<TwoFactorRecoveryCodesViewModel>(
-                    "enableTwoFactor",
-                    _twoFactorCurrentPassword,
-                    _twoFactorEnableCode);
-
-                _recoveryCodes = result.RecoveryCodes.ToList();
-                _twoFactorCurrentPassword = string.Empty;
-                _twoFactorEnableCode = string.Empty;
-                _twoFactorSetup = null;
-                _twoFactorQrDataUri = null;
-                _twoFactorStep = 3;
-                await RefreshSecurityAsync();
-                SetSuccess(L["Two-factor authentication is enabled."].Value);
-            },
-            L["We couldn’t enable two-factor authentication. Please try again."].Value);
+        await RunActionAsync(async () =>
+        {
+            var result = await _securityModule.InvokeAsync<TwoFactorRecoveryCodesViewModel>("enableTwoFactor", _twoFactorCurrentPassword, _twoFactorEnableCode);
+            _recoveryCodes = result.RecoveryCodes.ToList();
+            _twoFactorCurrentPassword = string.Empty;
+            _twoFactorEnableCode = string.Empty;
+            _twoFactorSetup = null;
+            _twoFactorQrDataUri = null;
+            _twoFactorStep = 3;
+            await RefreshSecurityAsync();
+            SetSuccess(L["Two-factor authentication is enabled."].Value);
+        }, L["We couldn’t enable two-factor authentication. Please try again."].Value);
     }
 
     private async Task RegenerateRecoveryCodesAsync()
     {
-        if (_securityModule is null || _isBusy)
+        if (_securityModule is null || _isBusy || !HasSensitiveTwoFactorCredentials()) return;
+        await RunActionAsync(async () =>
         {
-            return;
-        }
-
-        if (!HasSensitiveTwoFactorCredentials())
-        {
-            return;
-        }
-
-        await RunActionAsync(
-            async () =>
-            {
-                var result = await _securityModule.InvokeAsync<TwoFactorRecoveryCodesViewModel>(
-                    "regenerateRecoveryCodes",
-                    _twoFactorCurrentPassword,
-                    _twoFactorCurrentCode);
-
-                _recoveryCodes = result.RecoveryCodes.ToList();
-                _twoFactorCurrentPassword = string.Empty;
-                _twoFactorCurrentCode = string.Empty;
-                _twoFactorStep = 2;
-                await RefreshSecurityAsync();
-                SetSuccess(L["New recovery codes generated. Previous codes no longer work."].Value);
-            },
-            L["We couldn’t generate new recovery codes. Please try again."].Value);
+            var result = await _securityModule.InvokeAsync<TwoFactorRecoveryCodesViewModel>("regenerateRecoveryCodes", _twoFactorCurrentPassword, _twoFactorCurrentCode);
+            _recoveryCodes = result.RecoveryCodes.ToList();
+            _twoFactorCurrentPassword = string.Empty;
+            _twoFactorCurrentCode = string.Empty;
+            _twoFactorStep = 2;
+            await RefreshSecurityAsync();
+            SetSuccess(L["New recovery codes generated. Previous codes no longer work."].Value);
+        }, L["We couldn’t generate new recovery codes. Please try again."].Value);
     }
 
     private async Task DisableTwoFactorAsync()
     {
-        if (_securityModule is null || _isBusy)
+        if (_securityModule is null || _isBusy || !HasSensitiveTwoFactorCredentials()) return;
+        await RunActionAsync(async () =>
         {
-            return;
-        }
-
-        if (!HasSensitiveTwoFactorCredentials())
-        {
-            return;
-        }
-
-        await RunActionAsync(
-            async () =>
-            {
-                await _securityModule.InvokeVoidAsync(
-                    "disableTwoFactor",
-                    _twoFactorCurrentPassword,
-                    _twoFactorCurrentCode);
-
-                await RefreshSecurityAsync();
-                SetSuccess(L["Two-factor authentication is disabled."].Value);
-                await CloseDialogAsync();
-            },
-            L["We couldn’t disable two-factor authentication. Please try again."].Value);
+            await _securityModule.InvokeVoidAsync("disableTwoFactor", _twoFactorCurrentPassword, _twoFactorCurrentCode);
+            await RefreshSecurityAsync();
+            SetSuccess(L["Two-factor authentication is disabled."].Value);
+            await CloseDialogAsync();
+        }, L["We couldn’t disable two-factor authentication. Please try again."].Value);
     }
 
     private bool HasSensitiveTwoFactorCredentials()
     {
-        if (!string.IsNullOrWhiteSpace(_twoFactorCurrentPassword) && !string.IsNullOrWhiteSpace(_twoFactorCurrentCode))
-        {
-            return true;
-        }
-
+        if (!string.IsNullOrWhiteSpace(_twoFactorCurrentPassword) && !string.IsNullOrWhiteSpace(_twoFactorCurrentCode)) return true;
         SetError(L["Enter your current password and current authenticator code."].Value);
         return false;
     }
 
     private async Task SaveTimestampAsync()
     {
-        if (_isBusy || _timeModule is null)
+        if (_isBusy || _timeModule is null) return;
+        await RunActionAsync(async () =>
         {
-            return;
-        }
-
-        await RunActionAsync(
-            async () =>
-            {
-                var preference = await _timeModule.InvokeAsync<AccountPreferenceViewModel>("saveTimestampPreference", _selectedMode);
-                _selectedMode = NormalizeMode(preference.TimestampDisplayMode);
-                SetSuccess(L["Timestamp preference saved."].Value);
-            },
-            L["BillWatch could not save that preference. Please try again."].Value);
+            var preference = await _timeModule.InvokeAsync<AccountPreferenceViewModel>("saveTimestampPreference", _selectedMode);
+            _selectedMode = NormalizeMode(preference.TimestampDisplayMode);
+            SetSuccess(L["Timestamp preference saved."].Value);
+        }, L["BillWatch could not save that preference. Please try again."].Value);
     }
 
     private async Task RunActionAsync(Func<Task> action, string fallbackMessage)
@@ -889,66 +699,27 @@
         _isBusy = true;
         _pageError = null;
         _pageSuccess = null;
-
-        try
-        {
-            await action();
-        }
-        catch (Exception ex) when (ex is JSException or JSDisconnectedException)
-        {
-            SetError(GetSafeActionError(ex.Message, fallbackMessage));
-        }
-        finally
-        {
-            _isBusy = false;
-            StateHasChanged();
-        }
+        try { await action(); }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException) { SetError(GetSafeActionError(ex.Message, fallbackMessage)); }
+        finally { _isBusy = false; StateHasChanged(); }
     }
 
     private string GetSafeActionError(string? technicalMessage, string fallbackMessage)
     {
-        if (string.IsNullOrWhiteSpace(technicalMessage))
-        {
-            return fallbackMessage;
-        }
-
-        if (technicalMessage.Contains("current password is incorrect", StringComparison.OrdinalIgnoreCase))
-        {
-            return L["Your current password is incorrect."].Value;
-        }
-
+        if (string.IsNullOrWhiteSpace(technicalMessage)) return fallbackMessage;
+        if (technicalMessage.Contains("current password is incorrect", StringComparison.OrdinalIgnoreCase)) return L["Your current password is incorrect."].Value;
         if (technicalMessage.Contains("authenticator code", StringComparison.OrdinalIgnoreCase) &&
-            (technicalMessage.Contains("isn’t valid", StringComparison.OrdinalIgnoreCase) ||
-             technicalMessage.Contains("isn't valid", StringComparison.OrdinalIgnoreCase) ||
-             technicalMessage.Contains("invalid", StringComparison.OrdinalIgnoreCase)))
-        {
+            (technicalMessage.Contains("isn’t valid", StringComparison.OrdinalIgnoreCase) || technicalMessage.Contains("isn't valid", StringComparison.OrdinalIgnoreCase) || technicalMessage.Contains("invalid", StringComparison.OrdinalIgnoreCase)))
             return L["That authenticator code isn’t valid. Try the current code from your authenticator app."].Value;
-        }
-
-        if (technicalMessage.Contains("email address is already in use", StringComparison.OrdinalIgnoreCase))
-        {
-            return L["That email address is already in use."].Value;
-        }
-
-        if (technicalMessage.Contains("password requirements", StringComparison.OrdinalIgnoreCase))
-        {
-            return L["Your new password doesn’t meet BillWatch’s password requirements."].Value;
-        }
-
-        if (technicalMessage.Contains("too many attempts", StringComparison.OrdinalIgnoreCase))
-        {
-            return L["Too many attempts. Please wait a little while and try again."].Value;
-        }
-
+        if (technicalMessage.Contains("email address is already in use", StringComparison.OrdinalIgnoreCase)) return L["That email address is already in use."].Value;
+        if (technicalMessage.Contains("password requirements", StringComparison.OrdinalIgnoreCase)) return L["Your new password doesn’t meet BillWatch’s password requirements."].Value;
+        if (technicalMessage.Contains("too many attempts", StringComparison.OrdinalIgnoreCase)) return L["Too many attempts. Please wait a little while and try again."].Value;
         return fallbackMessage;
     }
 
     private async Task RefreshSecurityAsync()
     {
-        if (_securityModule is not null)
-        {
-            _security = await _securityModule.InvokeAsync<AccountSecurityViewModel>("getAccountSecurity");
-        }
+        if (_securityModule is not null) _security = await _securityModule.InvokeAsync<AccountSecurityViewModel>("getAccountSecurity");
     }
 
     private void ResetSensitiveDialogState()
@@ -969,42 +740,22 @@
         _twoFactorStep = 1;
     }
 
-    private void SetError(string message)
-    {
-        _pageSuccess = null;
-        _pageError = message;
-    }
+    private void SetError(string message) { _pageSuccess = null; _pageError = message; }
+    private void SetSuccess(string message) { _pageError = null; _pageSuccess = message; }
+    private void DismissToast() { _pageError = null; _pageSuccess = null; }
 
-    private void SetSuccess(string message)
-    {
-        _pageError = null;
-        _pageSuccess = message;
-    }
-
-    private void DismissToast()
-    {
-        _pageError = null;
-        _pageSuccess = null;
-    }
-
-    private string GetSecurityHeadline() =>
-        _security is { EmailConfirmed: true, TwoFactorEnabled: true }
-            ? L["Strong protection is active"]
-            : L["A security action is recommended"];
-
-    private string GetSecuritySummary() =>
-        _security is { EmailConfirmed: true, TwoFactorEnabled: true }
-            ? L["Your email is verified and authenticator protection is enabled."]
-            : L["Finish the remaining account-security step below to strengthen sign-in protection."];
+    private string GetSecurityHeadline() => _security is { EmailConfirmed: true, TwoFactorEnabled: true } ? L["Strong protection is active"] : L["A security action is recommended"];
+    private string GetSecuritySummary() => _security is { EmailConfirmed: true, TwoFactorEnabled: true }
+        ? L["Your email is verified and authenticator protection is enabled."]
+        : L["Finish the remaining account-security step below to strengthen sign-in protection."];
 
     private string GetDialogKicker() => _activeDialog switch
     {
         SecurityDialog.ChangePassword => L["Password"],
         SecurityDialog.ChangeEmail => L["Email"],
         SecurityDialog.RecoveryCodes => L["Recovery"],
-        SecurityDialog.ReplaceAuthenticator => L["Two-factor authentication"],
+        SecurityDialog.ReplaceAuthenticator or SecurityDialog.SetupTwoFactor => L["Two-factor authentication"],
         SecurityDialog.DisableTwoFactor => L["Security change"],
-        SecurityDialog.SetupTwoFactor => L["Two-factor authentication"],
         _ => L["Security"]
     };
 
@@ -1013,19 +764,9 @@
         SecurityDialog.ChangePassword => L["Change password"],
         SecurityDialog.ChangeEmail => L["Change email address"],
         SecurityDialog.RecoveryCodes => _twoFactorStep == 1 ? L["Generate new recovery codes"] : L["Save your recovery codes"],
-        SecurityDialog.ReplaceAuthenticator => _twoFactorStep switch
-        {
-            1 => L["Replace authenticator"],
-            2 => L["Set up the new authenticator"],
-            _ => L["Save your new recovery codes"]
-        },
+        SecurityDialog.ReplaceAuthenticator => _twoFactorStep switch { 1 => L["Replace authenticator"], 2 => L["Set up the new authenticator"], _ => L["Save your new recovery codes"] },
         SecurityDialog.DisableTwoFactor => L["Disable two-factor authentication?"],
-        SecurityDialog.SetupTwoFactor => _twoFactorStep switch
-        {
-            1 => L["Set up two-factor authentication"],
-            2 => L["Connect your authenticator app"],
-            _ => L["Save your recovery codes"]
-        },
+        SecurityDialog.SetupTwoFactor => _twoFactorStep switch { 1 => L["Set up two-factor authentication"], 2 => L["Connect your authenticator app"], _ => L["Save your recovery codes"] },
         _ => L["Account security"]
     };
 
@@ -1033,16 +774,10 @@
     {
         SecurityDialog.ChangePassword => L["Confirm your identity only for this password change."],
         SecurityDialog.ChangeEmail => L["Enter the new address and verify this sensitive account change."],
-        SecurityDialog.RecoveryCodes => _twoFactorStep == 1
-            ? L["Verify your identity before BillWatch replaces your current recovery codes."]
-            : L["Each code works once. Store them somewhere safe outside BillWatch."],
-        SecurityDialog.ReplaceAuthenticator => _twoFactorStep == 1
-            ? L["Verify your identity before replacing the authenticator currently protecting your account."]
-            : L["Complete the replacement before leaving this flow."],
+        SecurityDialog.RecoveryCodes => _twoFactorStep == 1 ? L["Verify your identity before BillWatch replaces your current recovery codes."] : L["Each code works once. Store them somewhere safe outside BillWatch."],
+        SecurityDialog.ReplaceAuthenticator => _twoFactorStep == 1 ? L["Verify your identity before replacing the authenticator currently protecting your account."] : L["Complete the replacement before leaving this flow."],
         SecurityDialog.DisableTwoFactor => L["This is a sensitive security change and requires your current credentials."],
-        SecurityDialog.SetupTwoFactor => _twoFactorStep == 1
-            ? L["Verify your password, then connect any standard authenticator app."]
-            : L["Scan the code and verify one current code from the app."],
+        SecurityDialog.SetupTwoFactor => _twoFactorStep == 1 ? L["Verify your password, then connect any standard authenticator app."] : L["Scan the code and verify one current code from the app."],
         _ => string.Empty
     };
 
@@ -1055,11 +790,7 @@
 
     private string? NormalizeConfiguredExternalProvider(string? provider)
     {
-        if (string.IsNullOrWhiteSpace(provider))
-        {
-            return null;
-        }
-
+        if (string.IsNullOrWhiteSpace(provider)) return null;
         return provider.Trim().ToLowerInvariant() switch
         {
             "google" when GoogleSignInConfigured => "google",
@@ -1069,33 +800,18 @@
         };
     }
 
-    private static string GetExternalProviderDisplayName(string provider) => provider switch
-    {
-        "google" => "Google",
-        "apple" => "Apple",
-        "microsoft" => "Microsoft",
-        _ => "External provider"
-    };
-
+    private static string GetExternalProviderDisplayName(string provider) => provider switch { "google" => "Google", "apple" => "Apple", "microsoft" => "Microsoft", _ => "External provider" };
     private static string? NullIfBlank(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static string NormalizeMode(string? value) =>
-        string.Equals(value, "Utc", StringComparison.OrdinalIgnoreCase) ? "Utc" : "Local12Hour";
+    private static string NormalizeMode(string? value) => string.Equals(value, "Utc", StringComparison.OrdinalIgnoreCase) ? "Utc" : "Local12Hour";
 
     private static string? CreateAuthenticatorQrDataUri(string? otpAuthUri)
     {
-        if (string.IsNullOrWhiteSpace(otpAuthUri))
-        {
-            return null;
-        }
-
+        if (string.IsNullOrWhiteSpace(otpAuthUri)) return null;
         using var generator = new QRCodeGenerator();
         using var qrCodeData = generator.CreateQrCode(otpAuthUri, QRCodeGenerator.ECCLevel.Q);
         using var qrCode = new SvgQRCode(qrCodeData);
-
         var svg = qrCode.GetGraphic(8);
-        var bytes = Encoding.UTF8.GetBytes(svg);
-        return $"data:image/svg+xml;base64,{Convert.ToBase64String(bytes)}";
+        return $"data:image/svg+xml;base64,{Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))}";
     }
 
     public async ValueTask DisposeAsync()
@@ -1104,46 +820,12 @@
         _externalLinkCurrentPassword = string.Empty;
         _externalLinkTwoFactorCode = string.Empty;
         _pendingExternalProvider = null;
-
-        if (_securityModule is not null)
-        {
-            try
-            {
-                await _securityModule.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-            }
-        }
-
-        if (_timeModule is not null)
-        {
-            try
-            {
-                await _timeModule.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-            }
-        }
+        if (_securityModule is not null) { try { await _securityModule.DisposeAsync(); } catch (JSDisconnectedException) { } }
+        if (_timeModule is not null) { try { await _timeModule.DisposeAsync(); } catch (JSDisconnectedException) { } }
     }
 
-    private enum SecurityDialog
-    {
-        None,
-        ChangePassword,
-        ChangeEmail,
-        RecoveryCodes,
-        ReplaceAuthenticator,
-        DisableTwoFactor,
-        SetupTwoFactor
-    }
-
-    private sealed class AccountPreferenceViewModel
-    {
-        public string TimestampDisplayMode { get; set; } = "Local12Hour";
-    }
-
+    private enum SecurityDialog { None, ChangePassword, ChangeEmail, RecoveryCodes, ReplaceAuthenticator, DisableTwoFactor, SetupTwoFactor }
+    private sealed class AccountPreferenceViewModel { public string TimestampDisplayMode { get; set; } = "Local12Hour"; }
     private sealed class AccountSecurityViewModel
     {
         public string Email { get; set; } = string.Empty;
@@ -1152,51 +834,6 @@
         public bool HasAuthenticatorKey { get; set; }
         public int RecoveryCodesLeft { get; set; }
     }
-
-    private sealed class TwoFactorSetupViewModel
-    {
-        public string SharedKey { get; set; } = string.Empty;
-        public string OtpAuthUri { get; set; } = string.Empty;
-    }
-
-    private sealed class TwoFactorRecoveryCodesViewModel
-    {
-        public string[] RecoveryCodes { get; set; } = [];
-    }
-}
-
-@code {
-    private RenderFragment SensitiveCredentialFields(
-        string Password,
-        Action<string> PasswordChanged,
-        string Code,
-        Action<string> CodeChanged) => builder =>
-    {
-        <div class="settings-grid single-column">
-            <label class="settings-field">
-                <span>@L["Current password"]</span>
-                <input autofocus type="password" autocomplete="current-password" value="@Password" @oninput="e => PasswordChanged(e.Value?.ToString() ?? string.Empty)" />
-            </label>
-            <label class="settings-field">
-                <span>@L["Current authenticator code"]</span>
-                <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" value="@Code" @oninput="e => CodeChanged(e.Value?.ToString() ?? string.Empty)" />
-            </label>
-        </div>;
-    };
-
-    private RenderFragment RecoveryCodeList(IReadOnlyList<string> Codes) => builder =>
-    {
-        <div class="recovery-code-panel" role="status">
-            <div class="recovery-code-warning">
-                <strong>@L["Store these somewhere safe now."]</strong>
-                <span>@L["BillWatch will not show this set again after you close the dialog."]</span>
-            </div>
-            <div class="recovery-code-grid">
-                @foreach (var code in Codes)
-                {
-                    <code>@code</code>
-                }
-            </div>
-        </div>;
-    };
+    private sealed class TwoFactorSetupViewModel { public string SharedKey { get; set; } = string.Empty; public string OtpAuthUri { get; set; } = string.Empty; }
+    private sealed class TwoFactorRecoveryCodesViewModel { public string[] RecoveryCodes { get; set; } = []; }
 }
