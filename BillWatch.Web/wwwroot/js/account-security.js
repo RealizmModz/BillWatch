@@ -1,5 +1,15 @@
+async function safeFetch(path, options, fallback) {
+    try {
+        return await fetch(path, options);
+    }
+    catch {
+        throw new Error(fallback);
+    }
+}
+
 async function getAntiforgeryToken() {
-    const response = await fetch(
+    const fallback = "BillWatch could not initialize a secure account update.";
+    const response = await safeFetch(
         "/bff/antiforgery",
         {
             credentials: "same-origin",
@@ -7,46 +17,84 @@ async function getAntiforgeryToken() {
             headers: {
                 Accept: "application/json"
             }
-        });
+        },
+        fallback);
 
     if (!response.ok) {
-        throw new Error("BillWatch could not initialize a secure account update.");
+        throw new Error(fallback);
     }
 
-    const token = await response.json();
-
-    if (!token?.requestToken) {
-        throw new Error("BillWatch could not initialize a secure account update.");
-    }
-
-    return token.requestToken;
-}
-
-async function readError(response, fallback) {
     try {
-        const body = await response.json();
+        const token = await response.json();
 
-        if (typeof body?.title === "string" && body.title.trim()) {
-            return body.title;
-        }
-
-        if (body?.errors && typeof body.errors === "object") {
-            for (const value of Object.values(body.errors)) {
-                if (Array.isArray(value) && typeof value[0] === "string") {
-                    return value[0];
-                }
-            }
+        if (token?.requestToken) {
+            return token.requestToken;
         }
     }
     catch {
-        // Never expose an unexpected raw server response.
+        // Fall through to the safe generic message.
+    }
+
+    throw new Error(fallback);
+}
+
+function mapExpectedError(body, status, fallback) {
+    const title = typeof body?.title === "string"
+        ? body.title.trim().toLowerCase()
+        : "";
+    const errorCodes = body?.errors && typeof body.errors === "object"
+        ? Object.keys(body.errors)
+        : [];
+
+    if (title.includes("current password") && title.includes("incorrect")) {
+        return "Your current password is incorrect.";
+    }
+
+    if (title.includes("authenticator code") &&
+        (title.includes("invalid") || title.includes("required"))) {
+        return "That authenticator code isn’t valid. Try the current code from your authenticator app.";
+    }
+
+    if (title.includes("already in use")) {
+        return "That email address is already in use.";
+    }
+
+    if (title.includes("already your account email")) {
+        return "That is already your account email address.";
+    }
+
+    if (title.includes("email delivery") || status === 503) {
+        return "Email delivery is temporarily unavailable. Please try again later.";
+    }
+
+    if (errorCodes.some(code => code.startsWith("Password", 0))) {
+        return "Your new password doesn’t meet BillWatch’s password requirements.";
+    }
+
+    if (status === 429) {
+        return "Too many attempts. Please wait a little while and try again.";
+    }
+
+    if (status === 401 || status === 403) {
+        return "We couldn’t verify those credentials. Check your password and authenticator code.";
     }
 
     return fallback;
 }
 
+async function readSafeError(response, fallback) {
+    try {
+        return mapExpectedError(await response.json(), response.status, fallback);
+    }
+    catch {
+        return response.status === 429
+            ? "Too many attempts. Please wait a little while and try again."
+            : fallback;
+    }
+}
+
 async function getJson(path, fallback) {
-    const response = await fetch(
+    const response = await safeFetch(
         path,
         {
             credentials: "same-origin",
@@ -54,19 +102,24 @@ async function getJson(path, fallback) {
             headers: {
                 Accept: "application/json"
             }
-        });
+        },
+        fallback);
 
     if (!response.ok) {
-        throw new Error(await readError(response, fallback));
+        throw new Error(await readSafeError(response, fallback));
     }
 
-    return await response.json();
+    try {
+        return await response.json();
+    }
+    catch {
+        throw new Error(fallback);
+    }
 }
 
 async function postJson(path, body, fallback) {
     const requestToken = await getAntiforgeryToken();
-
-    const response = await fetch(
+    const response = await safeFetch(
         path,
         {
             method: "POST",
@@ -78,10 +131,11 @@ async function postJson(path, body, fallback) {
                 "X-CSRF-TOKEN": requestToken
             },
             body: JSON.stringify(body)
-        });
+        },
+        fallback);
 
     if (!response.ok) {
-        throw new Error(await readError(response, fallback));
+        throw new Error(await readSafeError(response, fallback));
     }
 
     if (response.status === 204) {
@@ -90,9 +144,16 @@ async function postJson(path, body, fallback) {
 
     const contentType = response.headers.get("content-type") ?? "";
 
-    return contentType.includes("application/json")
-        ? await response.json()
-        : null;
+    if (!contentType.includes("application/json")) {
+        return null;
+    }
+
+    try {
+        return await response.json();
+    }
+    catch {
+        throw new Error(fallback);
+    }
 }
 
 export function getAccountSecurity() {
@@ -105,6 +166,39 @@ export function getExternalIdentityStatus() {
     return getJson(
         "/bff/account/external",
         "BillWatch could not load linked sign-in methods.");
+}
+
+export function openSettingsDialog(id) {
+    const dialog = document.getElementById(id);
+
+    if (!(dialog instanceof HTMLDialogElement)) {
+        return;
+    }
+
+    if (dialog.dataset.billwatchCancelBound !== "true") {
+        dialog.addEventListener("cancel", event => {
+            event.preventDefault();
+            const cancelButton = dialog.querySelector("[data-dialog-cancel]");
+
+            if (cancelButton instanceof HTMLElement) {
+                cancelButton.click();
+            }
+        });
+
+        dialog.dataset.billwatchCancelBound = "true";
+    }
+
+    if (!dialog.open) {
+        dialog.showModal();
+    }
+}
+
+export function closeSettingsDialog(id) {
+    const dialog = document.getElementById(id);
+
+    if (dialog instanceof HTMLDialogElement && dialog.open) {
+        dialog.close();
+    }
 }
 
 function createStatusGlyph(text) {
@@ -224,12 +318,8 @@ async function beginExternalIdentityUnlink(provider) {
             twoFactorRecoveryCode);
         window.alert(`${displayName} was removed from your BillWatch sign-in methods.`);
     }
-    catch (error) {
-        const message = error instanceof Error
-            ? error.message
-            : "BillWatch could not remove this sign-in method.";
-
-        window.alert(message);
+    catch {
+        window.alert("BillWatch could not remove this sign-in method. Check your credentials and try again.");
     }
 }
 
@@ -304,7 +394,7 @@ export function changePassword(currentPassword, newPassword, twoFactorCode) {
             newPassword,
             twoFactorCode: twoFactorCode || null
         },
-        "BillWatch could not change your password.");
+        "We couldn’t update your password. Please try again.");
 }
 
 export function requestEmailChange(currentPassword, newEmail, twoFactorCode) {
@@ -315,7 +405,14 @@ export function requestEmailChange(currentPassword, newEmail, twoFactorCode) {
             newEmail,
             twoFactorCode: twoFactorCode || null
         },
-        "BillWatch could not start the email change.");
+        "We couldn’t start the email change. Please try again.");
+}
+
+export function resendVerificationEmail() {
+    return postJson(
+        "/bff/account/security/email/verification",
+        {},
+        "We couldn’t send the verification email. Please try again.");
 }
 
 export async function linkExternalIdentity(
@@ -376,7 +473,7 @@ export function setupTwoFactor(currentPassword, twoFactorCode) {
             currentPassword,
             twoFactorCode: twoFactorCode || null
         },
-        "BillWatch could not create an authenticator key.");
+        "We couldn’t start authenticator setup. Please try again.");
 }
 
 export function enableTwoFactor(currentPassword, authenticatorCode) {
@@ -386,7 +483,7 @@ export function enableTwoFactor(currentPassword, authenticatorCode) {
             currentPassword,
             authenticatorCode
         },
-        "BillWatch could not enable two-factor authentication.");
+        "We couldn’t enable two-factor authentication. Please try again.");
 }
 
 export function regenerateRecoveryCodes(currentPassword, twoFactorCode) {
@@ -396,7 +493,7 @@ export function regenerateRecoveryCodes(currentPassword, twoFactorCode) {
             currentPassword,
             twoFactorCode: twoFactorCode || null
         },
-        "BillWatch could not regenerate recovery codes.");
+        "We couldn’t generate new recovery codes. Please try again.");
 }
 
 export function disableTwoFactor(currentPassword, twoFactorCode) {
@@ -406,7 +503,7 @@ export function disableTwoFactor(currentPassword, twoFactorCode) {
             currentPassword,
             twoFactorCode: twoFactorCode || null
         },
-        "BillWatch could not disable two-factor authentication.");
+        "We couldn’t disable two-factor authentication. Please try again.");
 }
 
 export function resetTwoFactor(currentPassword, twoFactorCode) {
@@ -416,7 +513,7 @@ export function resetTwoFactor(currentPassword, twoFactorCode) {
             currentPassword,
             twoFactorCode: twoFactorCode || null
         },
-        "BillWatch could not reset two-factor authentication.");
+        "We couldn’t replace your authenticator. Please try again.");
 }
 
 void refreshExternalIdentityStatusUi().catch(() => {
