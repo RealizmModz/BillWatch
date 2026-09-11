@@ -38,6 +38,11 @@ public static class AccountSecurityBffEndpointMappings
             "/email",
             "/api/account/security/email");
 
+        MapSecurePost<ResendEmailVerificationBffRequest>(
+            bff,
+            "/email/verification",
+            "/api/account/security/email/verification");
+
         MapSecurePost<SensitiveCredentialBffRequest>(
             bff,
             "/two-factor/setup",
@@ -104,6 +109,8 @@ public sealed record ChangeEmailBffRequest(
     string CurrentPassword,
     string NewEmail,
     string? TwoFactorCode);
+
+public sealed record ResendEmailVerificationBffRequest();
 
 public sealed record SensitiveCredentialBffRequest(
     string CurrentPassword,
