@@ -8,10 +8,10 @@ Its core promise is: **Know when your bills change — and why.**
 
 The local API requires PostgreSQL plus Plaid sandbox credentials stored in .NET user secrets. Never commit credentials to this repository.
 
-From PowerShell:
+From the repository root in PowerShell:
 
 ```powershell
-dotnet run --launch-profile https --project "C:\Users\brist\source\repos\BillWatch\BillWatch.API\BillWatch.API.csproj"
+dotnet run --launch-profile https --project .\BillWatch.API\BillWatch.API.csproj
 ```
 
 Local endpoints:
@@ -23,11 +23,11 @@ Local endpoints:
 ## Validate the backend
 
 ```powershell
-dotnet build BillWatch.Tests\BillWatch.Tests.csproj --configuration Release
-dotnet test BillWatch.Tests\BillWatch.Tests.csproj --configuration Release --no-build
+dotnet build .\BillWatch.Tests\BillWatch.Tests.csproj --configuration Release
+dotnet test .\BillWatch.Tests\BillWatch.Tests.csproj --configuration Release --no-build
 ```
 
-GitHub Actions repeats the backend build and tests on every push and pull request. It also builds the Linux production container, including the native Tesseract/Leptonica OCR dependencies.
+GitHub Actions repeats the backend build and tests on every push and pull request. It also builds the MAUI Android Release target and the Linux production container, including the native Tesseract/Leptonica OCR dependencies.
 
 ## Production deployment candidate
 
@@ -42,7 +42,7 @@ Requirements:
 
 - A Linux server with Docker Engine and the Docker Compose plugin.
 - Ports 80 and 443 open to the internet.
-- A DNS record for the API hostname pointing to the server.
+- DNS records for the Web and API hostnames pointing to the server.
 - Plaid credentials. Use `sandbox` until production access has been approved and verified.
 - A private off-host Restic repository and backup-only credentials.
 
@@ -78,7 +78,7 @@ The deployment command re-runs the fail-closed configuration preflight, rejects 
 9. Build the MAUI release with the exact deployed origin:
 
 ```powershell
-dotnet build BillWatch.csproj --configuration Release -p:BillWatchApiBaseUrl=https://api.example.com/
+dotnet build .\BillWatch.csproj --configuration Release -p:BillWatchApiBaseUrl=https://api.billbeacon.net/
 ```
 
 The API applies EF Core migrations during startup in this single-instance deployment. Do not scale the API above one instance while startup migration is enabled; a multi-instance platform should run migrations as a separate one-time release job.
@@ -158,7 +158,7 @@ Production credentials, `.env.production`, raw statements, extracted statement t
 
 ## External readiness monitoring
 
-The `BillWatch Production Readiness` GitHub Actions workflow probes production from outside the deployment host every 15 minutes. It remains skipped until the repository variable `BILLWATCH_PRODUCTION_URL` is set to the hostname-only HTTPS origin, for example `https://api.billwatch.com`.
+The `BillWatch Production Readiness` GitHub Actions workflow probes production from outside the deployment host every 15 minutes. It remains skipped until the repository variable `BILLWATCH_PRODUCTION_URL` is set to the hostname-only HTTPS origin, for example `https://api.billbeacon.net`.
 
 The probe rejects credentials, ports, paths, redirects, local/internal hostnames, and DNS results in private, loopback, or link-local address ranges. It performs three bounded HTTPS attempts and accepts only BillWatch's exact readiness response. No application credential or API key is sent.
 
@@ -172,5 +172,5 @@ After the hostname is configured:
 The same probe can be run from any separate monitoring host:
 
 ```sh
-BILLWATCH_PRODUCTION_URL=https://api.billwatch.com sh deploy/monitor-readiness.sh
+BILLWATCH_PRODUCTION_URL=https://api.billbeacon.net sh deploy/monitor-readiness.sh
 ```
