@@ -60,6 +60,15 @@ common_env()
         "$@"
 }
 
+expect_failure common_env RESTIC_REPOSITORY='relative-backups' sh "$backup_script" policy
+expect_failure common_env RESTIC_REPOSITORY='./relative-backups' sh "$backup_script" policy
+expect_failure common_env RESTIC_REPOSITORY='file:/var/backups/billwatch' sh "$backup_script" policy
+expect_failure common_env RESTIC_REPOSITORY='local:/var/backups/billwatch' sh "$backup_script" policy
+common_env RESTIC_REPOSITORY='relative-backups' BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY=true sh "$backup_script" policy >/dev/null ||
+    fail "explicit local-repository override must remain available for controlled non-production tests."
+common_env sh "$backup_script" policy >/dev/null ||
+    fail "explicit remote Restic backend must remain accepted."
+
 : > "$restic_log"
 expect_failure common_env BILLWATCH_BACKUP_CLIENT_MODE=append-only sh "$backup_script" retention
 [ ! -s "$restic_log" ] || fail "append-only retention refusal must occur before any Restic call."
