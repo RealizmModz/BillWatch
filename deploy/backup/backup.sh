@@ -14,7 +14,7 @@ if [ "${#RESTIC_PASSWORD}" -lt 24 ] ||
 fi
 
 case "$RESTIC_REPOSITORY" in
-    /*)
+    /*|./*|../*|[A-Za-z]:\\*|file:*|local:*|*[!:]* )
         if [ "${BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY:-false}" != true ]; then
             echo "Production backups require an off-host Restic repository." >&2
             exit 64
