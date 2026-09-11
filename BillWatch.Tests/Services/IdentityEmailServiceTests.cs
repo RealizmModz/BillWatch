@@ -134,6 +134,50 @@ public sealed class IdentityEmailServiceTests
     }
 
     [Fact]
+    public async Task ConfirmationLink_WithoutChangedEmail_RewritesToPublicWebUrl()
+    {
+        var handler =
+            new RecordingHandler();
+
+        using var httpClient =
+            CreateClient(
+                handler);
+
+        var sender =
+            new ResendIdentityEmailSender(
+                httpClient,
+                Options.Create(
+                    CreateEnabledOptions()));
+
+        await sender.SendConfirmationLinkAsync(
+            new ApplicationUser(),
+            "person@example.com",
+            "http://api:8080/api/auth/confirmEmail?userId=user%2F123&code=code%2Bvalue");
+
+        AssertProviderRequest(
+            handler);
+
+        var html =
+            ReadHtml(
+                handler.Body);
+
+        Assert.Contains(
+            "https://billbeacon.net/auth/confirm-email?userId=user%2F123&amp;code=code%2Bvalue",
+            html,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "changedEmail=",
+            html,
+            StringComparison.Ordinal);
+
+        Assert.DoesNotContain(
+            "http://api:8080",
+            html,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task DisabledSender_IsNoOpAndDoesNotUseNetwork()
     {
         var handler =
