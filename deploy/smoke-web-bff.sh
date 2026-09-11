@@ -233,9 +233,21 @@ case "$location" in
 
         location="$(redirect_location)"
         case "$location" in
-            /app|/app/*) ;;
-            *) fail "Web two-factor login did not redirect to /app." 69 ;;
+            /app|/app/*)
+                ;;
+            /login\?twoFactor=true\&error=*)
+                fail "Web two-factor login was rejected by BillWatch. Verify the current authenticator or recovery code and the account's sign-in state before retrying." 69
+                ;;
+            /login\?error=*)
+                fail "Web two-factor login returned to the sign-in screen with an account error. Verify the account state before retrying." 69
+                ;;
+            *)
+                fail "Web two-factor login did not redirect to /app." 69
+                ;;
         esac
+        ;;
+    /login\?error=*)
+        fail "Web password sign-in was rejected by BillWatch. Verify the account credentials and lockout state before retrying." 69
         ;;
     *)
         fail "Web login did not redirect to /app or the two-factor step." 69

@@ -24,6 +24,11 @@ grep -Fq '/auth/logout' "$smoke_script" ||
     fail "Web/BFF smoke harness must prove logout invalidates the cookie session."
 grep -Fq 'BFF account export contained a forbidden secret or internal-storage field.' "$smoke_script" ||
     fail "Web/BFF smoke harness must inspect account export boundaries."
+grep -Fq 'Verify the current authenticator or recovery code and the account' "$smoke_script" ||
+    fail "Web/BFF smoke harness must distinguish rejected second-factor authentication."
+
+grep -Fq 'Verify the account credentials and lockout state before retrying.' "$smoke_script" ||
+    fail "Web/BFF smoke harness must distinguish rejected password authentication."
 
 fake_bin="$temp_dir/bin"
 mkdir -p "$fake_bin"
@@ -89,8 +94,13 @@ case "$url" in
     */auth/login)
         [ "$request" = "POST" ] || exit 91
         code=302
-        if [ "${FAKE_REQUIRE_2FA:-false}" = "true" ] && [ "$has_two_factor" = "false" ]; then
+
+        if [ "${FAKE_REJECT_PASSWORD:-false}" = "true" ] && [ "$has_two_factor" = "false" ]; then
+            location='/login?error=Email%20or%20password%20is%20incorrect.'
+        elif [ "${FAKE_REQUIRE_2FA:-false}" = "true" ] && [ "$has_two_factor" = "false" ]; then
             location='/login?twoFactor=true'
+        elif [ "${FAKE_REJECT_2FA:-false}" = "true" ] && [ "$has_two_factor" = "true" ]; then
+            location='/login?twoFactor=true&error=The%20authenticator%20or%20recovery%20code%20is%20invalid.'
         else
             location='/app'
         fi
@@ -207,6 +217,32 @@ fi
 if run_smoke FAKE_REQUIRE_2FA=true > /dev/null 2>&1; then
     fail "two-factor-required login succeeded without a supplied second factor."
 fi
+
+if run_smoke \
+    FAKE_REQUIRE_2FA=true \
+    FAKE_REJECT_2FA=true \
+    BILLWATCH_WEB_SMOKE_TWO_FACTOR_CODE_FILE="$two_factor_file" \
+    > /dev/null \
+    2> "$temp_dir/two-factor-rejected.err"; then
+    fail "Web/BFF smoke harness accepted a rejected second factor."
+fi
+
+grep -Fq \
+    "Web two-factor login was rejected by BillWatch. Verify the current authenticator or recovery code and the account's sign-in state before retrying." \
+    "$temp_dir/two-factor-rejected.err" ||
+    fail "rejected second-factor diagnostics were not specific enough."
+
+if run_smoke \
+    FAKE_REJECT_PASSWORD=true \
+    > /dev/null \
+    2> "$temp_dir/password-rejected.err"; then
+    fail "Web/BFF smoke harness accepted a rejected password login."
+fi
+
+grep -Fq \
+    'Web password sign-in was rejected by BillWatch. Verify the account credentials and lockout state before retrying.' \
+    "$temp_dir/password-rejected.err" ||
+    fail "rejected password diagnostics were not specific enough."
 
 if run_smoke FAKE_EXPORT_SECRET=true > /dev/null 2>&1; then
     fail "Web/BFF smoke harness accepted an export containing a protected credential field."

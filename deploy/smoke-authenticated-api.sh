@@ -145,8 +145,16 @@ http_code="$(
 rm -f "$login_payload"
 
 if [ "$http_code" != "200" ]; then
-    if [ "$http_code" = "401" ] && [ -z "$two_factor_code_file" ] && [ -z "$recovery_code_file" ]; then
-        fail "Authentication smoke test failed with HTTP 401. If this account uses two-factor authentication, supply a current mode-600 authenticator-code file with BILLWATCH_SMOKE_TWO_FACTOR_CODE_FILE or a recovery-code file with BILLWATCH_SMOKE_RECOVERY_CODE_FILE." 69
+    if [ "$http_code" = "401" ]; then
+        if [ -n "$two_factor_code_file" ] || [ -n "$recovery_code_file" ]; then
+            fail "Authentication rejected the supplied second factor. Verify the current authenticator or recovery code and the account's sign-in state before retrying." 69
+        fi
+
+        if grep -Eq '"detail"[[:space:]]*:[[:space:]]*"RequiresTwoFactor"' "$login_response"; then
+            fail "The account requires two-factor authentication. Supply a current mode-600 authenticator-code file with BILLWATCH_SMOKE_TWO_FACTOR_CODE_FILE or a recovery-code file with BILLWATCH_SMOKE_RECOVERY_CODE_FILE." 65
+        fi
+
+        fail "Authentication was rejected. Verify the account credentials and lockout state before retrying." 69
     fi
 
     fail "Authentication smoke test failed with HTTP $http_code." 69
