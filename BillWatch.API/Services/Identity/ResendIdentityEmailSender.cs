@@ -213,15 +213,19 @@ public sealed class ResendIdentityEmailSender(
         var relative =
             $"auth/confirm-email?userId={Uri.EscapeDataString(userId)}&code={Uri.EscapeDataString(code)}";
 
-        var changedEmail =
-            query["changedEmail"]
-                .ToString();
-
-        if (!string.IsNullOrWhiteSpace(
-                changedEmail))
+        if (query.TryGetValue(
+                "changedEmail",
+                out var changedEmailValues))
         {
-            relative +=
-                $"&changedEmail={Uri.EscapeDataString(changedEmail)}";
+            var changedEmail =
+                changedEmailValues.ToString();
+
+            if (!string.IsNullOrWhiteSpace(
+                    changedEmail))
+            {
+                relative +=
+                    $"&changedEmail={Uri.EscapeDataString(changedEmail)}";
+            }
         }
 
         return BuildPublicWebLink(
