@@ -50,6 +50,7 @@ common_env()
     env \
         PATH="$fake_bin:$PATH" \
         BILLWATCH_TEST_RESTIC_LOG="$restic_log" \
+        BILLWATCH_ALLOW_LOCAL_BACKUP_REPOSITORY=false \
         RESTIC_REPOSITORY='rest:https://backup.example.test/billwatch' \
         RESTIC_PASSWORD='restic-password-with-more-than-24-characters' \
         BILLWATCH_BACKUP_RETENTION_ENABLED=true \
