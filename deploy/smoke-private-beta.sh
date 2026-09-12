@@ -6,6 +6,8 @@ api_base_url="${1:-}"
 web_base_url="${2:-}"
 email="${BILLWATCH_SMOKE_EMAIL:-}"
 password_file="${BILLWATCH_SMOKE_PASSWORD_FILE:-}"
+two_factor_code_file="${BILLWATCH_SMOKE_TWO_FACTOR_CODE_FILE:-}"
+recovery_code_file="${BILLWATCH_SMOKE_RECOVERY_CODE_FILE:-}"
 admin_expectation="${BILLWATCH_SMOKE_ADMIN_EXPECTATION:-skip}"
 allow_mutations="${BILLWATCH_SMOKE_ALLOW_MUTATIONS:-false}"
 alert_read_id="${BILLWATCH_SMOKE_ALERT_READ_ID:-}"
@@ -32,6 +34,18 @@ require_https_url()
     case "$value" in
         *[[:space:]]*) fail "$label must not contain whitespace." 64 ;;
     esac
+}
+
+require_secret_file()
+{
+    path="$1"
+    label="$2"
+
+    [ -f "$path" ] || fail "$label must reference a regular file." 64
+    [ ! -L "$path" ] || fail "$label must not be a symbolic link." 64
+
+    mode="$(stat -c '%a' "$path" 2>/dev/null || true)"
+    [ "$mode" = "600" ] || fail "$label must have mode 600." 64
 }
 
 case "$admin_expectation" in
@@ -66,18 +80,12 @@ if [ -z "$email" ]; then
     fail "An account email is required." 64
 fi
 
+if [ -n "$two_factor_code_file" ] && [ -n "$recovery_code_file" ]; then
+    fail "Set only one of BILLWATCH_SMOKE_TWO_FACTOR_CODE_FILE or BILLWATCH_SMOKE_RECOVERY_CODE_FILE." 64
+fi
+
 if [ -n "$password_file" ]; then
-    [ -f "$password_file" ] ||
-        fail "BILLWATCH_SMOKE_PASSWORD_FILE must reference a regular file." 64
-
-    if [ -L "$password_file" ]; then
-        fail "BILLWATCH_SMOKE_PASSWORD_FILE must not be a symbolic link." 64
-    fi
-
-    password_mode="$(stat -c '%a' "$password_file" 2>/dev/null || true)"
-    [ "$password_mode" = "600" ] ||
-        fail "BILLWATCH_SMOKE_PASSWORD_FILE must have mode 600." 64
-
+    require_secret_file "$password_file" "BILLWATCH_SMOKE_PASSWORD_FILE"
     IFS= read -r password < "$password_file" || true
 else
     if [ ! -t 0 ]; then
@@ -97,8 +105,18 @@ if [ -z "${password:-}" ]; then
     fail "A password is required." 64
 fi
 
+if [ -n "$two_factor_code_file" ]; then
+    require_secret_file "$two_factor_code_file" "BILLWATCH_SMOKE_TWO_FACTOR_CODE_FILE"
+fi
+
+if [ -n "$recovery_code_file" ]; then
+    require_secret_file "$recovery_code_file" "BILLWATCH_SMOKE_RECOVERY_CODE_FILE"
+fi
+
 work_directory="$(mktemp -d)"
 chmod 700 "$work_directory"
+
+temporary_password_file=false
 
 cleanup()
 {
@@ -117,15 +135,27 @@ export_response="$work_directory/account-export.json"
 json_escape()
 {
     printf '%s' "$1" |
-        sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g'
+        sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g'
 }
 
-printf '{"email":"%s","password":"%s"}' \
+printf '{"email":"%s","password":"%s"' \
     "$(json_escape "$email")" \
     "$(json_escape "$password")" \
     > "$login_payload"
-chmod 600 "$login_payload"
 unset password
+
+if [ -n "$two_factor_code_file" ]; then
+    printf ',"twoFactorCode":"%s"' \
+        "$(json_escape "$(cat "$two_factor_code_file")")" \
+        >> "$login_payload"
+elif [ -n "$recovery_code_file" ]; then
+    printf ',"twoFactorRecoveryCode":"%s"' \
+        "$(json_escape "$(cat "$recovery_code_file")")" \
+        >> "$login_payload"
+fi
+
+printf '}' >> "$login_payload"
+chmod 600 "$login_payload"
 
 http_code="$(
     curl \
@@ -140,8 +170,21 @@ http_code="$(
 )"
 rm -f "$login_payload"
 
-[ "$http_code" = "200" ] ||
+if [ "$http_code" != "200" ]; then
+    if [ "$http_code" = "401" ]; then
+        if [ -n "$two_factor_code_file" ] || [ -n "$recovery_code_file" ]; then
+            fail "Authentication rejected the supplied second factor. Verify the current authenticator or recovery code and the account's sign-in state before retrying." 69
+        fi
+
+        if grep -Eq '"detail"[[:space:]]*:[[:space:]]*"RequiresTwoFactor"' "$login_response"; then
+            fail "The account requires two-factor authentication. Supply a current mode-600 authenticator-code file with BILLWATCH_SMOKE_TWO_FACTOR_CODE_FILE or a recovery-code file with BILLWATCH_SMOKE_RECOVERY_CODE_FILE." 65
+        fi
+
+        fail "Authentication was rejected. Verify the account credentials and lockout state before retrying." 69
+    fi
+
     fail "Authentication smoke test failed with HTTP $http_code." 69
+fi
 
 access_token="$(
     sed -n 's/.*"accessToken"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
