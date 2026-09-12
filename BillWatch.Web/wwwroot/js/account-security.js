@@ -168,6 +168,108 @@ export function getExternalIdentityStatus() {
         "BillWatch could not load linked sign-in methods.");
 }
 
+const settingsToastObservers = new WeakMap();
+
+function restoreSettingsToastSource() {
+    const sourceToast = document.querySelector(".settings-page > .settings-toast");
+
+    if (sourceToast instanceof HTMLElement) {
+        sourceToast.removeAttribute("aria-hidden");
+        delete sourceToast.dataset.billwatchToastPortaled;
+    }
+}
+
+function syncSettingsToastPortal(dialog) {
+    if (!(dialog instanceof HTMLDialogElement) || !dialog.open) {
+        return;
+    }
+
+    const sourceToast = document.querySelector(".settings-page > .settings-toast");
+    const existingPortal = dialog.querySelector(":scope > .settings-toast-portal");
+
+    if (!(sourceToast instanceof HTMLElement)) {
+        if (existingPortal instanceof HTMLElement) {
+            existingPortal.remove();
+        }
+
+        return;
+    }
+
+    sourceToast.setAttribute("aria-hidden", "true");
+    sourceToast.dataset.billwatchToastPortaled = "true";
+
+    const portal = sourceToast.cloneNode(true);
+
+    if (!(portal instanceof HTMLElement)) {
+        return;
+    }
+
+    portal.classList.add("settings-toast-portal");
+    portal.removeAttribute("aria-hidden");
+    delete portal.dataset.billwatchToastPortaled;
+
+    const portalCloseButton = portal.querySelector(".settings-toast-close");
+
+    if (portalCloseButton instanceof HTMLButtonElement) {
+        portalCloseButton.addEventListener("click", () => {
+            const sourceCloseButton = sourceToast.querySelector(".settings-toast-close");
+
+            if (sourceCloseButton instanceof HTMLButtonElement) {
+                sourceCloseButton.click();
+            }
+        });
+    }
+
+    if (existingPortal instanceof HTMLElement) {
+        existingPortal.replaceWith(portal);
+    }
+    else {
+        dialog.appendChild(portal);
+    }
+}
+
+function startSettingsToastPortal(dialog) {
+    const settingsPage = document.querySelector(".settings-page");
+
+    if (!(settingsPage instanceof HTMLElement)) {
+        return;
+    }
+
+    const existingObserver = settingsToastObservers.get(dialog);
+
+    if (existingObserver instanceof MutationObserver) {
+        existingObserver.disconnect();
+    }
+
+    syncSettingsToastPortal(dialog);
+
+    const observer = new MutationObserver(() => syncSettingsToastPortal(dialog));
+    observer.observe(settingsPage, {
+        childList: true,
+        subtree: true,
+        characterData: true
+    });
+
+    settingsToastObservers.set(dialog, observer);
+}
+
+function stopSettingsToastPortal(dialog) {
+    const observer = settingsToastObservers.get(dialog);
+
+    if (observer instanceof MutationObserver) {
+        observer.disconnect();
+        settingsToastObservers.delete(dialog);
+    }
+
+    const portal = dialog.querySelector(":scope > .settings-toast-portal");
+
+    if (portal instanceof HTMLElement) {
+        portal.remove();
+    }
+
+    restoreSettingsToastSource();
+}
+
 export function openSettingsDialog(id) {
     const dialog = document.getElementById(id);
 
@@ -191,13 +293,19 @@ export function openSettingsDialog(id) {
     if (!dialog.open) {
         dialog.showModal();
     }
+
+    startSettingsToastPortal(dialog);
 }
 
 export function closeSettingsDialog(id) {
     const dialog = document.getElementById(id);
 
-    if (dialog instanceof HTMLDialogElement && dialog.open) {
-        dialog.close();
+    if (dialog instanceof HTMLDialogElement) {
+        stopSettingsToastPortal(dialog);
+
+        if (dialog.open) {
+            dialog.close();
+        }
     }
 }
 
