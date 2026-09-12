@@ -153,7 +153,17 @@
                                 {
                                     <span class="admin-badge subscription">
                                         @FormatTier(user.SubscriptionTier)
-                                        @GetSubscriptionSuffix(user)
+                                        @if (user.SubscriptionEndsAtUtc.HasValue)
+                                        {
+                                            <text>@L[" · through {0}", string.Empty]</text>
+                                            <time datetime="@user.SubscriptionEndsAtUtc.Value.ToString("O")">
+                                                @FormatUtc(user.SubscriptionEndsAtUtc.Value)
+                                            </time>
+                                        }
+                                        else
+                                        {
+                                            <text>@L[" · lifetime"]</text>
+                                        }
                                     </span>
                                 }
                             </div>
@@ -830,16 +840,6 @@
             "Beta" => L["Beta"],
             _ => purpose
         };
-
-    private string GetSubscriptionSuffix(AdminUserViewModel user)
-    {
-        if (!user.SubscriptionEndsAtUtc.HasValue)
-        {
-            return L[" · lifetime"];
-        }
-
-        return L[" · through {0}", user.SubscriptionEndsAtUtc.Value.ToString("yyyy-MM-dd")];
-    }
 
     private string GetKeyGrant(AdminAccessKeyViewModel key)
     {

@@ -318,4 +318,5 @@ public sealed record AdminCreateAccessKeyRequest(
     int? DurationDays,
     bool GrantsLifetimeAccess,
     int MaxRedemptions,
-    DateTimeOffset? ExpiresAtUtc);
+    DateTimeOffset? ExpiresAtUtc,
+    string? Label = null);

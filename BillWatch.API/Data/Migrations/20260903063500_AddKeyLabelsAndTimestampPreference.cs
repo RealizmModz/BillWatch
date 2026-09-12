@@ -1,12 +1,8 @@
-using BillWatch.API.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace BillWatch.API.Data.Migrations;
 
-[DbContext(typeof(BillWatchDbContext))]
-[Migration("20260903063500_AddKeyLabelsAndTimestampPreference")]
-public sealed class AddKeyLabelsAndTimestampPreference : Migration
+public partial class AddKeyLabelsAndTimestampPreference : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {
