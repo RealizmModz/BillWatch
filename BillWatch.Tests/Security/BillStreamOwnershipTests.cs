@@ -75,7 +75,7 @@ public sealed class BillStreamOwnershipTests
 
         using var response = await secondClient.PostAsJsonAsync(
             "/api/bill-streams",
-            new { providerName = "Shared Provider", category = "Utilities" });
+            new { providerName = "Shared Provider", category = "Utility" });
 
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<BillStreamResultDto>();
@@ -105,7 +105,7 @@ public sealed class BillStreamOwnershipTests
             Id = Guid.NewGuid(),
             UserId = userId,
             ProviderName = providerName,
-            Category = BillCategory.Utilities,
+            Category = BillCategory.Utility,
             Source = BillStreamSource.Manual,
             IsActive = true,
             CreatedAtUtc = now,
