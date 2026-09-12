@@ -4,6 +4,16 @@ BillWatch is a transaction-first bill-intelligence product built with .NET 10, .
 
 Its core promise is: **Know when your bills change — and why.**
 
+## Development status
+
+Active development integrates through the `development` branch and is promoted to `master` only after the release candidate passes the complete CI gate. Pull request #81 established the current hardened development baseline and passed BillWatch CI #513 on exact head `014ac49064eaa17da68262d39d7d5d4023a6d1bc` before merge.
+
+The CI gate now contains three independent jobs:
+
+- Backend Release build, EF pending-model verification, and automated tests.
+- .NET MAUI Android Release build.
+- Linux production-container, HTTPS/security-boundary, encrypted-backup, and isolated recovery verification.
+
 ## Start the API locally
 
 The local API requires PostgreSQL plus Plaid sandbox credentials stored in .NET user secrets. Never commit credentials to this repository.
@@ -27,7 +37,7 @@ dotnet build .\BillWatch.Tests\BillWatch.Tests.csproj --configuration Release
 dotnet test .\BillWatch.Tests\BillWatch.Tests.csproj --configuration Release --no-build
 ```
 
-GitHub Actions repeats the backend build and tests on every push and pull request. It also builds the MAUI Android Release target and the Linux production container, including the native Tesseract/Leptonica OCR dependencies.
+GitHub Actions runs the complete CI gate for pull requests and for pushes to `master`. In addition to the backend build and tests, CI builds the MAUI Android Release target and the Linux production container, including the native Tesseract/Leptonica OCR dependencies.
 
 ## Production deployment candidate
 
