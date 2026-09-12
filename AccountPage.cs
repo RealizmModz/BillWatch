@@ -270,7 +270,7 @@ public sealed class AccountPage : ContentPage
         {
             Placeholder = "DELETE",
             MaxLength = 6,
-            AutoCapitalization = TextTransform.None,
+            Keyboard = Keyboard.Create(KeyboardFlags.None),
             ClearButtonVisibility = ClearButtonVisibility.WhileEditing
         };
 
