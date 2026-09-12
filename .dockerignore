@@ -9,6 +9,10 @@
 **/*.suo
 .env
 .env.*
+*.md
+*.http
+*.sln
+*.slnx
 BillWatch.Tests
 Resources
 Platforms

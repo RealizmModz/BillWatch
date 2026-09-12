@@ -1,12 +1,18 @@
 @BillWatch_API_HostAddress = https://localhost:7243
+@BillWatch_TestEmail = replace-with-local-test-email
+@BillWatch_TestPassword = replace-with-local-test-password
+@BillWatch_BankConnectionId = 00000000-0000-0000-0000-000000000000
+
+# Keep local credentials in your HTTP client environment or replace these placeholders
+# only in an uncommitted local copy. Never commit real credentials or tokens.
 
 # @name login
 POST {{BillWatch_API_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "devtest@billwatch.local",
-  "password": "BillWatch!Dev123"
+  "email": "{{BillWatch_TestEmail}}",
+  "password": "{{BillWatch_TestPassword}}"
 }
 
 ###
@@ -29,5 +35,5 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 
 ###
 
-DELETE {{BillWatch_API_HostAddress}}/api/bank-connections/270054d8-3ac9-463e-912f-fa9a24d38ecd
+DELETE {{BillWatch_API_HostAddress}}/api/bank-connections/{{BillWatch_BankConnectionId}}
 Authorization: Bearer {{login.response.body.$.accessToken}}

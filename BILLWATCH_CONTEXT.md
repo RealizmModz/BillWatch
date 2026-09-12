@@ -1,6 +1,6 @@
 # BillWatch Current Context
 
-Last updated: 2026-09-08
+Last updated: 2026-09-11
 
 ## Authority / continuation rules
 
@@ -23,9 +23,10 @@ BillWatch is transaction-first. Bank transactions discover recurring bills. Prov
 
 Repository: `RealizmModz/BillWatch`
 
-Default branch: `master`
+Default/release branch: `master`
+Active integration branch: `development`
 
-Current open PRs as of this refresh: none.
+PR #81, `Harden CI, BFF boundaries, and financial security regression coverage`, was merged into `development` on 2026-09-11 after its exact final feature-branch head passed the complete three-job CI gate.
 
 Stack: .NET 10 MAUI + ASP.NET Core API + Blazor Interactive Server Web/BFF, PostgreSQL/EF Core, Identity bearer auth, encrypted HttpOnly Web/BFF auth, Plaid, xUnit, PdfPig, Tesseract, Docker Compose/Caddy/systemd, encrypted Restic recovery.
 
@@ -45,6 +46,22 @@ Production path: `/opt/billwatch`
 - Production requires persistent Data Protection keys, explicit statement storage, Plaid credentials, AllowedHosts, and trusted reverse-proxy configuration.
 - Never log raw statements, full account numbers, auth/Plaid/provider tokens, passwords, recovery codes, provider/database/Restic secrets, or private operations webhooks.
 - AI-derived persistence remains disabled; deterministic extraction remains production persistence.
+
+## Current hardened development baseline
+
+The newest verified development feature head is:
+
+- Feature head: `014ac49064eaa17da68262d39d7d5d4023a6d1bc`
+- PR: #81
+- BillWatch CI: **#513**, completed successfully on 2026-09-11 on that exact head.
+- CI #513 passed all three jobs: `Backend build and tests`, `MAUI Android build`, and `Linux production container`.
+- PR #81 was then merged into `development` as merge commit `bef5133dfedd0fff3a2ce2c4058be51272b20895`.
+
+The hardening batch changed 51 files across 56 feature-branch commits. It added the MAUI Android Release build as a required CI surface and expanded repository hygiene, BFF malformed-request handling, backup trust-boundary hardening, authorization/ownership/cache/security-header/query-boundary regression coverage, documentation portability, and other low-risk reliability hardening.
+
+The MAUI gate exposed two real build defects during validation. Both were fixed before the final green run: the MAUI restore invocation was corrected, and the unsupported `Entry.AutoCapitalization` use in the account-deletion confirmation UI was replaced with supported MAUI keyboard configuration. The final CI run completed with the Android build green.
+
+Do not treat the `development` merge commit itself as a production release. Promotion to `master` and guarded production deployment remain separate release decisions.
 
 ## Verified P0/private-beta code position
 
@@ -81,23 +98,15 @@ Important verified backup/operations slices include:
 - release-pinned technical, alert-observation, Plaid-observation, and private-beta acceptance evidence verifiers;
 - trusted-beta launch evidence gate requiring complete machine acceptance plus explicit provider-immutability/protected-recovery and qualified Terms/Privacy review attestations.
 
-## Definitive green baseline
+## Production baseline
 
-Current definitive green code baseline:
+Production remains a separate release line from the newly merged `development` hardening batch. Do not claim PR #81 is deployed merely because it is green and merged to `development`.
 
-- Commit: `640bad78ee707e5a26b73b6b39c1c098dfb0503d`
-- Commit title: `Complete recovery-code support when linking external sign-in methods`
-- BillWatch CI: **#471**, completed successfully on 2026-09-08 on that exact `master` head.
-- The complete CI gate passed both jobs: `Backend build and tests` and `Linux production container`.
-- Backend coverage included restore, Release build, EF pending-model verification, and the full test suite.
-- Container/recovery coverage included production operation/beta-readiness script validation, API/Web image builds, HTTPS readiness, HTTP security boundaries, release-label verification, encrypted backup creation, isolated database/file restore, and post-recovery API readiness.
-- Scheduled `BillWatch Production Readiness` run **#62** also completed successfully on the same exact head.
-
-Do not use the old `f37ed2f...` / CI #411 baseline or PR #44 as the current continuation point. Those were valid historical P0 checkpoints but have been superseded by later merged, fully green authentication work.
+The previously verified production release remains the last known guarded deployment until a newer `master` release is explicitly promoted, passes its release gate, and is deployed through the guarded production path.
 
 ## Current machine-verifiable P0 position
 
-No compile, test, CI, container, recovery-simulation, or scheduled production-readiness failure is open on the current definitive green baseline above.
+No compile, test, CI, container, or recovery-simulation failure remains open from PR #81. Its exact final feature head passed the complete current CI gate before merge.
 
 Most remaining private-beta P0 items are **real-environment acceptance gates**, not missing generic application code. Do not manufacture extra scripts merely to make human/provider facts look machine-verifiable.
 
@@ -140,8 +149,8 @@ Before trusted external beta invitations:
 
 ## Immediate resume point
 
-1. Treat `640bad78ee707e5a26b73b6b39c1c098dfb0503d` / BillWatch CI #471 as the current definitive green code baseline unless a newer exact head has itself passed the complete gate.
-2. Check the latest `master` head, open PRs, and CI before changing code.
-3. If `master` remains green, do not invent P1 work while the real-environment P0 gates remain open.
-4. Prefer performing the next genuine real-environment acceptance step. If acceptance exposes a concrete code defect, fix it on a focused draft PR and require the full exact-head CI/container/recovery gate before merge.
+1. Treat PR #81 / exact green feature head `014ac49064eaa17da68262d39d7d5d4023a6d1bc` / BillWatch CI #513 as the newest verified development hardening checkpoint.
+2. `development` contains that batch at merge commit `bef5133dfedd0fff3a2ce2c4058be51272b20895`; do not confuse that integration merge with a production deployment.
+3. Check the latest `master`, `development`, open PRs, and CI before the next code or release change.
+4. Prefer the next genuine real-environment P0 acceptance step or another evidence-backed hardening slice. If new code changes are made, use a focused branch from current `development` and require the full three-job CI gate before merge.
 5. Preserve every security invariant above and all user-owned data ownership boundaries.

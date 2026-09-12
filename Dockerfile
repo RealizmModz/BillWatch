@@ -3,6 +3,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS native-build
 
 ARG LEPTONICA_VERSION=1.85.0
+ARG LEPTONICA_SHA256=3745ae3bf271a6801a2292eead83ac926e3a9bc1bf622e9cd4dd0f3786e17205
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
@@ -25,6 +26,7 @@ WORKDIR /native-src
 RUN curl --fail --location --silent --show-error \
         "https://github.com/DanBloomberg/leptonica/releases/download/${LEPTONICA_VERSION}/leptonica-${LEPTONICA_VERSION}.tar.gz" \
         --output leptonica.tar.gz \
+    && printf '%s  %s\n' "$LEPTONICA_SHA256" leptonica.tar.gz | sha256sum --check --strict \
     && tar --extract --gzip --file leptonica.tar.gz \
     && cd "leptonica-${LEPTONICA_VERSION}" \
     && ./configure --prefix=/usr/local --disable-static \
