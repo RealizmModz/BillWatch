@@ -71,6 +71,7 @@ grep -Fq -- '--proto' "$argv_capture" || fail "sender must constrain curl protoc
 grep -Fq '=https' "$argv_capture" || fail "sender must require HTTPS in curl protocol policy."
 grep -Fq -- '--max-redirs' "$argv_capture" || fail "sender must disable redirects."
 grep -Fq 'billwatch-external-readiness' "$argv_capture" || fail "sender payload did not identify the external readiness source."
+grep -Fq '"text":"BillWatch readiness alert: readiness-forced-failure for API (run 123456)."' "$argv_capture" || fail "sender payload did not include Slack-compatible message text."
 grep -Fq 'readiness-forced-failure' "$argv_capture" || fail "sender payload omitted the controlled event name."
 grep -Fq '"target":"API"' "$argv_capture" || fail "sender payload omitted the target metadata."
 grep -Fq '"runId":"123456"' "$argv_capture" || fail "sender payload omitted the workflow run identifier."

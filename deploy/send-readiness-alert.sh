@@ -53,7 +53,7 @@ timestamp="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 [ -n "$target_safe" ] || target_safe=unknown
 [ -n "$run_safe" ] || run_safe=unknown
 
-payload="{\"source\":\"billwatch-external-readiness\",\"event\":\"$event_safe\",\"target\":\"$target_safe\",\"runId\":\"$run_safe\",\"occurredAtUtc\":\"$timestamp\"}"
+payload="{\"text\":\"BillWatch readiness alert: $event_safe for $target_safe (run $run_safe).\",\"source\":\"billwatch-external-readiness\",\"event\":\"$event_safe\",\"target\":\"$target_safe\",\"runId\":\"$run_safe\",\"occurredAtUtc\":\"$timestamp\"}"
 
 curl_config="$(mktemp)"
 printf 'url = "%s"\n' "$webhook_url" > "$curl_config"
