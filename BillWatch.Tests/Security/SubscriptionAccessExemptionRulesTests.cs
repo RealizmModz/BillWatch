@@ -23,25 +23,24 @@ public sealed class SubscriptionAccessExemptionRulesTests
         Type controllerType,
         string actionName)
     {
-        Assert.True(
-            SubscriptionAccessExemptionRules.IsExempt(
-                controllerType,
-                actionName));
+        Assert.True(SubscriptionAccessExemptionRules.IsExempt(controllerType, actionName));
     }
 
     [Theory]
     [InlineData(typeof(AccountController), "FutureAccountAction")]
+    [InlineData(typeof(AccountPreferencesController), "AnyAction")]
     [InlineData(typeof(BankConnectionsController), nameof(BankConnectionsController.GetConnections))]
     [InlineData(typeof(BankAccountsController), "AnyAction")]
     [InlineData(typeof(BankTransactionsController), "AnyAction")]
+    [InlineData(typeof(BillAlertsController), "AnyAction")]
+    [InlineData(typeof(BillDiscoveryController), "AnyAction")]
+    [InlineData(typeof(BillMonitoringController), "AnyAction")]
     [InlineData(typeof(BillStreamsController), "AnyAction")]
+    [InlineData(typeof(PlaidController), "AnyAction")]
     public void IsExempt_ReturnsFalseForProtectedFinancialActions(
         Type controllerType,
         string actionName)
     {
-        Assert.False(
-            SubscriptionAccessExemptionRules.IsExempt(
-                controllerType,
-                actionName));
+        Assert.False(SubscriptionAccessExemptionRules.IsExempt(controllerType, actionName));
     }
 }

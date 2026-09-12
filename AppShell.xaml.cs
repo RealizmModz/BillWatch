@@ -2,16 +2,23 @@
 
 public partial class AppShell : Shell
 {
+    private static bool _routesRegistered;
+
     public AppShell()
     {
         InitializeComponent();
+        RegisterRoutes();
+    }
 
-        Routing.RegisterRoute(
-            nameof(ConnectBankPage),
-            typeof(ConnectBankPage));
+    private static void RegisterRoutes()
+    {
+        if (_routesRegistered)
+        {
+            return;
+        }
 
-        Routing.RegisterRoute(
-            nameof(TransactionsPage),
-            typeof(TransactionsPage));
+        Routing.RegisterRoute(nameof(ConnectBankPage), typeof(ConnectBankPage));
+        Routing.RegisterRoute(nameof(TransactionsPage), typeof(TransactionsPage));
+        _routesRegistered = true;
     }
 }
