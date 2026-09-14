@@ -1,4 +1,4 @@
-FROM postgres:17-alpine
+FROM postgres:18-alpine
 
 ARG BILLWATCH_RELEASE_ID=unknown
 
