@@ -8,7 +8,7 @@ x-logging: &default-logging
 
 services:
   restore-database:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: "no"
     stop_grace_period: 30s
     environment:

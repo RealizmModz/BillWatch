@@ -90,7 +90,7 @@ services:
       - public_edge
 
   database:
-    image: postgres:17-bookworm
+    image: postgres:18-bookworm
     restart: unless-stopped
     stop_grace_period: 60s
     logging: *default-logging
@@ -158,7 +158,7 @@ services:
   restore-database:
     profiles:
       - operations
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: "no"
     stop_grace_period: 30s
     environment:
