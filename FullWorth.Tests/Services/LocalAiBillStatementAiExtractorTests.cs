@@ -59,6 +59,9 @@ public sealed class LocalAiBillStatementAiExtractorTests
         var options =
             CreateEnabledOptions();
 
+        options.ApiKey =
+            "local-test-key-not-a-secret";
+
         options.MaxDocumentCharacters =
             1_000;
 
@@ -143,6 +146,15 @@ public sealed class LocalAiBillStatementAiExtractorTests
         Assert.Equal(
             new Uri(options.Endpoint),
             handler.RequestUri);
+
+        Assert.Equal(
+            $"Bearer {options.ApiKey}",
+            handler.Authorization);
+
+        Assert.DoesNotContain(
+            options.ApiKey!,
+            handler.RequestBody,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -504,6 +516,8 @@ public sealed class LocalAiBillStatementAiExtractorTests
 
         public Uri? RequestUri { get; private set; }
 
+        public string? Authorization { get; private set; }
+
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
@@ -516,6 +530,9 @@ public sealed class LocalAiBillStatementAiExtractorTests
                     ? null
                     : await request.Content.ReadAsStringAsync(
                         cancellationToken);
+
+            Authorization =
+                request.Headers.Authorization?.ToString();
 
             return responseFactory(request);
         }
