@@ -1,0 +1,52 @@
+name: fullworth-ai-evaluation
+
+services:
+  local-ai:
+    image: ${FULLWORTH_LOCAL_AI_IMAGE:?Set FULLWORTH_LOCAL_AI_IMAGE to an immutable llama.cpp server image@sha256 digest}
+    restart: "no"
+    read_only: true
+    pids_limit: 512
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      LLAMA_API_KEY: ${FULLWORTH_LOCAL_AI_API_KEY:?Set FULLWORTH_LOCAL_AI_API_KEY}
+    command:
+      - --model
+      - /models/model.gguf
+      - --alias
+      - ${FULLWORTH_LOCAL_AI_MODEL_ALIAS:-fullworth-local}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --ctx-size
+      - ${FULLWORTH_LOCAL_AI_CONTEXT_SIZE:-8192}
+      - --parallel
+      - "1"
+      - --n-predict
+      - ${FULLWORTH_LOCAL_AI_MAX_PREDICT:-4096}
+      - --threads
+      - ${FULLWORTH_LOCAL_AI_THREADS:-4}
+      - --n-gpu-layers
+      - ${FULLWORTH_LOCAL_AI_GPU_LAYERS:-0}
+      - --flash-attn
+      - auto
+      - --no-webui
+      - --log-disable
+    ports:
+      - "127.0.0.1:8080:8080"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=256m,mode=0700
+    volumes:
+      - type: bind
+        source: ${FULLWORTH_LOCAL_AI_MODEL_PATH:?Set FULLWORTH_LOCAL_AI_MODEL_PATH to an absolute GGUF file path}
+        target: /models/model.gguf
+        read_only: true
+    networks:
+      - ai_evaluation
+
+networks:
+  ai_evaluation:
+    internal: true
