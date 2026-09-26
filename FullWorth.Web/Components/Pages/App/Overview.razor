@@ -47,7 +47,9 @@
                 }
                 else
                 {
-                    <span aria-hidden="true">↻</span>
+                    <svg class="bw-sprite" aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#refresh"></use>
+                    </svg>
                     <span>@L["Check status"]</span>
                 }
             </button>
@@ -69,7 +71,9 @@
     {
         <div class="app-error-state">
             <div class="state-symbol">
-                !
+                <svg class="bw-sprite" aria-hidden="true">
+                    <use href="/assets/billwatch-sprites.svg#alert"></use>
+                </svg>
             </div>
 
             <div>
@@ -110,13 +114,17 @@
                     <a class="onboarding-primary-action"
                        href="/app/account">
                         @L["Review connection"]
-                        <span aria-hidden="true">→</span>
+                        <svg class="bw-sprite" aria-hidden="true">
+                            <use href="/assets/billwatch-sprites.svg#arrow-right"></use>
+                        </svg>
                     </a>
                 </div>
 
                 <div class="onboarding-visual">
                     <div class="attention-symbol">
-                        !
+                        <svg class="bw-sprite" aria-hidden="true">
+                            <use href="/assets/billwatch-sprites.svg#alert"></use>
+                        </svg>
                     </div>
 
                     <strong>
@@ -147,17 +155,29 @@
 
                     <div class="onboarding-trust">
                         <div>
-                            <span>✓</span>
+                            <span aria-hidden="true">
+                                <svg class="bw-sprite">
+                                    <use href="/assets/billwatch-sprites.svg#check"></use>
+                                </svg>
+                            </span>
                             @L["Read-only financial visibility"]
                         </div>
 
                         <div>
-                            <span>✓</span>
+                            <span aria-hidden="true">
+                                <svg class="bw-sprite">
+                                    <use href="/assets/billwatch-sprites.svg#check"></use>
+                                </svg>
+                            </span>
                             @L["No money movement"]
                         </div>
 
                         <div>
-                            <span>✓</span>
+                            <span aria-hidden="true">
+                                <svg class="bw-sprite">
+                                    <use href="/assets/billwatch-sprites.svg#check"></use>
+                                </svg>
+                            </span>
                             @L["Disconnect anytime"]
                         </div>
                     </div>
@@ -165,7 +185,9 @@
                     <a class="onboarding-primary-action"
                        href="/app/account">
                         @L["Connect a bank"]
-                        <span aria-hidden="true">→</span>
+                        <svg class="bw-sprite" aria-hidden="true">
+                            <use href="/assets/billwatch-sprites.svg#arrow-right"></use>
+                        </svg>
                     </a>
                 </div>
 
@@ -263,7 +285,9 @@
                     else
                     {
                         <span>@L["Check for progress"]</span>
-                        <span aria-hidden="true">↻</span>
+                        <svg class="bw-sprite" aria-hidden="true">
+                            <use href="/assets/billwatch-sprites.svg#refresh"></use>
+                        </svg>
                     }
                 </button>
             </div>
@@ -337,7 +361,9 @@
                 <a class="onboarding-secondary-action link-action"
                    href="/app/account">
                     @L["View connected accounts"]
-                    <span aria-hidden="true">→</span>
+                    <svg class="bw-sprite" aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#arrow-right"></use>
+                    </svg>
                 </a>
             </div>
 
@@ -374,7 +400,9 @@
         {
             <div class="connection-warning">
                 <div class="connection-warning-icon">
-                    !
+                    <svg class="bw-sprite" aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#alert"></use>
+                    </svg>
                 </div>
 
                 <div>
@@ -427,10 +455,15 @@
                 <div class="fw-pulse-actions">
                     <a class="fw-primary-action" href="/app/bills">
                         @L["Review bills"]
-                        <span aria-hidden="true">→</span>
+                        <svg class="bw-sprite" aria-hidden="true">
+                            <use href="/assets/billwatch-sprites.svg#arrow-right"></use>
+                        </svg>
                     </a>
 
                     <a class="fw-quiet-action" href="/app/account/transactions">
+                        <svg class="bw-sprite" aria-hidden="true">
+                            <use href="/assets/billwatch-sprites.svg#transactions"></use>
+                        </svg>
                         @L["Transactions"]
                     </a>
                 </div>
@@ -506,7 +539,9 @@
                     <a href="/app/bills"
                        class="fw-inline-action">
                         @L["View all"]
-                        <span aria-hidden="true">→</span>
+                        <svg class="bw-sprite" aria-hidden="true">
+                            <use href="/assets/billwatch-sprites.svg#arrow-right"></use>
+                        </svg>
                     </a>
                 </div>
 

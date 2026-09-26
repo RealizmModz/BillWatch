@@ -61,13 +61,27 @@
 
             <div class="fw-account-hero-actions">
                 <a href="/app/account/settings">
-                    @L["Security settings"]
-                    <span aria-hidden="true">→</span>
+                    <svg class="bw-sprite fw-account-action-icon"
+                         aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#settings"></use>
+                    </svg>
+                    <span>@L["Security settings"]</span>
+                    <svg class="bw-sprite fw-account-action-arrow"
+                         aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#arrow-right"></use>
+                    </svg>
                 </a>
 
                 <a href="/app/account/privacy">
-                    @L["Data & privacy"]
-                    <span aria-hidden="true">→</span>
+                    <svg class="bw-sprite fw-account-action-icon"
+                         aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#shield"></use>
+                    </svg>
+                    <span>@L["Data & privacy"]</span>
+                    <svg class="bw-sprite fw-account-action-arrow"
+                         aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#arrow-right"></use>
+                    </svg>
                 </a>
             </div>
         </div>
@@ -210,7 +224,9 @@
     {
         <div class="app-error-state">
             <div class="state-symbol">
-                !
+                <svg class="bw-sprite" aria-hidden="true">
+                    <use href="/assets/billwatch-sprites.svg#alert"></use>
+                </svg>
             </div>
 
             <div>

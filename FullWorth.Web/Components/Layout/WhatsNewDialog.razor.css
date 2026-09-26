@@ -1,145 +1,217 @@
 .whats-new-backdrop {
+    --whats-new-canvas: #f2f4f8;
+    --whats-new-panel: rgba(255, 255, 255, 0.96);
+    --whats-new-panel-muted: #f7f8fb;
+    --whats-new-line: rgba(17, 24, 39, 0.1);
+    --whats-new-ink: #111522;
+    --whats-new-muted: #667085;
+    --whats-new-faint: #7a8598;
+    --whats-new-accent: #5567f4;
+    --whats-new-accent-strong: #4355e8;
+    --whats-new-accent-soft: rgba(85, 103, 244, 0.11);
+    --whats-new-overlay: rgba(7, 17, 31, 0.58);
+    --whats-new-shadow: 0 30px 80px rgba(27, 39, 72, 0.2);
+
     position: fixed;
     inset: 0;
     z-index: 2000;
     display: grid;
     place-items: center;
     padding: 1.25rem;
-    background: color-mix(in srgb, var(--fw-bg, #07111f) 72%, transparent);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: var(--whats-new-overlay);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+html:not([data-theme="light"]) .whats-new-backdrop,
+html[data-theme="dark"] .whats-new-backdrop {
+    --whats-new-canvas: #080b12;
+    --whats-new-panel: rgba(17, 23, 34, 0.97);
+    --whats-new-panel-muted: #0d121c;
+    --whats-new-line: rgba(255, 255, 255, 0.085);
+    --whats-new-ink: #f7f8fb;
+    --whats-new-muted: #a4aec1;
+    --whats-new-faint: #8994a9;
+    --whats-new-accent: #7d8aff;
+    --whats-new-accent-strong: #6978ff;
+    --whats-new-accent-soft: rgba(103, 120, 255, 0.15);
+    --whats-new-overlay: rgba(2, 6, 12, 0.76);
+    --whats-new-shadow: 0 34px 90px rgba(0, 0, 0, 0.48);
 }
 
 .whats-new-dialog {
     position: relative;
-    width: min(680px, 100%);
-    max-height: min(760px, calc(100dvh - 2.5rem));
+    width: min(620px, 100%);
+    max-height: min(720px, calc(100dvh - 2.5rem));
     overflow: auto;
-    padding: clamp(1.35rem, 3vw, 2rem);
-    border: 1px solid color-mix(in srgb, var(--fw-border, #cbd5e1) 70%, transparent);
-    border-radius: 28px;
+    padding: clamp(1.2rem, 2.6vw, 1.55rem);
+    border: 1px solid var(--whats-new-line);
+    border-radius: 26px;
     background:
+        radial-gradient(
+            circle at 92% 0%,
+            color-mix(in srgb, var(--whats-new-accent) 16%, transparent),
+            transparent 16rem),
         linear-gradient(
             150deg,
-            color-mix(in srgb, var(--fw-surface, #ffffff) 96%, transparent),
-            color-mix(in srgb, var(--fw-surface, #ffffff) 88%, transparent));
+            color-mix(in srgb, var(--whats-new-panel) 98%, transparent),
+            color-mix(in srgb, var(--whats-new-panel) 92%, var(--whats-new-canvas)));
     box-shadow:
-        0 30px 80px rgba(2, 6, 23, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    color: var(--fw-text, #0f172a);
+        var(--whats-new-shadow),
+        inset 0 1px 0 color-mix(in srgb, var(--whats-new-ink) 7%, transparent);
+    color: var(--whats-new-ink);
     isolation: isolate;
 }
 
 .whats-new-glow {
     position: absolute;
-    top: -7rem;
-    right: -5rem;
+    top: -8rem;
+    right: -6rem;
     z-index: -1;
-    width: 18rem;
-    height: 18rem;
+    width: 19rem;
+    height: 19rem;
     border-radius: 50%;
     background: radial-gradient(
         circle,
-        color-mix(in srgb, var(--fw-accent, #4f46e5) 28%, transparent),
+        color-mix(in srgb, var(--whats-new-accent) 22%, transparent),
         transparent 68%);
     pointer-events: none;
 }
 
 .whats-new-header {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 1rem;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.9rem;
     align-items: start;
+}
+
+.whats-new-heading-copy {
+    min-width: 0;
 }
 
 .whats-new-icon {
     display: grid;
     place-items: center;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--fw-accent, #4f46e5) 14%, transparent);
-    color: var(--fw-accent, #4f46e5);
-    font-size: 1.35rem;
-    font-weight: 800;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid color-mix(in srgb, var(--whats-new-accent) 18%, transparent);
+    border-radius: 14px;
+    background: var(--whats-new-accent-soft);
+    color: var(--whats-new-accent);
+}
+
+.whats-new-icon .bw-sprite {
+    width: 1.25rem;
+    height: 1.25rem;
 }
 
 .whats-new-kicker {
     display: block;
-    margin-bottom: 0.35rem;
-    color: var(--fw-accent, #4f46e5);
-    font-size: 0.72rem;
-    font-weight: 800;
+    margin-bottom: 0.28rem;
+    color: var(--whats-new-accent);
+    font-size: 0.68rem;
+    font-weight: 820;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
 .whats-new-header h2 {
     margin: 0;
-    font-size: clamp(1.65rem, 4vw, 2.25rem);
-    line-height: 1.05;
-    letter-spacing: -0.04em;
+    color: var(--whats-new-ink);
+    font-size: clamp(1.55rem, 3.6vw, 2rem);
+    line-height: 1.04;
+    letter-spacing: -0.045em;
 }
 
 .whats-new-header p {
-    max-width: 34rem;
-    margin: 0.7rem 0 0;
-    color: var(--fw-text-muted, #64748b);
-    line-height: 1.6;
+    max-width: 31rem;
+    margin: 0.58rem 0 0;
+    color: var(--whats-new-muted);
+    font-size: 0.9rem;
+    line-height: 1.52;
 }
 
 .whats-new-close {
     display: grid;
     place-items: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid var(--whats-new-line);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--fw-text, #0f172a) 7%, transparent);
-    color: inherit;
+    background: color-mix(in srgb, var(--whats-new-panel-muted) 86%, transparent);
+    color: var(--whats-new-muted);
     font: inherit;
-    font-size: 1.45rem;
+    font-size: 1.25rem;
+    line-height: 1;
     cursor: pointer;
+    transition:
+        background 150ms ease,
+        color 150ms ease,
+        transform 150ms ease;
+}
+
+.whats-new-close:hover {
+    background: var(--whats-new-accent-soft);
+    color: var(--whats-new-ink);
+    transform: translateY(-1px);
 }
 
 .whats-new-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.8rem;
-    margin-top: 1.6rem;
+    gap: 0.7rem;
+    margin-top: 1.2rem;
 }
 
 .whats-new-item {
+    min-width: 0;
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.8rem;
-    padding: 1rem;
-    border: 1px solid color-mix(in srgb, var(--fw-border, #cbd5e1) 70%, transparent);
-    border-radius: 18px;
-    background: color-mix(in srgb, var(--fw-surface, #ffffff) 80%, transparent);
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.72rem;
+    align-items: start;
+    padding: 0.88rem;
+    border: 1px solid var(--whats-new-line);
+    border-radius: 16px;
+    background:
+        linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--whats-new-panel-muted) 86%, transparent),
+            color-mix(in srgb, var(--whats-new-panel) 70%, transparent));
 }
 
 .whats-new-item-icon {
     display: grid;
     place-items: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--fw-accent, #4f46e5) 10%, transparent);
-    color: var(--fw-accent, #4f46e5);
-    font-weight: 800;
+    width: 2.15rem;
+    height: 2.15rem;
+    border: 1px solid color-mix(in srgb, var(--whats-new-accent) 12%, transparent);
+    border-radius: 11px;
+    background: var(--whats-new-accent-soft);
+    color: var(--whats-new-accent);
+}
+
+.whats-new-item-icon .bw-sprite {
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+.whats-new-item-copy {
+    min-width: 0;
 }
 
 .whats-new-item h3 {
     margin: 0;
-    font-size: 0.96rem;
+    color: var(--whats-new-ink);
+    font-size: 0.88rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
 }
 
 .whats-new-item p {
-    margin: 0.35rem 0 0;
-    color: var(--fw-text-muted, #64748b);
-    font-size: 0.84rem;
-    line-height: 1.5;
+    margin: 0.28rem 0 0;
+    color: var(--whats-new-muted);
+    font-size: 0.77rem;
+    line-height: 1.45;
 }
 
 .whats-new-footer {
@@ -147,31 +219,55 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin-top: 1.5rem;
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--whats-new-line);
 }
 
 .whats-new-release {
-    color: var(--fw-text-muted, #64748b);
-    font-size: 0.78rem;
+    color: var(--whats-new-faint);
+    font-size: 0.72rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .whats-new-primary {
-    min-height: 2.9rem;
-    padding: 0.75rem 1.15rem;
+    min-height: 2.7rem;
+    padding: 0.68rem 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
     border: 0;
-    border-radius: 14px;
-    background: var(--fw-accent, #4f46e5);
+    border-radius: 13px;
+    background: linear-gradient(
+        135deg,
+        var(--whats-new-accent),
+        var(--whats-new-accent-strong));
     color: #fff;
     font: inherit;
+    font-size: 0.82rem;
     font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 12px 28px color-mix(in srgb, var(--fw-accent, #4f46e5) 28%, transparent);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--whats-new-accent) 22%, transparent);
+    transition:
+        transform 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.whats-new-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 15px 32px color-mix(in srgb, var(--whats-new-accent) 28%, transparent);
+}
+
+.whats-new-primary .bw-sprite {
+    width: 0.9rem;
+    height: 0.9rem;
+    transform: rotate(180deg);
 }
 
 .whats-new-close:focus-visible,
 .whats-new-primary:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--fw-accent, #4f46e5) 35%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--whats-new-accent) 38%, transparent);
     outline-offset: 3px;
 }
 
@@ -183,17 +279,21 @@
 
     .whats-new-dialog {
         max-height: calc(100dvh - 1.5rem);
-        border-radius: 24px;
+        border-radius: 23px;
     }
 
     .whats-new-header {
-        grid-template-columns: auto 1fr;
+        grid-template-columns: auto minmax(0, 1fr);
     }
 
     .whats-new-close {
         position: absolute;
-        top: 1rem;
-        right: 1rem;
+        top: 0.9rem;
+        right: 0.9rem;
+    }
+
+    .whats-new-heading-copy {
+        padding-right: 2.3rem;
     }
 
     .whats-new-grid {
@@ -220,6 +320,13 @@
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .whats-new-close,
+    .whats-new-primary {
+        transition: none;
+    }
+}
+
 @keyframes whats-new-fade-in {
     from {
         opacity: 0;
@@ -233,7 +340,7 @@
 @keyframes whats-new-rise-in {
     from {
         opacity: 0;
-        transform: translateY(16px) scale(0.985);
+        transform: translateY(14px) scale(0.985);
     }
 
     to {
