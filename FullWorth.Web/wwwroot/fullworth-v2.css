@@ -174,6 +174,10 @@ html[data-theme="dark"] .app-shell {
     background: rgba(113, 126, 159, 0.06);
 }
 
+.app-shell .pwa-install-icon {
+    transform: rotate(180deg);
+}
+
 .app-shell .app-nav-link.active .nav-icon {
     background: rgba(91, 109, 248, 0.13);
     color: #7f8cff;
@@ -1251,7 +1255,7 @@ html[data-theme="dark"] .app-shell .app-topbar {
     padding: 0 13px;
     display: inline-flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
     border: 1px solid rgba(220, 103, 96, 0.18);
     border-radius: 12px;
     background: var(--fw-negative-soft);
@@ -1259,6 +1263,22 @@ html[data-theme="dark"] .app-shell .app-topbar {
     font-size: 0.75rem;
     font-weight: 760;
     cursor: pointer;
+}
+
+.app-shell .fw-bills-alert-action-icon,
+.app-shell .fw-bills-alert-action-arrow {
+    width: 15px;
+    height: 15px;
+    flex: none;
+}
+
+.app-shell .fw-bills-alert-action-icon {
+    color: var(--fw-negative);
+}
+
+.app-shell .fw-bills-alert-action-arrow {
+    margin-left: 4px;
+    color: var(--fw-faint);
 }
 
 .app-shell .fw-bills-ledger {
@@ -1485,8 +1505,8 @@ html[data-theme="dark"] .app-shell .app-topbar {
 }
 
 .app-shell .fw-activity-pulse-stats > div {
-    min-height: 112px;
-    padding: 17px;
+    min-height: 96px;
+    padding: 15px 17px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1943,7 +1963,7 @@ html[data-theme="dark"] .app-shell .app-topbar {
     padding: 0 13px;
     display: inline-flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.055);
@@ -1951,6 +1971,22 @@ html[data-theme="dark"] .app-shell .app-topbar {
     font-size: 0.72rem;
     font-weight: 740;
     text-decoration: none;
+}
+
+.app-shell .fw-account-action-icon,
+.app-shell .fw-account-action-arrow {
+    width: 15px;
+    height: 15px;
+    flex: none;
+}
+
+.app-shell .fw-account-action-icon {
+    color: #8c99ff;
+}
+
+.app-shell .fw-account-action-arrow {
+    margin-left: 4px;
+    color: #929db8;
 }
 
 .app-shell .fw-account-stats {

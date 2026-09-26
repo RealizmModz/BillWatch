@@ -49,7 +49,9 @@
     {
         <div class="app-error-state">
             <div class="state-symbol">
-                !
+                <svg class="bw-sprite" aria-hidden="true">
+                    <use href="/assets/billwatch-sprites.svg#alert"></use>
+                </svg>
             </div>
 
             <div>
@@ -156,8 +158,15 @@
                 <button type="button"
                         class="fw-bills-alert-action"
                         @onclick="() => SetFilter(BillFilter.Increased)">
-                    @L["Review increases"]
-                    <span aria-hidden="true">→</span>
+                    <svg class="bw-sprite fw-bills-alert-action-icon"
+                         aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#trend-up"></use>
+                    </svg>
+                    <span>@L["Review increases"]</span>
+                    <svg class="bw-sprite fw-bills-alert-action-arrow"
+                         aria-hidden="true">
+                        <use href="/assets/billwatch-sprites.svg#arrow-right"></use>
+                    </svg>
                 </button>
             </section>
         }
