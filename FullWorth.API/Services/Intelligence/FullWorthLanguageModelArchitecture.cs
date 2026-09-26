@@ -43,6 +43,14 @@ public sealed class FullWorthLanguageModelArchitecture
             hiddenSize % attentionHeadCount != 0)
             throw new ArgumentOutOfRangeException(nameof(attentionHeadCount));
 
+        int headSize =
+            hiddenSize / attentionHeadCount;
+
+        if (headSize % 2 != 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(attentionHeadCount),
+                "Rotary position encoding requires an even attention head size.");
+
         if (keyValueHeadCount < 1 ||
             keyValueHeadCount > attentionHeadCount ||
             attentionHeadCount % keyValueHeadCount != 0)
