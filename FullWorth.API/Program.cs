@@ -731,6 +731,17 @@ builder.Services.AddSingleton<
     OpenAiBillStatementOptionsValidator>();
 
 builder.Services
+    .AddOptions<LocalAiBillStatementOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            LocalAiBillStatementOptions.SectionName))
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<
+    IValidateOptions<LocalAiBillStatementOptions>,
+    LocalAiBillStatementOptionsValidator>();
+
+builder.Services
     .AddOptions<BillStatementAiShadowOptions>()
     .Bind(
         builder.Configuration.GetSection(
@@ -757,11 +768,47 @@ builder.Services.AddHttpClient<
             Timeout.InfiniteTimeSpan;
     });
 
+/*
+ * The local extractor is intentionally limited by its validated configuration
+ * to a loopback llama.cpp-compatible endpoint. HttpClient does not own a
+ * separate timeout; the extractor links the caller token with its bounded
+ * inference timeout and sanitizes transport/model failures.
+ */
+builder.Services.AddHttpClient<
+    LocalAiBillStatementAiExtractor>(
+    client =>
+    {
+        client.Timeout =
+            Timeout.InfiniteTimeSpan;
+    });
+
 builder.Services.AddTransient<
     IBillStatementAiExtractor>(
     serviceProvider =>
-        serviceProvider.GetRequiredService<
-            OpenAiBillStatementAiExtractor>());
+    {
+        var localOptions =
+            serviceProvider.GetRequiredService<
+                    IOptions<LocalAiBillStatementOptions>>()
+                .Value;
+
+        var openAiOptions =
+            serviceProvider.GetRequiredService<
+                    IOptions<OpenAiBillStatementOptions>>()
+                .Value;
+
+        if (localOptions.Enabled &&
+            openAiOptions.Enabled)
+        {
+            throw new InvalidOperationException(
+                "Only one statement AI provider may be enabled at a time.");
+        }
+
+        return localOptions.Enabled
+            ? serviceProvider.GetRequiredService<
+                LocalAiBillStatementAiExtractor>()
+            : serviceProvider.GetRequiredService<
+                OpenAiBillStatementAiExtractor>();
+    });
 
 builder.Services.AddSingleton<
     BillStatementValidationService>();
