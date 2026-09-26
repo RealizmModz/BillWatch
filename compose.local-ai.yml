@@ -1,0 +1,50 @@
+name: fullworth-local-ai
+
+services:
+  fullworth-ai:
+    image: ${FULLWORTH_LLAMA_IMAGE:-ghcr.io/ggml-org/llama.cpp:server}
+    restart: unless-stopped
+    init: true
+    read_only: true
+    pids_limit: 256
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    environment:
+      # llama.cpp reads this without putting the secret in process arguments.
+      LLAMA_API_KEY: ${FULLWORTH_AI_API_KEY:?Set FULLWORTH_AI_API_KEY in the local environment}
+
+    command:
+      - -m
+      - /models/${FULLWORTH_AI_MODEL_FILE:?Set FULLWORTH_AI_MODEL_FILE to a GGUF filename}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --ctx-size
+      - ${FULLWORTH_AI_CONTEXT_SIZE:-8192}
+      - --parallel
+      - "1"
+      - --no-webui
+
+    volumes:
+      - ./.private/FullWorth.Models:/models:ro
+
+    # Development-only host exposure. Never bind the model server to 0.0.0.0
+    # on the host; the FullWorth API is the only intended client.
+    ports:
+      - "127.0.0.1:${FULLWORTH_AI_PORT:-8080}:8080"
+
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+    networks:
+      - local-ai-internal
+
+networks:
+  local-ai-internal:
+    internal: true
