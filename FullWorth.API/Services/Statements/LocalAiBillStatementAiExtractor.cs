@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -114,6 +115,15 @@ public sealed class LocalAiBillStatementAiExtractor
                             request,
                             boundedDocumentText))
             };
+
+        if (!string.IsNullOrWhiteSpace(
+                _options.ApiKey))
+        {
+            httpRequest.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    _options.ApiKey);
+        }
 
         try
         {
