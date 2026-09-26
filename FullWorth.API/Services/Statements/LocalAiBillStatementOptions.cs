@@ -12,6 +12,8 @@ public sealed class LocalAiBillStatementOptions
     public string Model { get; set; } =
         "qwen3-14b";
 
+    public string? ApiKey { get; set; }
+
     public string Endpoint { get; set; } =
         "http://127.0.0.1:8080/v1/chat/completions";
 
