@@ -29,6 +29,10 @@
   <symbol id="chevron-left" viewBox="0 0 24 24">
     <path d="M15 5l-7 7 7 7"/>
   </symbol>
+  <symbol id="arrow-right" viewBox="0 0 24 24">
+    <path d="M5 12h14"/>
+    <path d="M14 7l5 5-5 5"/>
+  </symbol>
   <symbol id="account" viewBox="0 0 24 24">
     <circle cx="12" cy="8" r="4"/>
     <path d="M4 21c0-3.7 3.6-6.5 8-6.5s8 2.8 8 6.5"/>

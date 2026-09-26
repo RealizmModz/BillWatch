@@ -1,0 +1,242 @@
+name: FullWorth iOS Internal Simulator App
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "FullWorth.csproj"
+      - "FullWorth.Core/**"
+      - "Platforms/iOS/**"
+      - "Resources/**"
+      - "*.xaml"
+      - "*.xaml.cs"
+      - "*.cs"
+      - ".github/workflows/ios-internal-simulator.yml"
+      - "deploy/tests/ios-internal-simulator-workflow-tests.sh"
+      - "deploy/tests/ios-simulator-smoke.sh"
+      - "IOS_INTERNAL_TESTING.md"
+  push:
+    branches:
+      - master
+    paths:
+      - "FullWorth.csproj"
+      - "FullWorth.Core/**"
+      - "Platforms/iOS/**"
+      - "Resources/**"
+      - "*.xaml"
+      - "*.xaml.cs"
+      - "*.cs"
+      - ".github/workflows/ios-internal-simulator.yml"
+      - "deploy/tests/ios-internal-simulator-workflow-tests.sh"
+      - "deploy/tests/ios-simulator-smoke.sh"
+      - "IOS_INTERNAL_TESTING.md"
+
+concurrency:
+  group: fullworth-ios-internal-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Validate iOS packaging contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Validate packaging workflow contract
+        run: |
+          sh deploy/tests/ios-internal-simulator-workflow-tests.sh
+          sh -n deploy/tests/ios-simulator-smoke.sh
+
+  build:
+    name: Build iOS simulator app
+    needs: contract
+    runs-on: macos-15
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Select Xcode 26.0 required by .NET iOS
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          xcode_app="/Applications/Xcode_26.0.1.app"
+          developer_dir="$xcode_app/Contents/Developer"
+
+          [ -d "$developer_dir" ] || {
+            printf '%s\n' \
+              "Expected the real Xcode 26.0.1 bundle at $xcode_app on the pinned macos-15 runner." \
+              >&2
+            exit 65
+          }
+
+          version=$(
+            DEVELOPER_DIR="$developer_dir" \
+              xcodebuild -version |
+              awk '/^Xcode / { print $2; exit }'
+          )
+
+          case "$version" in
+            26.0|26.0.*)
+              ;;
+            *)
+              printf '%s\n' \
+                "Expected Xcode 26.0.x but $xcode_app reports Xcode $version." \
+                >&2
+              exit 65
+              ;;
+          esac
+
+          printf 'DEVELOPER_DIR=%s\n' "$developer_dir" >> "$GITHUB_ENV"
+
+          DEVELOPER_DIR="$developer_dir" xcodebuild -version
+
+          runtime_count=$(
+            DEVELOPER_DIR="$developer_dir" \
+              xcrun simctl list runtimes --json |
+              python3 -c 'import json,sys; data=json.load(sys.stdin); print(sum(1 for runtime in data.get("runtimes", []) if runtime.get("isAvailable") and runtime.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-26-0")))'
+          )
+
+          if [ "$runtime_count" -lt 1 ]; then
+            printf '%s\n' \
+              "The pinned macos-15 runner does not expose an available iOS 26.0 simulator runtime under Xcode $version." \
+              >&2
+            exit 65
+          fi
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-ios-internal-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-ios-internal-
+
+      - name: Install MAUI iOS workload
+        run: dotnet workload install maui-ios --skip-manifest-update
+
+      - name: Restore iOS simulator dependencies
+        run: >-
+          dotnet restore FullWorth.csproj
+          -p:TargetFramework=net10.0-ios
+          -p:RuntimeIdentifier=iossimulator-arm64
+          -p:WarningsAsErrors=NU1901%3BNU1902%3BNU1903%3BNU1904
+
+      - name: Restore shared Core target
+        run: >-
+          dotnet restore FullWorth.Core/FullWorth.Core.csproj
+          -p:WarningsAsErrors=NU1901%3BNU1902%3BNU1903%3BNU1904
+
+      - name: Build unsigned iOS simulator app
+        run: >-
+          dotnet build FullWorth.csproj
+          --framework net10.0-ios
+          --configuration Release
+          --no-restore
+          -p:RuntimeIdentifier=iossimulator-arm64
+          -p:FullWorthApiBaseUrl=https://api.fullworth.org/
+          -p:ArchiveOnBuild=false
+
+      - name: Locate simulator app
+        id: app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          apps_file="$RUNNER_TEMP/fullworth-ios-apps.txt"
+
+          find "$GITHUB_WORKSPACE/bin/Release/net10.0-ios" \
+            -type d \
+            -name 'FullWorth.app' \
+            -path '*iossimulator-arm64*' \
+            -prune \
+            -print > "$apps_file"
+
+          app_count=$(grep -c . "$apps_file" || true)
+
+          if [ "$app_count" -ne 1 ]; then
+            printf '%s\n' \
+              "Expected exactly one iOS simulator FullWorth.app but found $app_count." \
+              >&2
+            exit 65
+          fi
+
+          app_path=$(sed -n '1p' "$apps_file")
+          bundle_id=$(
+            /usr/libexec/PlistBuddy               -c 'Print :CFBundleIdentifier'               "$app_path/Info.plist"
+          )
+
+          [ -n "$bundle_id" ] || {
+            printf '%s\n' "Built simulator app has no CFBundleIdentifier." >&2
+            exit 65
+          }
+
+          printf 'app_path=%s\n' "$app_path" >> "$GITHUB_OUTPUT"
+          printf 'bundle_id=%s\n' "$bundle_id" >> "$GITHUB_OUTPUT"
+
+      - name: Install and launch in iOS Simulator
+        shell: bash
+        run: >-
+          sh deploy/tests/ios-simulator-smoke.sh
+          "${{ steps.app.outputs.app_path }}"
+          "${{ steps.app.outputs.bundle_id }}"
+
+      - name: Package simulator artifact
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          artifact_dir="$RUNNER_TEMP/fullworth-ios-internal"
+          mkdir -p "$artifact_dir"
+
+          artifact_name="FullWorth-iOS-Simulator-${{ github.sha }}.zip"
+          artifact_path="$artifact_dir/$artifact_name"
+
+          ditto             -c             -k             --sequesterRsrc             --keepParent             "${{ steps.app.outputs.app_path }}"             "$artifact_path"
+
+          sha256=$(shasum -a 256 "$artifact_path" | awk '{print $1}')
+          printf '%s  %s\n' "$sha256" "$artifact_name"             > "$artifact_dir/$artifact_name.sha256"
+
+          printf 'artifact_dir=%s\n' "$artifact_dir" >> "$GITHUB_OUTPUT"
+          printf 'artifact_name=%s\n' "$artifact_name" >> "$GITHUB_OUTPUT"
+          printf 'sha256=%s\n' "$sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload iOS simulator artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: fullworth-ios-simulator-${{ github.sha }}
+          path: ${{ steps.package.outputs.artifact_dir }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Record build summary
+        shell: bash
+        run: |
+          {
+            echo "## FullWorth iOS internal simulator build"
+            echo
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- API: https://api.fullworth.org/"
+            echo "- Bundle ID: \`${{ steps.app.outputs.bundle_id }}\`"
+            echo "- Package: \`${{ steps.package.outputs.artifact_name }}\`"
+            echo "- SHA-256: \`${{ steps.package.outputs.sha256 }}\`"
+            echo "- Runtime: iOS Simulator (arm64)"
+            echo "- Retention: 14 days"
+            echo
+            echo "This artifact is simulator-only. It is not signed for a physical iPhone and is not an App Store/TestFlight package."
+          } >> "$GITHUB_STEP_SUMMARY"
