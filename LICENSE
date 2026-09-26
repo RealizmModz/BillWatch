@@ -1,0 +1,100 @@
+FullWorth Proprietary Source Code License
+Version 1.0 — 2026
+
+Copyright © 2026 FullWorth and the applicable copyright holders.
+All rights reserved.
+
+1. Scope
+
+This license applies to the original FullWorth source code, documentation,
+assets, configuration, tests, and other materials in this repository that are
+not expressly identified as third-party material and are not covered by a
+separate license.
+
+This license governs the repository materials themselves. Access to and use of
+the hosted FullWorth service are governed separately by the applicable
+FullWorth Terms of Service and Privacy Policy.
+
+2. No open-source license grant
+
+Publication or availability of the FullWorth source code does not make the
+software open source and does not grant permission to use the software except
+as expressly authorized in writing by the applicable copyright holder or as
+required by applicable law.
+
+Except for rights that cannot legally be restricted, no permission is granted
+to copy, modify, adapt, translate, create derivative works from, distribute,
+publish, sublicense, sell, lease, host, provide as a service, commercially
+exploit, or otherwise use the FullWorth materials.
+
+Authorized FullWorth contributors may use repository materials only to the
+extent necessary for work that FullWorth has authorized.
+
+3. No competing or hosted use
+
+Without prior written permission from the applicable copyright holder, the
+FullWorth materials may not be used to operate, build, train, support, or
+provide a competing product or service, nor may they be deployed as a hosted,
+managed, white-label, or self-hosted service for third parties.
+
+4. Security and circumvention
+
+Nothing in this license grants permission to bypass authentication,
+authorization, ownership isolation, rate limits, data-protection controls,
+secrets management, or other technical safeguards.
+
+This section does not restrict security research or other activity that a
+person has an independent legal right to perform.
+
+5. Third-party materials
+
+Third-party software, libraries, model weights, datasets, fonts, images,
+services, and other materials remain subject to their own licenses and terms.
+This license does not expand, replace, or restrict rights granted by those
+third parties.
+
+Where a third-party license requires attribution, notices, source disclosure,
+license reproduction, or other conditions, those conditions continue to
+apply to the relevant third-party material.
+
+6. Trademarks
+
+No trademark, service mark, trade name, logo, domain-name, or branding rights
+are granted by this license. "FullWorth" and associated branding may not be
+used in a way that suggests sponsorship, endorsement, affiliation, or origin
+without permission.
+
+7. Contributions
+
+Unless FullWorth and a contributor agree otherwise in writing, submitting a
+pull request, patch, issue attachment, or other contribution does not transfer
+ownership of the contributor's pre-existing intellectual property.
+
+FullWorth may require a separate contributor license agreement or copyright
+assignment before accepting material for which broader rights are needed.
+
+8. Disclaimer of warranty
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE FULLWORTH MATERIALS ARE PROVIDED
+"AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+9. Limitation of liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL,
+EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR LOST PROFITS, LOST SAVINGS, LOST DATA,
+OR BUSINESS INTERRUPTION, ARISING FROM OR RELATING TO THE FULLWORTH MATERIALS,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+10. Governing law
+
+Unless applicable law requires otherwise, this license is governed by the laws
+of the State of South Dakota, United States, without regard to conflict-of-law
+rules. Any dispute not required by law to be brought elsewhere will be handled
+in a court of competent jurisdiction serving Pennington County, South Dakota.
+
+11. Reserved rights
+
+All rights not expressly granted are reserved.
