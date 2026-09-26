@@ -1,0 +1,114 @@
+name: FullWorth iOS PWA Live Diagnostic
+
+on:
+  push:
+    branches:
+      - investigate/ios-pwa-install-258
+    paths:
+      - ".github/workflows/ios-pwa-live-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe public iOS install surface
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Inspect live PWA delivery
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          origin="https://fullworth.org"
+          tmp_dir=$(mktemp -d)
+          trap 'rm -rf "$tmp_dir"' EXIT
+
+          probe() {
+            name=$1
+            path=$2
+            headers="$tmp_dir/$name.headers"
+            body="$tmp_dir/$name.body"
+
+            printf '\n===== %s (%s) =====\n' "$name" "$path"
+
+            curl               --silent               --show-error               --location               --max-redirs 5               --max-time 20               --dump-header "$headers"               --output "$body"               "$origin$path"
+
+            grep -Ei               '^(HTTP/|content-type:|content-length:|cache-control:|location:|content-security-policy:|x-content-type-options:|cross-origin-resource-policy:)'               "$headers" || true
+
+            printf 'body-bytes: %s\n' "$(wc -c < "$body" | tr -d ' ')"
+          }
+
+          probe home /
+          probe manifest /site.webmanifest
+          probe service_worker /service-worker.js
+          probe touch_icon /assets/fullworth/fullworth-touch-icon-180.png
+          probe icon_192 /assets/fullworth/fullworth-icon-192.png
+          probe icon_512 /assets/fullworth/fullworth-icon-512.png
+          probe app /app
+
+          printf '\n===== HTML install metadata =====\n'
+          grep -Eio             '<meta[^>]+(apple-mobile-web-app-capable|apple-mobile-web-app-title|apple-mobile-web-app-status-bar-style|theme-color)[^>]*>|<link[^>]+(manifest|apple-touch-icon)[^>]*>'             "$tmp_dir/home.body" || true
+
+          printf '\n===== Manifest fields =====\n'
+          python3 - "$tmp_dir/manifest.body" <<'PY'
+          import json
+          import sys
+
+          path = sys.argv[1]
+
+          with open(path, "r", encoding="utf-8") as handle:
+              manifest = json.load(handle)
+
+          fields = {
+              "id": manifest.get("id"),
+              "name": manifest.get("name"),
+              "short_name": manifest.get("short_name"),
+              "start_url": manifest.get("start_url"),
+              "scope": manifest.get("scope"),
+              "display": manifest.get("display"),
+              "theme_color": manifest.get("theme_color"),
+              "background_color": manifest.get("background_color"),
+              "icons": [
+                  {
+                      "src": icon.get("src"),
+                      "sizes": icon.get("sizes"),
+                      "type": icon.get("type"),
+                      "purpose": icon.get("purpose"),
+                  }
+                  for icon in manifest.get("icons", [])
+              ],
+          }
+
+          print(json.dumps(fields, indent=2, sort_keys=True))
+          PY
+
+          printf '\n===== PNG signatures and dimensions =====\n'
+          python3 -             "$tmp_dir/touch_icon.body"             "$tmp_dir/icon_192.body"             "$tmp_dir/icon_512.body" <<'PY'
+          import struct
+          import sys
+
+          for path in sys.argv[1:]:
+              with open(path, "rb") as handle:
+                  header = handle.read(26)
+
+              if header[:8] != b"\x89PNG\r\n\x1a\n":
+                  raise SystemExit(f"{path}: not a PNG")
+
+              width, height = struct.unpack(">II", header[16:24])
+              bit_depth = header[24]
+              color_type = header[25]
+
+              print(
+                  f"{path.rsplit('/', 1)[-1]}: "
+                  f"{width}x{height}, "
+                  f"bit-depth={bit_depth}, "
+                  f"color-type={color_type}"
+              )
+          PY
+
+          printf '\n===== Service worker registration surface =====\n'
+          grep -E             'serviceWorker\.register|scope:|updateViaCache'             "$tmp_dir/service_worker.body" || true
