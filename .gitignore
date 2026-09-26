@@ -14,6 +14,11 @@
 # OCR output, reviewer truth, or provider/model results.
 .private/FullWorth.AiShadowCorpus/
 FullWorth.AiShadowCorpus/
+
+# Local AI model weights are large third-party artifacts and may contain
+# license/provenance obligations. Keep them outside Git.
+.private/FullWorth.Models/
+FullWorth.Models/
 # Legacy path remains ignored during the guarded brand migration.
 .private/BillWatch.AiShadowCorpus/
 BillWatch.AiShadowCorpus/
