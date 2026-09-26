@@ -276,9 +276,11 @@ jobs:
             ".github/workflows/branch-cleanup.yml",
             ".dockerignore",
             ".env.production.example",
+            ".env.ai.example",
             "Dockerfile",
             "Dockerfile.web",
-            "compose.production.yml"
+            "compose.production.yml",
+            "compose.ai-evaluation.yml"
           )
 
           $required = $false
@@ -367,6 +369,38 @@ jobs:
           sh deploy/tests/authenticated-api-smoke-tests.sh
           sh deploy/tests/internal-beta0-tests.sh
           sh deploy/tests/subscription-rollout-preflight-tests.sh
+
+      - name: Validate local AI evaluation runtime
+        if: steps.container_changes.outputs.required == 'true'
+        run: |
+          sh -n deploy/validate-ai-evaluation-env.sh
+
+          model_file="$(mktemp)"
+          env_file="$(mktemp)"
+          trap 'rm -f "$model_file" "$env_file"' EXIT
+
+          printf '%s' 'fullworth-ci-model-fixture' > "$model_file"
+          model_sha="$(sha256sum "$model_file" | awk '{ print $1 }')"
+          chmod 600 "$env_file"
+
+          cat > "$env_file" <<EOF
+          FULLWORTH_LOCAL_AI_IMAGE=ghcr.io/ggml-org/llama.cpp:server@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          FULLWORTH_LOCAL_AI_MODEL_PATH=$model_file
+          FULLWORTH_LOCAL_AI_MODEL_SHA256=$model_sha
+          FULLWORTH_LOCAL_AI_API_KEY=ci-local-ai-key-32-characters-minimum
+          FULLWORTH_LOCAL_AI_MODEL_ALIAS=fullworth-local
+          FULLWORTH_LOCAL_AI_CONTEXT_SIZE=8192
+          FULLWORTH_LOCAL_AI_MAX_PREDICT=4096
+          FULLWORTH_LOCAL_AI_THREADS=4
+          FULLWORTH_LOCAL_AI_GPU_LAYERS=0
+          EOF
+
+          sh deploy/validate-ai-evaluation-env.sh "$env_file"
+
+          FULLWORTH_LOCAL_AI_IMAGE=ghcr.io/ggml-org/llama.cpp:server@sha256:0000000000000000000000000000000000000000000000000000000000000000 \
+          FULLWORTH_LOCAL_AI_API_KEY=ci-local-ai-key-32-characters-minimum \
+          FULLWORTH_LOCAL_AI_MODEL_PATH="$model_file" \
+          docker compose --file compose.ai-evaluation.yml config >/dev/null
 
       - name: Configure container builder
         if: steps.container_changes.outputs.required == 'true'
